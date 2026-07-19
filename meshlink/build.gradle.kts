@@ -1,0 +1,59 @@
+import org.jetbrains.kotlin.konan.target.HostManager
+
+// :meshlink is the single artifact this repository ships. Per
+// CONSTITUTION.md's Technical Constraints, only this module: carries the
+// single kotlinx-coroutines-core runtime dependency, is validated for 100%
+// coverage (Kover), has its public API frozen (Binary Compatibility
+// Validator), and is documented/exported via Dokka and SKIE. None of that
+// applies to meshlink-reference/meshlink-proof/meshlink-benchmark.
+plugins {
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.android.kotlin.multiplatform.library)
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktfmt)
+    alias(libs.plugins.kover)
+    alias(libs.plugins.dokka)
+    alias(libs.plugins.skie)
+}
+
+kotlin {
+    jvmToolchain(21)
+
+    android {
+        namespace = "ch.trancee.meshlink"
+        compileSdk = 36
+        minSdk = 26
+        // Enables local unit tests (androidHostTest); device tests are not
+        // needed here since :meshlink itself has no Android-specific code.
+        withHostTestBuilder {}.configure {}
+    }
+
+    // Host tests (fast, JVM-only) in addition to the shipped Android target.
+    jvm()
+
+    // Kotlin/Native cannot cross-compile Apple targets on a non-macOS host,
+    // so these are only registered when Gradle evaluates the build on
+    // macOS (matches the "ios" job split in .github/workflows/ci.yml).
+    if (HostManager.hostIsMac) {
+        listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+            target.binaries.framework {
+                baseName = "MeshLink"
+                isStatic = true
+            }
+        }
+    }
+
+    sourceSets {
+        commonMain.dependencies {
+            // The only runtime dependency the shipped artifact may carry.
+            implementation(libs.kotlinx.coroutines.core)
+        }
+        commonTest.dependencies { implementation(kotlin("test")) }
+    }
+}
+
+detekt { buildUponDefaultConfig = true }
+
+ktfmt { kotlinLangStyle() }
+
+kover { reports { verify { rule { minBound(100) } } } }

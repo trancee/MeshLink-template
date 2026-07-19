@@ -1,0 +1,5 @@
+public final class ch/trancee/meshlink/MeshLink {
+	public static final field INSTANCE Lch/trancee/meshlink/MeshLink;
+	public static final field VERSION Ljava/lang/String;
+}
+
