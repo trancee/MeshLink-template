@@ -1,0 +1,27 @@
+{
+  // Markdown lint rules for MeshLink docs — see docs/how-to/... (linked
+  // from AGENTS.md) for how this fits into the local/CI quality gates.
+  "config": {
+    "default": true,
+    // Long-form prose isn't wrapped at 80 columns in this repo.
+    "MD013": false,
+    // Referencing "#123"-style issue/PR/section numbers inline is common
+    // and isn't a mistyped heading.
+    "MD018": false,
+    // docs/decisions/ memos intentionally use one continuously-incrementing
+    // list across multiple "###" subsections as a stable cross-reference
+    // numbering scheme — restarting each list at 1 would break that.
+    "MD029": false,
+    // docs/reference/device-test-matrix.md uses inline <span> chips for
+    // color-coded crypto-primitive support.
+    "MD033": false,
+    // Overly opinionated about pipe spacing; conflicts with existing
+    // hand-formatted tables that are otherwise valid Markdown.
+    "MD060": false
+  },
+  "globs": ["**/*.md"],
+  "ignores": [
+    ".agents/**",
+    ".pi-agent-notes.md"
+  ]
+}

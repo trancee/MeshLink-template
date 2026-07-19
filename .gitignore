@@ -1,0 +1,41 @@
+.build/
+.gradle/
+.kotlin/
+build/
+out/
+
+# JVM / Kotlin artifacts
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.iml
+*.log
+.env*
+
+# Android Studio / IDEs
+.idea/
+.vscode/
+local.properties
+
+# iOS / SwiftPM / Xcode
+.swiftpm/
+xcuserdata/
+DerivedData/
+Packages/
+
+# Universal OS / editor noise
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+
+# Python tooling noise
+__pycache__/
+*.pyc
+
+# Local agent / workflow state
+.context/
+.pi/
+
+# Local subagent debug artifacts (failed/aborted dispatch attempts, scratch output)
+.pi-subagents/

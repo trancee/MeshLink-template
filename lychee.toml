@@ -1,0 +1,11 @@
+# Config for lychee (link checker) — see scripts/check_markdown.sh and
+# docs/how-to/bootstrap-project-tooling.md.
+exclude_path = [".agents", ".git"]
+
+# Retry transient network failures a few times before failing CI.
+max_retries = 3
+retry_wait_time = 2
+timeout = 20
+
+# Treat 429 (rate limit) as a source of retries, not an immediate failure.
+accept = ["100..=103", "200..=299", "429"]

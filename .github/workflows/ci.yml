@@ -1,0 +1,107 @@
+---
+name: CI
+
+# Authoritative quality gate — see CONSTITUTION.md Quality Gates.
+# .githooks/pre-commit and pre-push mirror a fast local subset of these
+# checks; passing them locally does not guarantee this workflow passes.
+#
+# NOTE: this is a first-draft scaffold written before the Gradle project
+# exists. Task names mirror .githooks/ conventions and standard Gradle
+# plugin conventions (ktfmt, Detekt, Kover, Kotlin Binary Compatibility
+# Validator, Kotlin Multiplatform target test tasks). Adjust task names
+# here if the real Gradle setup differs once it lands.
+
+"on":
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Build, test, and lint (JVM/Android)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Install gitleaks
+        run: go install github.com/gitleaks/gitleaks/v8@latest
+
+      - name: Scan repository history for secrets
+        run: gitleaks detect --source . --redact -v --config .gitleaks.toml
+
+      - name: Install yamllint
+        run: python3 -m pip install --user yamllint
+
+      - name: YAML lint
+        run: yamllint .
+
+      - name: Install lychee
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/lychee
+          gh release download --repo lycheeverse/lychee \
+            --pattern '*x86_64-unknown-linux-gnu.tar.gz' \
+            --dir /tmp/lychee --clobber
+          tar -xf /tmp/lychee/*.tar.gz -C /tmp/lychee
+          sudo install -m 0755 /tmp/lychee/lychee-*/lychee /usr/local/bin/lychee
+
+      - name: Markdown lint + link check
+        run: ./scripts/check_markdown.sh
+
+      - name: ktfmt format check
+        run: ./gradlew --console=plain ktfmtCheck
+
+      - name: Detekt
+        run: ./gradlew --console=plain detekt
+
+      - name: Build and test — meshlink
+        run: ./gradlew --console=plain :meshlink:build
+
+      - name: Coverage gate (Kover)
+        run: ./gradlew --console=plain koverVerify
+
+      - name: Binary compatibility (BCV)
+        run: ./gradlew --console=plain apiCheck
+
+      - name: Build and check — meshlink-reference
+        run: ./gradlew --console=plain :meshlink-reference:check
+
+      - name: Build and check — meshlink-benchmark
+        run: ./gradlew --console=plain :meshlink-benchmark:check
+
+      - name: Build and check — meshlink-proof (Android)
+        run: ./gradlew --console=plain :meshlink-proof:check
+
+  ios:
+    name: Test iOS targets
+    runs-on: macos-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Test meshlink on iOS simulator targets
+        # NOTE: the iOS simulator has no real BLE radio. This target only
+        # covers non-radio logic (crypto, routing over the virtual harness,
+        # wire codec). Never rely on it for BLE behavior coverage — see
+        # CONSTITUTION.md Principle II and docs/explanation/module-structure.md.
+        run: ./gradlew --console=plain :meshlink:iosSimulatorArm64Test
