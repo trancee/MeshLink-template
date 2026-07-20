@@ -45,7 +45,11 @@ chunk locally instead of cascading the retry all the way back to A.
 
 ## Re-encryption stays hop-local
 
-Each hop has its own Noise transport session. The relay therefore:
+Each hop has its own **link-layer Noise XX** transport session. (The inner
+end-to-end payload is sealed by a separate **Noise IX** session between origin and
+destination — see
+[docs/decisions/crypto/e2e-handshake-pattern.md](../decisions/crypto/e2e-handshake-pattern.md).)
+The relay therefore:
 
 1. decrypts the inbound chunk for the current hop
 2. re-encrypts it for the next hop
