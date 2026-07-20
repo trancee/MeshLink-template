@@ -23,6 +23,8 @@
   "ignores": [
     ".agents/**",
     ".pi-agent-notes.md",
+    "./plans/**",
+    "./requirements/**",
     "./specs/**"
   ]
 }
