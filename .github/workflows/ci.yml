@@ -38,7 +38,14 @@ jobs:
         uses: gradle/actions/wrapper-validation@v4
 
       - name: Install gitleaks
-        run: go install github.com/gitleaks/gitleaks/v8@latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(gh release view --repo gitleaks/gitleaks --json tagName --jq '.tagName')
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/${VERSION}/gitleaks_${VERSION#v}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
 
       - name: Scan repository history for secrets
         run: gitleaks detect --source . --redact -v --config .gitleaks.toml
