@@ -53,6 +53,13 @@ Even with a stable discovery hint:
 - trust decisions still depend on the authenticated Noise XX session, not only
   on the advertised `keyHash`
 
+> **Two sessions, not one.** The "Noise XX session" referenced here is the
+> **hop-by-hop link** handshake between adjacent nodes. The **end-to-end** session
+> between the message origin and its final destination is a separate **Noise IX**
+> handshake (`Noise_IX_25519_ChaChaPoly_SHA256`) — see
+> [docs/decisions/crypto/e2e-handshake-pattern.md](../decisions/crypto/e2e-handshake-pattern.md).
+> Relays terminate only the link session and forward the still-sealed E2E frame.
+
 ## Why keep the 12-byte key hash
 
 The 12-byte prefix is small enough to fit the advertisement contract while still
