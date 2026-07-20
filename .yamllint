@@ -1,0 +1,21 @@
+# yamllint configuration — see https://yamllint.readthedocs.io
+#
+# MeshLink keeps its orchestration cockpit under specs/ as tracked YAML
+# artifacts. They intentionally omit the `---` document-start marker and use
+# long inline strings, so they are excluded from the repo-wide yamllint run
+# (`.github/workflows/ci.yml` runs `yamllint .`). Source/gradle YAML is still
+# fully linted.
+ignore: |
+  specs/
+
+rules:
+  document-start: disable
+  line-length:
+    max: 120
+    level: error
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
+  comments:
+    min-spaces-from-content: 1
+  truthy:
+    check-keys: false
