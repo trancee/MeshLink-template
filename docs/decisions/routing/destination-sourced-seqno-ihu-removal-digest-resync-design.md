@@ -77,7 +77,7 @@ reconnect.
 **Wire mechanism**: reuse the existing `RouteUpdate` frame type as a
 self-origin announcement. Immediately after a hop session is established
 with a new direct neighbor, each side sends one `RouteUpdate` describing
-itself: `destinationPeerId = <own peerId>`, `nextHopPeerId = <own peerId>`,
+itself: `destination = <own peerId>`, `nextHop = <own peerId>`,
 `metric = DIRECT_ROUTE_METRIC`, `seqNo = <own current counter value>`. This
 requires no new wire frame type or field — `RouteCoordinator.onRouteUpdate`
 already accepts route updates from a peer about a third destination; a
