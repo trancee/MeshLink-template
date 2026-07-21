@@ -11,10 +11,11 @@ uses two advertised service UUIDs in a single packet:
 
 That payload contains:
 
-- protocol version bits
-- power-mode bits
+- protocol version bits (3 bits)
+- platform (2 bits)
+- power-mode bits (3 bits)
 - a 16-bit `meshHash`
-- the L2CAP PSM hint
+- the L2CAP PSM hint (8 bits)
 - a 12-byte `keyHash`
 
 `keyHash` is the first 12 bytes of:
