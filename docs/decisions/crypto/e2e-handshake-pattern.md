@@ -20,11 +20,11 @@ have a different static-key-knowledge asymmetry at handshake start.
 ### Link layer (direct neighbors, first contact)
 
 Neither side holds the other's *verified* static key yet (TOFU). Both must learn
-and pin each other's keys. **Noise XX** (`Noise_XX_25519_ChaChaPoly_SHA256`) is
-the textbook mutual-auth first-contact pattern. This remains the locked link-layer
-choice. (An **IK** upgrade for post-TOFU reconnects — both ends already hold
-pinned keys, giving proactive mutual auth + 0-RTT — is a *considered future
-optimization, not adopted*.)
+and pin each other's keys. **Noise XX** (`Noise_XX_25519_ChaChaPoly_SHA256`)
+is the textbook mutual-auth first-contact pattern. This remains the link-layer
+choice for first contact. For post-TOFU reconnects — when both ends already hold
+pinned keys — **Noise IK** (`Noise_IK_25519_ChaChaPoly_SHA256`) is used, giving
+proactive mutual auth + 0-RTT in a single round trip (vs XX's 1.5).
 
 ### End-to-end layer (origin → destination, possibly multi-hop)
 
@@ -48,7 +48,7 @@ Noise_IX_25519_ChaChaPoly_SHA256
 | Layer | Pattern | Protocol name |
 |---|---|---|
 | Hop-by-hop link (first contact) | Noise XX | `Noise_XX_25519_ChaChaPoly_SHA256` |
-| Hop-by-hop link (post-TOFU, future) | Noise IK *(deferred)* | `Noise_IK_25519_ChaChaPoly_SHA256` |
+| Hop-by-hop link (post-TOFU reconnect) | Noise IK | `Noise_IK_25519_ChaChaPoly_SHA256` |
 | End-to-end (origin → destination) | Noise IX | `Noise_IX_25519_ChaChaPoly_SHA256` |
 
 Both layers use the same primitives (X25519 DH, HKDF-SHA256, ChaCha20-Poly1305)

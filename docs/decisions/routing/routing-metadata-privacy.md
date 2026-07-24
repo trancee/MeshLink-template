@@ -34,7 +34,9 @@ nearby observer.
 
 ROUTE_UPDATE (0x21) and ROUTE_WITHDRAWAL (0x22) always carry AEAD-encrypted
 payloads. There is no plaintext mode, no capability negotiation, and no
-fallback.
+fallback. ROUTE_DIGEST (0x04) carries only a 32-bit FNV-1a hash of the route
+table — it reveals no route contents (destinations, metrics, next hops are all
+hashed) and is left as plaintext for synchronization purposes.
 
 ### Wire Format
 
@@ -68,7 +70,9 @@ table RouteWithdrawal {
 
 The encrypted plaintext is the existing `BabelRouteFrameCodec.encode(...)`
 output for UPDATE or WITHDRAWAL, so route-table logic can stay intact after a
-successful decrypt.
+successful decrypt. For UPDATE frames, the plaintext also includes the
+destination peer's public key (32 bytes), enabling identity distribution
+through the routing table — see [Identity Distribution via Route Updates](../crypto/e2e-handshake-pattern.md).
 
 ### Why No Negotiation?
 
@@ -76,7 +80,7 @@ Since no MeshLink release has shipped, there are no legacy peers to be
 compatible with. Always-encrypt is simpler and more secure:
 
 - No downgrade attacks (plaintext is never an option)
-- No negotiation overhead (no ROUTE_CAPS exchange)
+- No negotiation overhead (encryption is always on)
 - No fallback logic (no graceful degradation to plaintext)
 - Simpler implementation (one code path, not two)
 

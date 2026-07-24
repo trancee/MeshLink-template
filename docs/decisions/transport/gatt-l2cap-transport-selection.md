@@ -37,9 +37,8 @@ GATT alone — that is the floor every peer supports regardless of platform
 or L2CAP CoC availability. Control-plane traffic is:
 
 - the Noise XX handshake and session establishment
-- routing control frames (`RouteUpdate`, `RouteDigest`, `ROUTE_CAPS`,
-  `ROUTE_PRIVACY_ENVELOPE`, etc. — see
-  [Routing metadata privacy envelope and negotiation contract](../routing/routing-metadata-privacy.md))
+- routing control frames (`RouteUpdate`, `RouteDigest`, etc. — see
+  [Routing metadata privacy: always-encrypted design](../routing/routing-metadata-privacy.md))
 - transfer control/acknowledgment signaling (chunk requests, SACK ranges) —
   the metadata that drives a transfer, as distinct from the payload bytes
   it carries

@@ -18,6 +18,7 @@ This document captures the complete technical specification for implementing Mes
 12. [Build & Quality Constraints](#12-build--quality-constraints)
 13. [Testing & Verification](#13-testing--verification)
 14. [Configuration Model](#14-configuration-model)
+15. [Future Work](#15-future-work)
 
 ---
 
@@ -45,7 +46,7 @@ This document captures the complete technical specification for implementing Mes
 | Offline operation | Zero connectivity required once permissions granted |
 | Persisted state | Only trust pin (identity material + first/verified instants); no plaintext or full identifiers cached |
 | Pending state | In-memory only; does not survive process restart |
-| Delivery outcomes | Explicit: success, in-progress, retrying, unreachable, trust-failure, timeout, unrecoverable-failure |
+| Delivery outcomes | Explicit: success, in-progress, retrying, unreachable, trust-failure, timeout, unrecoverable-failure (maps from `TransferStatus`: COMPLETED→success, IN_PROGRESS→in-progress, RETRYING→retrying, SUSPENDED→in-progress (waiting for route), TIMED_OUT→timeout, FAILED→unrecoverable-failure or trust-failure; `unreachable` is a routing-layer outcome, not a transfer status) |
 | Wire compatibility | Backward-compatible evolution; breaking changes require major version bump + migration |
 | Performance budgets | See Section 12 |
 | Runtime dependency | Maximum one: `kotlinx-coroutines-core` for shipped artifact |
@@ -98,10 +99,34 @@ meshlink-benchmark/ # Performance benchmarking
 PeerId: 16-byte stable/random identifier (generated once at install, survives key rotations)
 Ed25519PublicKey: 32-byte EdDSA signing key
 X25519PublicKey: 32-byte DH key for Noise handshakes
-PeerKey: 12-byte SHA-256 truncated public key hash, used in discovery [Decision: docs/decisions/model/core-types.md]
+PeerKey: 12-byte SHA-256(Ed25519Pub || X25519Pub) truncated, used in discovery. Ed25519 first (identity anchor), X25519 second (DH key). Both keys required. [Decision: docs/decisions/model/core-types.md]
 ```
 
 **Design Note:** PeerId is stable/random, NOT derived from public key. This ensures identity persists across key rotations, enabling correct TrustStore lookups during key rotation announcements. [Decision: docs/decisions/model/core-types.md]
+
+### PowerTier Enum
+
+```text
+enum class PowerTier { HIGH, MEDIUM, LOW, OFF }
+```
+
+- `HIGH` — Performance prioritized (20% scan, 100ms adv, 7.5ms conn, 8 concurrent, 512B chunks)
+- `MEDIUM` — Balanced (default) (10% scan, 500ms adv, 15ms conn, 4 concurrent, 256B chunks)
+- `LOW` — Battery conserved (5% scan, 1000ms adv, 30ms conn, 2 concurrent, 128B chunks)
+- `OFF` — No background activity
+
+[Decision: docs/decisions/power/power-tier-behavior.md]
+
+### RegulatoryRegion Enum
+
+```text
+enum class RegulatoryRegion { GLOBAL, EU }
+```
+
+- `GLOBAL` — Rely on platform's normal behavior (default)
+- `EU` — Apply EU clamping (adv interval floor 300ms, scan duty cycle ceiling 70%)
+
+[Decision: docs/decisions/regulatory-compliance.md]
 
 ### 3.2 Trust Record Model
 
@@ -126,10 +151,23 @@ TrustRecord {
 RouteEntry {
   destination: PeerId
   nextHop: PeerId?
-  metric: UInt (composite: RSSI normalized 0-255 + flags for CoC/interval/power)
+  metric: UInt (composite via LinkMetric; see below)
   seqNo: UInt (destination-self-reported sequence number)
-  expiry: Instant
+  publicKey: CryptoKey? (destination's public key, learned via route updates)
+  expiresAt: Instant
   isFeasible: Boolean
+}
+```
+
+**LinkMetric** encapsulates the metric bit layout:
+
+```text
+LinkMetric {
+  rssiNormalized: UInt (0-255)      // Low byte
+  supportsCoc: Boolean               // Bit 8
+  fastInterval: Boolean              // Bit 9
+  highPowerTier: Boolean             // Bit 10
+  composite: UInt                   // Serialized form: (flags shl 8) or rssiNormalized
 }
 ```
 
@@ -137,39 +175,59 @@ RouteEntry {
 
 ### 3.4 Message Envelope Model
 
+`MessageEnvelope` is the application-level message model. It carries the metadata
+that describes a message (version, id, ttl, priority, destination). When a message
+is sent through the mesh, the `MessageEnvelope` is serialized and placed inside a
+`MeshEnvelope.payload` (see §3.5, §5.7). The `MeshEnvelope` is the wire-level
+routing frame that relays use to forward the message — it carries `destination`,
+`payload`, and `hopLimit`. The `hopLimit` is a routing concern set by the routing
+layer, not by the application, so it is not a field of `MessageEnvelope`.
+
 ```text
 MessageEnvelope {
   version: U8
   messageId: 64-bit random
-  ttl: Duration (priority-based)
   priority: enum { HIGH, NORMAL, LOW }
   destination: PeerId
-  hopLimit: UByte (0 = direct only, 1+ = max hops)
+  // ttl is derived from priority by the routing layer (see §8.4), not set by the application
 }
 
 TransferSession {
   sessionId: SessionId (32-bit random)
   destination: PeerId
-  status: TransferStatus (IN_PROGRESS, PAUSED, COMPLETE, FAILED, TIMEOUT)
-  chunkSize: Int (negotiated per transfer: MTU + power tier)
+  status: TransferStatus (IN_PROGRESS, SUSPENDED, RETRYING, COMPLETED, FAILED, TIMED_OUT)
+  chunkSize: Int (selected by local power tier, bounded by peer MTU)
   totalChunks: UInt (ceil(totalBytes / chunkSize))
-  scoreboard: ByteArray (dynamic bitfield: ceil(totalChunks / 8) bytes; bit N = 1 if chunk N missing)
+  scoreboard: Scoreboard (dynamic bitfield; bit N = 1 if chunk N received; see §3.4)
   totalBytes: Long
   bytesReceived: Long
   startedAt: Instant
-  deadline: Instant? (per power tier retry budget)
+  expiresAt: Instant? (max time transfer can remain SUSPENDED before failing; computed as startedAt + retryBudget per §10.4)
   retryCount: Int
 }
 ```
 
-**Scoreboard:** Dynamic bitfield encoding — bitfield length = `ceil(totalChunks / 8)` bytes, derived from `totalChunks` known via TransferSession. Bit N = 1 means chunk N is missing. [Decision: docs/decisions/model/core-types.md]
+**Scoreboard:** Dynamic bitfield encoding — bitfield length = `ceil(totalChunks / 8)` bytes, derived from `totalChunks` known via TransferSession. Bit N = 1 means chunk N is received (standard SACK convention). Backed by the `Scoreboard` helper class which provides type-safe `markReceived`, `markMissing`, `isReceived`, `missingChunks` methods. [Decision: docs/decisions/model/core-types.md]
+
+**TransferStatus to Delivery Outcome mapping:**
+
+| TransferStatus | Delivery Outcome |
+|----------------|-----------------|
+| COMPLETED | success |
+| IN_PROGRESS | in-progress |
+| RETRYING | retrying |
+| SUSPENDED | in-progress (waiting for route) |
+| TIMED_OUT | timeout |
+| FAILED | unrecoverable-failure (or trust-failure if trust-related) |
+
+Note: `unreachable` is a routing-layer outcome (no route to destination), not a `TransferStatus`.
 
 ### 3.5 Wire Frame Types
 
 | Type | Meaning | Encryption |
 |------|---------|------------|
 | MESH_ENVELOPE | Routed E2E handshake or payload | Link-layer AEAD per hop |
-| ROUTE_UPDATE | Route announcement with metric + seqno | Always AEAD-encrypted |
+| ROUTE_UPDATE | Route announcement with metric + seqno + destination public key | Always AEAD-encrypted |
 | ROUTE_WITHDRAWAL | Route retraction | Always AEAD-encrypted |
 | ROUTE_DIGEST | FNV-1a hash of route table (32-bit) | Plaintext (digest only) |
 | TRANSFER_CHUNK | Payload chunk with offset + length | Link-layer AEAD per hop |
@@ -178,6 +236,8 @@ TransferSession {
 | KEY_ROTATION_ANNOUNCEMENT | Signed key rotation announcement | Plaintext (signature verifiable) |
 
 ROUTE_UPDATE and ROUTE_WITHDRAWAL are always AEAD-encrypted using the Noise session key — no plaintext routing metadata is ever transmitted. [Decision: docs/decisions/routing/routing-metadata-privacy.md, docs/decisions/wire/wire-format-spec.md]
+
+**Note:** `Hello` and `Ihu` frame types were considered and removed — BLE connection state (GATT/L2CAP connect/disconnect) provides liveness, making periodic Hello/IHU frames redundant. See [Destination-sourced route freshness, IHU cost signal removal, and digest-triggered resync](docs/decisions/routing/destination-sourced-seqno-ihu-removal-digest-resync-design.md) for rationale.
 
 ---
 
@@ -211,7 +271,8 @@ Single BLE advertisement packet containing:
 
 ### 5.1 Handshake Pattern
 
-- **Hop-by-hop link layer**: `Noise_XX_25519_ChaChaPoly_SHA256` - mutual authentication for first contact
+- **Hop-by-hop link layer (first contact):** `Noise_XX_25519_ChaChaPoly_SHA256` - mutual authentication for initial TOFU
+- **Hop-by-hop link layer (post-TOFU reconnect):** `Noise_IK_25519_ChaChaPoly_SHA256` - proactive mutual auth + 0-RTT when both peers hold pinned keys
 - **End-to-end layer**: `Noise_IX_25519_ChaChaPoly_SHA256` - origin knows destination key, destination may not know origin
 
 [Decision: docs/decisions/crypto/e2e-handshake-pattern.md]
@@ -222,11 +283,14 @@ Single BLE advertisement packet containing:
 Discovery → GATT connection → Noise_XX_25519_ChaChaPoly_SHA256 handshake → TOFU pin → TrustRecord stored
 ```
 
-### 5.3 Identity Gossip
+### 5.3 Identity Distribution via Route Updates
 
-- Signed identity records distributed through mesh
-- Enables E2E handshake where origin knows destination static key before connection
-- Wire format: signed Ed25519/X25519 public key announcements
+- Each peer's public key is included in `ROUTE_UPDATE` frames as part of the encrypted payload
+- When a peer connects directly (Noise XX), it learns the neighbor's public key and includes it in route updates about that neighbor
+- Route updates propagate hop-by-hop: each relay re-advertises the destination's public key in its own route updates
+- This enables E2E IX handshake where the origin knows the destination's static key before connecting
+- NX fallback (`Noise_NX`) is used only when the destination's public key is not yet in the routing table (cold start, partition recovery)
+- `KEY_ROTATION_ANNOUNCEMENT` updates the public key when a peer rotates its keys
 
 ### 5.4 Revocation
 
@@ -287,11 +351,11 @@ Phase 1: Link Setup (standard Noise_XX_25519_ChaChaPoly_SHA256)
 Origin --(GATT/L2CAP)--> Relay(s)
 
 Phase 2: E2E Handshake Routing
-Origin wraps IX_Msg1 in MeshEnvelope:
+Origin wraps IX_Msg1 in a MeshEnvelope (the wire-level routing frame):
   MeshEnvelope {
-    destination: destination.peerId,
-    payload: IX_Msg1_encrypted,
-    hopLimit: UByte
+    destination: destination.peerId,   // set from MessageEnvelope.destination
+    payload: IX_Msg1_encrypted,          // MessageEnvelope serialized + E2E content
+    hopLimit: UByte                       // set by routing layer, not application
   }
 
 Relay(s) decrypt hop layer → re-encrypt → forward without inspecting E2E payload
@@ -356,10 +420,10 @@ All validated against Wycheproof test vectors:
 
 ### 7.2 Handshake Patterns
 
-- **Link layer (hop-by-hop):** `Noise_XX_25519_ChaChaPoly_SHA256` - mutual authentication
+- **Link layer (first contact):** `Noise_XX_25519_ChaChaPoly_SHA256` - mutual authentication for initial TOFU
+- **Link layer (post-TOFU reconnect):** `Noise_IK_25519_ChaChaPoly_SHA256` - proactive mutual auth + 0-RTT when both peers hold pinned keys (1 round trip vs XX's 1.5)
 - **E2E layer:** `Noise_IX_25519_ChaChaPoly_SHA256` - origin knows destination key
 - **E2E fallback:** `Noise_NX_25519_ChaChaPoly_SHA256` with PeerKey verification when destination key unknown
-- **Future optimization:** `Noise_IK_25519_ChaChaPoly_SHA256` for post-TOFU reconnect (deferred)
 
 ### 7.3 Fail-Closed Rules
 
@@ -373,10 +437,6 @@ All validated against Wycheproof test vectors:
 - API 26-32 runtime checks for X25519/XDH and ChaCha20-Poly1305
 - Pure-Kotlin fallback implementations for older devices
 - Ed25519 fallback with constant-time arithmetic (optimized for performance)
-
-### 7.5 Future Work: PQ-Hybrid Key Establishment
-
-Post-quantum hybrid key establishment (X25519 + ML-KEM) is being evaluated per `docs/decisions/crypto/pq-hybrid-candidate-matrix.md`. The recommended shortlist candidate is C2 (conservative + staged extension frames), with measured overhead of +46ms latency and +184 bytes payload. PQ hybrid remains future work, not part of the current spec.
 
 ---
 
@@ -422,15 +482,15 @@ Babel-style distance-vector (RFC 8966) adapted for BLE mesh:
 
 The `TransferSession` model is defined in §3.4. Key fields:
 
-- `chunkSize`: Negotiated per transfer based on MTU and power tier
-- `scoreboard`: Dynamic bitfield (`ByteArray`) of length `ceil(totalChunks / 8)` bytes
+- `chunkSize`: Selected by local power tier, bounded by peer MTU
+- `scoreboard`: Dynamic bitfield (`ByteArray`) of length `ceil(totalChunks / 8)` bytes; bit N = 1 means chunk N received
 - `totalBytes`/`bytesReceived`: Progress tracking in bytes (not chunks)
 
 [Decision: docs/decisions/model/core-types.md]
 
 ### 9.2 Selective Acknowledgment
 
-- **Dynamic bitfield encoding**: Bitfield length = `ceil(totalChunks / 8)` bytes, derived from `totalChunks` known via TransferSession. Bit N = 1 means chunk N is missing.
+- **Dynamic bitfield encoding**: Bitfield length = `ceil(totalChunks / 8)` bytes, derived from `totalChunks` known via TransferSession. Bit N = 1 means chunk N is received (standard SACK convention).
 - **Variable overhead**: Small transfers (10 chunks) use 1 byte; large transfers (1000 chunks) use 125 bytes
 - Partial ACK never forces re-send of already-received chunks
 - Scoreboard clears on session completion or explicit failure
@@ -446,7 +506,7 @@ The `TransferSession` model is defined in §3.4. Key fields:
 ```text
 TransferAck {
   sessionId: UInt32 (4 bytes)
-  bitfield: UInt8Vector (ceil(totalChunks / 8) bytes; receiver knows totalChunks from session)
+  bitfield: UInt8Vector (ceil(totalChunks / 8) bytes; bit N = 1 means chunk N received; receiver knows totalChunks from session)
 }
 ```
 
@@ -498,12 +558,12 @@ Grace period adapts based on peer stability and power tier:
 
 ### 10.4 Tier-Driven Parameters
 
-| Tier | Scan Duty Cycle | Adv Interval | Conn Interval | Concurrent | Chunk Size |
-|------|-----------------|--------------|---------------|------------|------------|
-| HIGH | 20% | 100ms | 7.5-15ms | 8 | 512B |
-| MEDIUM | 10% | 500ms | 15-30ms | 4 | 256B |
-| LOW | 5% | 1000ms | 30-60ms | 2 | 128B |
-| OFF | 0% | Never | N/A | 0 | N/A |
+| Tier | Scan Duty Cycle | Adv Interval | Conn Interval | Concurrent | Chunk Size | Max Retries | Retry Budget |
+|------|-----------------|--------------|---------------|------------|------------|-------------|--------------|
+| HIGH | 20% | 100ms | 7.5-15ms | 8 | 512B | 10 | 60s |
+| MEDIUM | 10% | 500ms | 15-30ms | 4 | 256B | 5 | 30s |
+| LOW | 5% | 1000ms | 30-60ms | 2 | 128B | 3 | 15s |
+| OFF | 0% | Never | N/A | 0 | N/A | 0 | 0s |
 
 ---
 
@@ -513,8 +573,8 @@ Grace period adapts based on peer stability and power tier:
 
 ```text
 sealed interface PeerEvent {
-  data class Found(val peerId: PeerId, val connectionState: ConnectionState)
-  data class StateChanged(val peerId: PeerId, val state: ConnectionState)
+  data class Found(val peerId: PeerId, val connectionState: PeerConnectionState)
+  data class StateChanged(val peerId: PeerId, val state: PeerConnectionState)
   data class Lost(val peerId: PeerId)
 }
 ```
@@ -528,6 +588,28 @@ enum class PeerConnectionState {
   // GONE is internal only, triggers PeerEvent.Lost
 }
 ```
+
+### 11.2.1 Internal Connection State Tracking
+
+`ConnectionState` is the internal runtime tracking type that drives the peer
+lifecycle (CONNECTED → DISCONNECTED → GONE). It is not exposed publicly —
+only `PeerConnectionState` (the enum above) is visible to the host app.
+
+```text
+ConnectionState {
+  peerId: PeerId
+  connectionState: PeerConnectionState
+  graceSweeps: Int          // 0-3 for transition to GONE
+  lastRssi: Int?            // For metric calculation
+  supportsCoc: Boolean       // L2CAP CoC capability
+  connectionInterval: Int    // ms
+  lastHandshake: Instant?    // For timeout calculations
+}
+```
+
+`MeshStateManager` uses `ConnectionState` to track grace periods and
+coordinate cleanup across routing, transfer, and presence state. The host app
+only sees `PeerEvent.Found`, `PeerEvent.StateChanged`, and `PeerEvent.Lost`.
 
 ### 11.3 Diagnostic Events (Machine Observable)
 
@@ -604,14 +686,22 @@ iOS proof harness is planned under `meshlink-proof/ios/` for real-device validat
 - `CoreBluetoothThroughputTest`: Verify 15-20ms floor per BLE references
 - `IosBackgroundTransferTest`: Verify background mode handling during transfers
 
-### 13.3 NX Fallback Testing
+### 13.3 Link-Layer Handshake Testing (XX + IK)
+
+- `NoiseXXHandshakeTest`: Verify XX establishes bidirectional link keys with mutual TOFU pinning
+- `NoiseIKReconnectTest`: Verify IK reconnect succeeds when both peers hold pinned keys
+- `NoiseIKFallbackTest`: Verify IK is used after TOFU, XX is used for first contact
+- `NoiseIK0RTTTest`: Verify 0-RTT data can be sent after IK message 1
+- `NoiseIKFailClosedTest`: Verify IK fails closed on key mismatch or malformed input
+
+### 13.4 NX Fallback Testing
 
 - `NXFallbackPeerKeyVerifyTest`: Verify PeerKey mismatch causes rejection
 - `NXFallbackRateLimitTest`: Verify 3rd attempt succeeds, 4th fails
 - `NXFallbackTimeoutTest`: Verify 10s timeout expires correctly
 - `NXFallbackReplayTest`: Verify nonce replay is rejected
 
-### 13.4 Key Rotation Testing
+### 13.5 Key Rotation Testing
 
 - `KeyRotationAnnounceTest`: Verify signature verification and key adoption
 - `KeyRotationSeqnoResetTest`: Verify seqno resets to 1, not preserved
@@ -619,7 +709,7 @@ iOS proof harness is planned under `meshlink-proof/ios/` for real-device validat
 - `KeyRotationRollbackTest`: Verify old key still accepted for active sessions
 - `WireCompatTest`: Verify KeyRotationAnnouncement round-trips correctly
 
-### 13.5 Virtual Mesh Harness
+### 13.6 Virtual Mesh Harness
 
 Multi-node scenarios exercised without physical hardware:
 
@@ -628,13 +718,13 @@ Multi-node scenarios exercised without physical hardware:
 - Routing convergence tests
 - Cross-platform compatibility verification
 
-### 13.6 Wire Compatibility Testing
+### 13.7 Wire Compatibility Testing
 
 - Hex test vectors in `commonTest/resources/wire-compat/`
 - Forward-compatibility checks
 - Malformed-input validation
 
-### 13.7 Acceptance Criteria Per Layer
+### 13.8 Acceptance Criteria Per Layer
 
 1. **Data Model / Trust**: Wire vectors, malformed input rejection
 2. **Discovery / Advertisement**: Single-packet format, PeerKey matching
@@ -652,7 +742,7 @@ Per PROJECT.md suggested approach, sliced into vertical epics:
 
 1. **Core Data Types (e01)** - PeerId, PeerKey, CryptoKey, TrustRecord, RouteEntry, TransferSession
 2. **Wire Format (e02)** - FlatBuffers schemas, encode/decode, compatibility testing
-3. **Noise Handshake XX (e03)** - Hop-by-hop link encryption with Android/iOS platform crypto
+3. **Noise Handshake XX/IK (e03)** - Hop-by-hop link encryption (XX for first contact, IK for post-TOFU reconnect) with Android/iOS platform crypto
 4. **E2E Handshake IX/NX (e04)** - End-to-end encryption with mesh routing and fallback
 5. **Routing Coordinator (e05)** - Babel-style seqno management, metric-based path selection
 6. **Transfer Session (e06)** - Dynamic bitfield SACK protocol, cut-through relay, retry bounds
@@ -676,7 +766,7 @@ Each layer validated against RFC-grounded reference algorithms before platform g
  */
 data class MeshLinkConfig(
   val powerTier: PowerTier = PowerTier.MEDIUM,
-  val regulatoryRegion: RegulatoryRegion = RegulatoryRegion.DEFAULT,
+  val regulatoryRegion: RegulatoryRegion = RegulatoryRegion.GLOBAL,
   val keyRotation: KeyRotationConfig = KeyRotationConfig(),
   val transfer: TransferConfig = TransferConfig(),
   val diagnostics: DiagnosticsConfig = DiagnosticsConfig()
@@ -703,18 +793,49 @@ fun meshLinkConfig(block: MeshLinkConfigBuilder.() -> Unit): MeshLinkConfig {
 
 class MeshLinkConfigBuilder {
   var powerTier: PowerTier = PowerTier.MEDIUM
-  var regulatoryRegion: RegulatoryRegion = RegulatoryRegion.DEFAULT
-  var keyRotationInterval: Duration = Duration.days(3)
-  var keyRotationGracePeriod: Duration = Duration.hours(1)
-  
+  var regulatoryRegion: RegulatoryRegion = RegulatoryRegion.GLOBAL
+
+  fun keyRotation(block: KeyRotationConfigBuilder.() -> Unit) {
+    keyRotationConfig = KeyRotationConfigBuilder().apply(block).build()
+  }
+
+  fun transfer(block: TransferConfigBuilder.() -> Unit) {
+    transferConfig = TransferConfigBuilder().apply(block).build()
+  }
+
+  fun diagnostics(block: DiagnosticsConfigBuilder.() -> Unit) {
+    diagnosticsConfig = DiagnosticsConfigBuilder().apply(block).build()
+  }
+
+  private var keyRotationConfig = KeyRotationConfig()
+  private var transferConfig = TransferConfig()
+  private var diagnosticsConfig = DiagnosticsConfig()
+
   fun build(): MeshLinkConfig = MeshLinkConfig(
     powerTier = powerTier,
     regulatoryRegion = regulatoryRegion,
-    keyRotation = KeyRotationConfig(
-      interval = keyRotationInterval,
-      gracePeriod = keyRotationGracePeriod
-    )
+    keyRotation = keyRotationConfig,
+    transfer = transferConfig,
+    diagnostics = diagnosticsConfig
   )
+}
+
+class KeyRotationConfigBuilder {
+  var interval: Duration = Duration.days(3)
+  var gracePeriod: Duration = Duration.hours(1)
+  fun build() = KeyRotationConfig(interval, gracePeriod)
+}
+
+class TransferConfigBuilder {
+  var maxRetries: Int = 5
+  var chunkSize: Int = 256
+  fun build() = TransferConfig(maxRetries, chunkSize)
+}
+
+class DiagnosticsConfigBuilder {
+  var emitToLog: Boolean = true
+  var eventCallback: (DiagnosticEvent) -> Unit = {}
+  fun build() = DiagnosticsConfig(emitToLog, eventCallback)
 }
 ```
 
@@ -726,7 +847,48 @@ class MeshLinkConfigBuilder {
 val config = meshLinkConfig {
   powerTier = PowerTier.HIGH
   regulatoryRegion = RegulatoryRegion.EU
-  keyRotationInterval = Duration.days(1)  // Override 3-day default
-  keyRotationGracePeriod = Duration.minutes(30)
+  keyRotation {
+    interval = Duration.days(1)       // Override 3-day default
+    gracePeriod = Duration.minutes(30)
+  }
+  transfer {
+    maxRetries = 3
+    chunkSize = 512
+  }
+  diagnostics {
+    emitToLog = false
+  }
 }
 ```
+
+---
+
+## 15. Future Work
+
+### 15.1 PQ-Hybrid Key Establishment
+
+Post-quantum hybrid key establishment (X25519 + ML-KEM) is being evaluated per
+`docs/decisions/crypto/pq-hybrid-candidate-matrix.md`. The recommended shortlist
+candidate is C2 (conservative + staged extension frames), with measured overhead
+of +46ms latency and +184 bytes payload. PQ hybrid is **not** part of the current
+implementation scope — it is tracked as a future enhancement.
+
+### 15.2 Noise IK for E2E Layer
+
+Note: `Noise_IK_25519_ChaChaPoly_SHA256` is **already implemented** for the
+**link layer** (post-TOFU reconnect between direct neighbors). This future-work
+item is about extending IK to the **E2E layer** — when both origin and destination
+already hold each other's static keys, IK could provide proactive authentication +
+0-RTT for end-to-end sessions. This is a separate optimization from the link-layer
+IK and is not part of the current implementation scope.
+
+### 15.3 Throughput-Based Link Metrics
+
+Current routing uses RSSI-based metrics as a proxy for link quality. A future
+enhancement could add throughput-based metrics (actual bytes/sec) measured after
+connection establishment, combined with RSSI for initial path selection.
+
+### 15.4 Payload Compression
+
+Optional payload compression (zlib/deflate/gzip, Brotli, Zstandard) is a reasonable
+future add-on for large transfers, not part of the current spec.

@@ -151,14 +151,14 @@ table TransferAck {
   session_id: uint8Vector(4);
   
   // Dynamic bitfield: ceil(totalChunks / 8) bytes
-  // Bit N = 1 if chunk N is missing
+  // Bit N = 1 if chunk N is received (standard SACK convention)
   // Receiver knows totalChunks from TransferSession
   bitfield: uint8Vector(0);
 }
 
 table TransferCancel {
-  // Session ID
-  session_id: uint8Vector(16);
+  // Session ID (4 bytes, 32-bit — matches TransferChunk and TransferAck)
+  session_id: uint8Vector(4);
   
   // Reason code
   reason: uint8;

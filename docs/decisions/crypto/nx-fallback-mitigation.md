@@ -71,10 +71,10 @@ NX fallback is triggered only when:
 
 ```kotlin
 // PeerKey verification in handshake payload
-data class E2EHandshakePayload(
+data class HandshakePayload(
   val peerKey: PeerKey,             // 12-byte discovery hint (truncated key hash)
   val nonce: UInt32,                 // Replay protection - checked first
-  val encryptedContent: ByteArray    // Actual payload
+  val content: ByteArray             // Actual payload
 )
 
 // Rate limiting state

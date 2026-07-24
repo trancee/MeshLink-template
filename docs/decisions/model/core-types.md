@@ -55,10 +55,17 @@ A truncated hash used in discovery advertisements.
 @JvmInline
 value class PeerKey(private val bytes: ByteArray) {
   init { require(bytes.size == 12) }
-  
+
   companion object {
-    fun fromPublicKey(publicKey: CryptoKey): PeerKey {
-      val hash = sha256(publicKey.bytes)
+    /**
+     * Derives PeerKey from both public keys.
+     * Order: Ed25519Pub || X25519Pub — Ed25519 first because it is the
+     * identity/signing key (primary identity anchor); X25519 second because
+     * it is the DH key (may be rotated independently).
+     * If either key is missing, derivation fails — both keys are required.
+     */
+    fun fromPublicKeys(ed25519Pub: CryptoKey, x25519Pub: CryptoKey): PeerKey {
+      val hash = sha256(ed25519Pub.bytes + x25519Pub.bytes)
       return PeerKey(hash.copyOf(12)) // First 12 bytes
     }
   }
@@ -146,8 +153,9 @@ data class RouteEntry(
   val nextHop: PeerId?,      // null = destination unreachable
   val seqNo: UInt,           // Destination-sourced sequence number
   val metric: UInt,            // Link quality metric (RSSI+flags)
+  val publicKey: CryptoKey?   // Destination's public key, learned via route updates
   val expiresAt: Instant,    // Route expiration
-  val isFeasible: Boolean     // RFC 8966 feasibility condition
+  val isFeasible: Boolean,    // RFC 8966 feasibility condition
 )
 
 // Link quality metric (see link-quality-metric.md)
@@ -178,20 +186,42 @@ data class TransferSession(
   val status: TransferStatus,
   val chunkSize: Int,              // Based on power tier
   val totalChunks: UInt,           // ceil(totalBytes / chunkSize)
-  val scoreboard: ByteArray,       // Dynamic bitfield: ceil(totalChunks / 8) bytes; bit N = 1 if chunk N missing
+  val scoreboard: Scoreboard,       // Dynamic bitfield; bit N = 1 if chunk N received
   val totalBytes: Long,
   val bytesReceived: Long,
   val startedAt: Instant,
-  val deadline: Instant?,          // Per power tier retry budget
+  val expiresAt: Instant?,        // Max time SUSPENDED before failing (startedAt + retryBudget)
   val retryCount: Int
 )
 
+/**
+ * Type-safe wrapper around a dynamic bitfield for selective acknowledgment.
+ * Bit N = 1 means chunk N is received (standard SACK convention).
+ * Internally backed by ByteArray for wire-format compatibility.
+ */
+class Scoreboard(private val totalChunks: UInt) {
+  private val bytes: ByteArray = ByteArray((totalChunks.toInt() + 7) / 8)
+
+  fun markReceived(chunkIndex: Int) { bytes[chunkIndex / 8] = bytes[chunkIndex / 8].setBit(chunkIndex % 8) }
+  fun markMissing(chunkIndex: Int) { bytes[chunkIndex / 8] = bytes[chunkIndex / 8].clearBit(chunkIndex % 8) }
+  fun isReceived(chunkIndex: Int): Boolean = bytes[chunkIndex / 8].isBitSet(chunkIndex % 8)
+  fun isMissing(chunkIndex: Int): Boolean = !isReceived(chunkIndex)
+  fun missingChunks(): List<Int> = (0 until totalChunks.toInt()).filter { isMissing(it) }
+  fun receivedCount(): Int = (0 until totalChunks.toInt()).count { isReceived(it) }
+  fun toByteArray(): ByteArray = bytes
+}
+
+private fun Byte.setBit(bit: Int) = this.toInt() or (1 shl bit)
+private fun Byte.clearBit(bit: Int) = this.toInt() and (1 shl bit).inv()
+private fun Byte.isBitSet(bit: Int) = (this.toInt() shr bit) and 1 == 1
+
 enum class TransferStatus {
   IN_PROGRESS,
-  PAUSED,        // Waiting for route
-  COMPLETE,
+  SUSPENDED,     // Waiting for route (transfer was in progress, route lost)
+  RETRYING,      // Actively retrying (retransmitting chunks, backoff)
+  COMPLETED,
   FAILED,
-  TIMEOUT
+  TIMED_OUT
 }
 
 // Session ID derives from E2E handshake
@@ -283,18 +313,45 @@ class MeshLinkConfigBuilder {
 
 ### Envelope
 
-Base wire format.
+### MeshEnvelope (wire-level routing frame)
+
+The wire-level routing frame that relays use to forward messages. It carries
+the destination, the serialized `MessageEnvelope` + encrypted E2E content, and
+a hop limit set by the routing layer.
 
 ```kotlin
 /**
- * MeshEnvelope for routing E2E handshakes and payloads.
- * Used when destination is not a direct neighbor.
+ * Wire-level routing frame for forwarding through the mesh.
+ * Relays decrypt the hop layer, check destination, and forward.
+ * Does NOT expose E2E payload content to relays.
  */
 data class MeshEnvelope(
-  val destination: PeerId,
-  val payload: ByteArray,  // Encrypted E2E content or handshake
-  val hopLimit: UByte = 0   // 0 = direct only, 1+ = max hops
+  val destination: PeerId,     // Final destination (set from MessageEnvelope)
+  val payload: ByteArray,      // Serialized MessageEnvelope + encrypted E2E content
+  val hopLimit: UByte = 0      // Set by routing layer; 0 = direct only
 )
+```
+
+### MessageEnvelope (application-level message model)
+
+The application-level message model. Carries metadata describing a message.
+Serialized and placed inside `MeshEnvelope.payload` for transmission.
+
+```kotlin
+/**
+ * Application-level message model.
+ * Serialized into MeshEnvelope.payload for routing through the mesh.
+ * hopLimit is NOT a field — it is set by the routing layer in MeshEnvelope.
+ */
+data class MessageEnvelope(
+  val version: UByte,           // Protocol version
+  val messageId: Long,         // 64-bit random for deduplication
+  val ttl: Duration,           // Priority-based time-to-live
+  val priority: MessagePriority, // HIGH, NORMAL, LOW
+  val destination: PeerId      // Final destination
+)
+
+enum class MessagePriority { HIGH, NORMAL, LOW }
 ```
 
 ### HandshakePayload
@@ -333,6 +390,62 @@ enum class KeyRotationReason {
   PERIODIC,
   MANUAL,
   SECURITY_EVENT
+}
+```
+
+### TransferChunk
+
+Wire frame carrying a chunk of a large payload.
+
+```kotlin
+/**
+ * Single chunk of a chunked transfer.
+ * Carried over GATT or L2CAP CoC.
+ */
+data class TransferChunk(
+  val sessionId: SessionId,     // 4-byte session identifier
+  val offset: UInt,             // Byte offset in overall payload
+  val length: UShort,           // Length of this chunk's data
+  val data: ByteArray,          // Chunk payload bytes
+  val isLast: Boolean           // Is this the final chunk?
+)
+```
+
+### TransferAck
+
+Wire frame carrying selective acknowledgment of received chunks.
+
+```kotlin
+/**
+ * Selective acknowledgment for a transfer session.
+ * Bit N = 1 means chunk N is received (standard SACK convention).
+ */
+data class TransferAck(
+  val sessionId: SessionId,     // 4-byte session identifier
+  val bitfield: ByteArray       // Dynamic bitfield: ceil(totalChunks / 8) bytes
+)
+```
+
+### TransferCancel
+
+Wire frame for canceling an active transfer session.
+
+```kotlin
+/**
+ * Cancel an active transfer session.
+ */
+data class TransferCancel(
+  val sessionId: SessionId,     // 4-byte session identifier
+  val reason: TransferCancelReason,
+  val error: String? = null     // Optional error message
+)
+
+enum class TransferCancelReason {
+  TIMEOUT,
+  UNREACHABLE,
+  TRUST_FAILURE,
+  USER_CANCELLED,
+  INTERNAL_ERROR
 }
 ```
 
