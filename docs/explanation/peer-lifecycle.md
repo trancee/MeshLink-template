@@ -72,9 +72,9 @@ eviction of ephemeral state begins.
 This keeps the public API unchanged. The explicit withdrawal remains private
 control-plane behavior inside the runtime.
 
-## MeshStateManager
+## PeerStateCoordinator
 
-`MeshStateManager` is the internal cleanup loop that drives this lifecycle.
+`PeerStateCoordinator` is the internal cleanup loop that drives this lifecycle.
 Conceptually, it starts a fixed grace timer per disconnected peer and evicts
 the peer when the timer fires without reconnection.
 

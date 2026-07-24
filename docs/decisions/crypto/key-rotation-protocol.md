@@ -41,7 +41,8 @@ Key rotation is initiated by:
 meshLinkConfig {
   keyRotation {
     interval = Duration.ofDays(1)    // Override default 3 days
-    gracePeriod = Duration.ofHours(1)  // Time to accept old key after rotation
+    rotationGracePeriod = Duration.ofHours(1)  // Time to accept old key after planned rotation
+    compromiseGracePeriod = Duration.ZERO  // Immediate revocation for security events
   }
 }
 ```
@@ -49,7 +50,8 @@ meshLinkConfig {
 **Default values:**
 
 - `keyRotation.interval`: 3 days (security best practice)
-- `keyRotation.gracePeriod`: 1 hour (allow propagation)
+- `keyRotation.rotationGracePeriod`: 1 hour (allow propagation for planned rotations)
+- `keyRotation.compromiseGracePeriod`: ZERO (immediate revocation for security events)
 
 ### Wire Protocol
 
@@ -57,8 +59,8 @@ Upon key rotation, immediately send a **KeyRotationAnnouncement**:
 
 ```flatbuffers
 table KeyRotationAnnouncement {
-  // New public key (32 bytes)
-  publicKey: CryptoKey;
+  // The NEW identity key (32 bytes)
+  identityKey: CryptoKey;
   
   // Current seqno at time of rotation (forces reset)
   seqNo: uint32;
@@ -128,7 +130,7 @@ suspend fun handleKeyRotationAnnouncement(
   }
   
   // Accept new key
-  trustStore.updatePublicKey(peerId, announcement.publicKey)
+  trustStore.updatePublicKey(peerId, announcement.identityKey)
   
   // Seqno RESET to 1 (new identity)
   routingTable.resetSeqNo(peerId, 1u)

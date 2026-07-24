@@ -69,10 +69,12 @@ That is why reconnect paths need a fresh seqno progression.
 Messages do not propagate indefinitely. MeshLink uses these TTL values:
 
 | Priority | TTL |
-|---|---|
-| `HIGH` | 45 minutes |
-| `NORMAL` | 15 minutes |
-| `LOW` | 5 minutes |
+|----------|-----|
+| `HIGH` | 10 minutes |
+| `NORMAL` | 5 minutes |
+| `LOW` | 1 minute |
+
+(Per §8.5 of SPEC.md, this TTL is derived from priority and governs how long messages remain in the mesh for routing purposes.)
 
 ## Deduplication still matters
 

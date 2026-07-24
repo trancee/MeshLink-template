@@ -90,31 +90,41 @@ Initial design derived PeerIdentity from public key: `PeerIdentity = SHA-256(pub
 
 ### CryptoKey
 
-A sealed interface that distinguishes Ed25519 (identity/signing) keys from X25519 (DH) keys, so the compiler prevents mixing them up.
+A sealed interface that distinguishes Ed25519 (identity/signing) keys from X25519 (DH) keys, so the compiler prevents mixing them up. Raw key material has controlled access.
 
 ```kotlin
 enum class KeyType { ED25519, X25519 }
 
 sealed interface CryptoKey {
-  val bytes: ByteArray
   val keyType: KeyType
-
-  /** Non-key hex identifier for diagnostics. Raw key material MUST NOT be logged. */
-  val diagnosticId: String get() = "key:${bytes.first().toHexString()}"
+  
+  /**
+   * Non-key hex identifier for diagnostics.
+   * Use only this for identification - raw key material MUST NEVER be logged.
+   */
+  val diagnosticId: String
+  
+  /**
+   * Internal access for crypto operations.
+   * Limited visibility - not part of public API.
+   */
+  internal val keyBytes: ByteArray
 }
 
 @JvmInline
-value class Ed25519Key(private val bytes: ByteArray) : CryptoKey {
-  init { require(bytes.size == 32) }
+value class Ed25519Key(private val keyBytes: ByteArray) : CryptoKey {
+  init { require(keyBytes.size == 32) }
   override val keyType = KeyType.ED25519
-  override val bytes get() = bytes
+  override val diagnosticId: String get() = "ed:${keyBytes.first().toHexString()}"
+  override internal val keyBytes: ByteArray get() = keyBytes
 }
 
 @JvmInline
-value class X25519Key(private val bytes: ByteArray) : CryptoKey {
-  init { require(bytes.size == 32) }
+value class X25519Key(private val keyBytes: ByteArray) : CryptoKey {
+  init { require(keyBytes.size == 32) }
   override val keyType = KeyType.X25519
-  override val bytes get() = bytes
+  override val diagnosticId: String get() = "x255:${keyBytes.first().toHexString()}"
+  override internal val keyBytes: ByteArray get() = keyBytes
 }
 ```
 
@@ -164,17 +174,12 @@ Routing table entry for a destination.
 data class RouteEntry(
   val destination: PeerIdentity,
   val nextHop: PeerIdentity?,      // null = destination unreachable
-  val seqNo: UInt,           // Destination-sourced sequence number
+  val seqNo: SeqNo,           // Destination-sourced sequence number (wrapped for safe comparison)
   val metric: UInt,            // Link quality metric (RSSI+flags)
   val identityKey: Ed25519Key?,   // Destination's identity key, learned via route updates
-  val expiresAt: Instant,    // Route expiration
-  /**
-   * RFC 8966 §3.5.1 feasibility condition: true if this route's metric
-   * is strictly better than the feasible distance of any existing
-   * route for the same destination. Prevents loop formation in
-   * distance-vector routing.
-   */
-  val isFeasible: Boolean,
+  val expiresAt: Instant    // Route expiration
+  // Note: isFeasible is computed dynamically via feasibilityCondition(routeTable)
+  // per RFC 8966 §3.5.1, NOT stored as a field
 )
 
 // Link quality metric (see link-quality-metric.md)
@@ -217,11 +222,6 @@ data class TransferSession(
  * Type-safe wrapper around a dynamic bitfield for selective acknowledgment.
  * Bit N = 1 means chunk N is received (standard SACK convention).
  * Internally backed by ByteArray for wire-format compatibility.
- */
-/**
- * Type-safe wrapper around a dynamic bitfield for selective acknowledgment.
- * Bit N = 1 means chunk N is received (standard SACK convention).
- * Internally backed by ByteArray for wire-format compatibility.
  *
  * This class is immutable — [markReceived] and [markMissing] return a new
  * [Scoreboard] instance rather than mutating the original.
@@ -234,13 +234,13 @@ class Scoreboard private constructor(
 
   fun markReceived(chunkIndex: Int): Scoreboard {
     val new = bytes.copyOf()
-    new[chunkIndex / 8] = new[chunkIndex / 8].setBit(chunkIndex % 8)
+    new[chunkIndex / 8] = new[chunkIndex / 8].setBit(chunkIndex % 8).toByte()
     return Scoreboard(totalChunks, new)
   }
 
   fun markMissing(chunkIndex: Int): Scoreboard {
     val new = bytes.copyOf()
-    new[chunkIndex / 8] = new[chunkIndex / 8].clearBit(chunkIndex % 8)
+    new[chunkIndex / 8] = new[chunkIndex / 8].clearBit(chunkIndex % 8).toByte()
     return Scoreboard(totalChunks, new)
   }
 
@@ -251,8 +251,8 @@ class Scoreboard private constructor(
   fun toByteArray(): ByteArray = bytes
 }
 
-private fun Byte.setBit(bit: Int) = this.toInt() or (1 shl bit)
-private fun Byte.clearBit(bit: Int) = this.toInt() and (1 shl bit).inv()
+private infix fun Byte.setBit(bit: Int): Byte = ((this.toInt() or (1 shl bit)) and 0xFF).toByte()
+private infix fun Byte.clearBit(bit: Int): Byte = ((this.toInt() and (1 shl bit).inv()) and 0xFF).toByte()
 private fun Byte.isBitSet(bit: Int) = (this.toInt() shr bit) and 1 == 1
 
 enum class TransferState {
@@ -322,23 +322,130 @@ Public API configuration.
 /**
  * MeshLink configuration DSL.
  * Single source of truth for all tunable parameters.
+ * See SPEC.md §14 for the authoritative specification.
  */
 data class MeshLinkSettings(
   val powerTier: PowerTier = PowerTier.MEDIUM,
+  val regulatoryRegion: RegulatoryRegion = RegulatoryRegion.DEFAULT,
   val keyRotation: KeyRotationSettings = KeyRotationSettings(),
   val transfer: TransferSettings = TransferSettings(),
+  val routing: RoutingSettings = RoutingSettings(),
+  val security: SecuritySettings = SecuritySettings(),
   val diagnostics: DiagnosticsSettings = DiagnosticsSettings()
 )
 
 data class KeyRotationSettings(
+  /**
+   * How often to automatically rotate identity keys.
+   * Default: 3 days.
+   */
   val interval: Duration = Duration.days(3),
-  val gracePeriod: Duration = Duration.hours(1)
+  /**
+   * Grace period for the OLD key after a PLANNED rotation (periodic or manual).
+   * During this window, both old and new keys are accepted for in-flight sessions.
+   * Default: 1 hour.
+   */
+  val rotationGracePeriod: Duration = Duration.hours(1),
+  /**
+   * Grace period for the OLD key after a SECURITY-EVENT rotation (suspected compromise).
+   * Set to ZERO for immediate revocation — old key is rejected instantly.
+   * Non-zero values allow a brief overlap for safety but weaken the security response.
+   * Default: ZERO.
+   */
+  val compromiseGracePeriod: Duration = Duration.ZERO
 )
 
 data class TransferSettings(
   val maxRetries: Int = 5,
   val chunkSize: Int = 256, // Default; overridden by power tier
+  val maxConcurrentSessionsPerPeer: Int = 3,
+  val scoreboardEncoding: ScoreboardEncoding = ScoreboardEncoding.DYNAMIC,
+  // ScoreboardEncoding.FIXED requires maxChunksPerSession to pre-allocate bitfield
+  val maxChunksPerSession: UInt = 1024u // Used when scoreboardEncoding = FIXED
 )
+
+/**
+ * Scoreboard encoding strategy for selective acknowledgment.
+ * DYNAMIC adjusts bitfield size to transfer size; FIXED pre-allocates for predictability.
+ */
+enum class ScoreboardEncoding {
+  DYNAMIC,  // Dynamic bitfield size based on totalChunks - saves memory for small transfers
+  FIXED     // Fixed pre-allocated bitfield - predictable memory, maxChunksPerSession required
+}
+
+data class RoutingSettings(
+  /**
+   * Minimum interval between route updates to the same peer.
+   * Prevents update storms during link flapping.
+   * Default: 1 second.
+   */
+  val routeUpdateMinInterval: Duration = Duration.seconds(1),
+  /**
+   * Maximum interval between route updates to the same peer when no changes occur.
+   * Acts as a keep-alive for route freshness.
+   * Default: 30 seconds.
+   */
+  val routeUpdateMaxInterval: Duration = Duration.seconds(30),
+  /**
+   * Minimum RSSI change (in decibels) required to trigger a route update.
+   * Smaller values = more responsive routing but more control traffic.
+   * Larger values = quieter control plane but slower reaction to link quality changes.
+   * Default: 3 dB (roughly "noticeable but not noise").
+   */
+  val routeUpdateChangeThreshold: Int = 3,
+  /**
+   * Interval for sending full route table to all peers (periodic full sync).
+   * Ensures eventual consistency even if differential updates are lost.
+   * Default: 5 minutes.
+   */
+  val fullTableSyncInterval: Duration = Duration.minutes(5),
+  /**
+   * Time after which a route entry expires if not refreshed.
+   * Must be > fullTableSyncInterval to avoid premature expiry.
+   * Default: 15 minutes.
+   */
+  val routeEntryExpiry: Duration = Duration.minutes(15),
+  /**
+   * Whether to enforce the Babel feasibility condition (loop avoidance).
+   * Should always be true in production; false only for testing.
+   * Default: true.
+   */
+  val feasibilityConditionEnabled: Boolean = true
+)
+
+data class SecuritySettings(
+  /**
+   * Maximum fallback handshake attempts allowed per minute per destination.
+   * Exceeding this limit causes new attempts to be rejected until the window resets.
+   * Default: 3 (matches the spec mitigation for DoS via unauthenticated handshakes).
+   */
+  val fallbackMaxAttemptsPerMinute: Int = 3,
+  /**
+   * Timeout for fallback handshake (stricter than IX).
+   * Fallback has no responder authentication, so a tighter bound limits exposure.
+   * Default: 10 seconds.
+   */
+  val fallbackTimeout: Duration = Duration.seconds(10),
+  /**
+   * Whether ROUTE_UPDATE frames must carry an end-to-end signature from the
+   * originating peer (covering the destination's public key).
+   * Prevents a malicious relay from substituting the destination's key (MITM on handshake).
+   * Should always be true in production; false only for testing.
+   * Default: true.
+   */
+  val requireSignatureOnRouteUpdates: Boolean = true,
+  /**
+   * Default handshake pattern when destination key is known.
+   * IX = one-way authenticated (origin knows dest key). NX = fallback (key unknown).
+   * Default: IX.
+   */
+  val defaultHandshakePattern: HandshakePattern = HandshakePattern.IX
+)
+
+/**
+ * Handshake pattern enumeration for E2E layer.
+ */
+enum class HandshakePattern { IX, NX }
 
 data class DiagnosticsSettings(
   val emitToLog: Boolean = true,
@@ -421,7 +528,7 @@ Key rotation wire format.
  */
 data class KeyRotationAnnouncement(
   val identityKey: Ed25519Key,     // NEW identity key
-  val seqNo: UInt,               // Always 1 (new identity)
+  val seqNo: SeqNo,               // Always 1 (new identity)
   val signature: ByteArray,       // Ed25519 signature (64 bytes)
   val reason: KeyRotationReason = KeyRotationReason.PERIODIC
 )

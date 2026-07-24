@@ -49,39 +49,38 @@ Origin --(GATT/L2CAP)--> Relay1
 Relay1 --(GATT/L2CAP)--> Destination
 
 Phase 2: E2E Handshake Routing
-Origin wraps IX Msg1 in HopEnvelope:
-  HopEnvelope {
-    destination: destination.peerId,
-    payload: IX_Msg1_encrypted_for_destination
+Origin wraps IX Msg1 in RoutingFrame:
+  RoutingFrame {
+    destination: destination.peerIdentity,
+    payload: IX_Msg1_encrypted,       // RoutingMessage serialized + E2E content
+    hopLimit: UByte                 // set by routing layer, not application
   }
 
-Relay1 receives via HopSession, decrypts link layer,
-sees destination != origin, forwards via its hop to Destination
+Relay(s) decrypt hop layer → re-encrypt → forward without inspecting E2E payload
 
-Destination receives Hop Msg2, extracts IX_Msg1,
-verifies it's for itself, responds with IX_Msg2
-wrapped in HopEnvelope back to Origin
+Phase 3: Destination responds with IX_Msg2 wrapped for return path
 
-Phase 3: Return Path
-Destination --(reverse route)--> Origin
-
-Origin now has E2E traffic keys, can send encrypted payload
+Phase 4: Origin now has E2E traffic keys
 ```
+
+**Security:** Relays cannot read E2E content; only link-layer encryption at each hop.
+
+[Decision: docs/decisions/crypto/e2e-routing-over-mesh.md]
 
 ### Implementation Details
 
-#### 1. HopEnvelope Wire Format
+#### 1. RoutingFrame Wire Format
 
 ```flatbuffers
-table HopEnvelope {
+table RoutingFrame {
   // Destination peer ID (16-byte hash)
   destination: uint8Vector(16);
   
   // Inner payload (E2E handshake message or encrypted content)
   payload: uint8Vector(0);
   
-  // Optional: hop count limit (0 = direct only)
-  hopLimit: uint8;
+  // Hop limit (0 = direct only)
+  hop_limit: uint8 = 0;
 }
 ```
 
@@ -120,22 +119,22 @@ suspend fun sendE2EHandshake(
 Relays MUST NOT inspect E2E payloads:
 
 ```kotlin
-// In RoutingLayer.onHopEnvelope()
-if (envelope.destination != localPeerIdentity) {
+// In RoutingLayer.onRoutingFrame()
+if (frame.destination != localPeerIdentity) {
   // E2E payload - forward without inspection
-  val nextHop = routingTable.getNextHop(envelope.destination)
-  hopSession.send(nextHop, envelope.serialized)
-  return // NOT peer to inspect contents
+  val nextHop = routingTable.getNextHop(frame.destination)
+  hopSession.send(nextHop, frame.serialized)
+  return // Do not inspect E2E content
 }
 ```
 
 #### 4. Destination Behavior
 
 ```kotlin
-// In RoutingLayer.onHopEnvelope()
-if (envelope.destination == localPeerIdentity) {
+// In RoutingLayer.onRoutingFrame()
+if (frame.destination == localPeerIdentity) {
   // This is for me - check if it's E2E handshake
-  when (parseE2EPayload(envelope.payload)) {
+  when (parseE2EPayload(frame.payload)) {
     is IX_Msg1 -> {
       // Extract originator from link layer (known from hop session)
       noiseIX.processHandshakeMessage(parseHandshake(), originator)
@@ -143,7 +142,7 @@ if (envelope.destination == localPeerIdentity) {
     }
     is EncryptedContent -> {
       // Standard E2E transfer
-      processE2ETransfer(envelope.payload)
+      processE2ETransfer(frame.payload)
     }
   }
 }

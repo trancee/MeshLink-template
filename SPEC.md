@@ -104,6 +104,33 @@ PeerFingerprint: 12-byte SHA-256(Ed25519Pub || X25519Pub) truncated, used in dis
 
 **Design Note:** PeerIdentity is stable/random, NOT derived from public key. This ensures identity persists across key rotations, enabling correct TrustStore lookups during key rotation announcements. [Decision: docs/decisions/model/core-types.md]
 
+**Sequence Number Wrapper (Mandatory):**
+
+```kotlin
+/**
+ * Unsigned 32-bit sequence number with safe wrap-around comparison.
+ * RFC 8966 §3.7 requires signed interpretation for seqno comparison.
+ */
+@JvmInline
+value class SeqNo(private val value: UInt) {
+  companion object {
+    val ZERO: SeqNo = SeqNo(0u)
+  }
+  
+  val raw: UInt = value
+  
+  /**
+   * Returns true if this seqno is newer than [other], handling 32-bit wrap-around.
+   * Uses signed comparison: (this - other) > 0 interprets as signed 32-bit.
+   */
+  fun isNewerThan(other: SeqNo): Boolean = (value - other.value).toInt() > 0
+  
+  fun increment(): SeqNo = SeqNo(value + 1u)
+}
+```
+
+[Decision: RFC 8966 wrap-around comparison requirement]
+
 ### PowerTier Enum
 
 ```text
@@ -152,10 +179,12 @@ RouteEntry {
   destination: PeerIdentity
   nextHop: PeerIdentity?
   metric: UInt (composite via LinkMetric; see below)
-  seqNo: UInt (destination-self-reported sequence number)
+  seqNo: SeqNo (destination-self-reported sequence number, wrapped for safe comparison)
   publicKey: CryptoKey? (destination's public key, learned via route updates)
   expiresAt: Instant
-  isFeasible: Boolean
+  // isFeasible is computed dynamically via the Babel feasibility condition (RFC 8966 §3.5.1),
+  // not stored. The route is feasible if its metric is strictly better than the
+  // feasible distance of any existing route for the same destination.
 }
 ```
 
@@ -339,9 +368,9 @@ Key rotation triggered by:
 
 **Wire Protocol:**
 
-```text
+```flatbuffers
 KeyRotationAnnouncement {
-  publicKey: CryptoKey (NEW public key)
+  identityKey: CryptoKey (NEW public key)
   seqNo: UInt (always 1 - new identity)
   signature: ByteArray (Ed25519 signature with OLD private key)
   reason: KeyRotationReason (PERIODIC, MANUAL, SECURITY_EVENT)
@@ -498,6 +527,8 @@ Babel-style distance-vector (RFC 8966) adapted for BLE mesh:
 - Route tables are bounded by `maxRouteEntries` (default: 256)
 - When the table exceeds this limit, least-recently-updated entries are evicted
 - This prevents unbounded memory growth and ensures predictable convergence behavior
+
+**Rationale:** 256 entries balance mesh size expectations (~10-20 peers common in typical deployment) with memory bounds. Evicting least-recently-updated entries ensures stale routes are removed first while active routes persist. The eviction happens atomically during route table updates.
 
 ### 8.5 TTL by Priority
 
@@ -847,10 +878,19 @@ data class TransferSettings(
   val maxRetries: Int = 5,
   val chunkSize: Int = 256, // Default; overridden by power tier
   val maxConcurrentSessionsPerPeer: Int = 3,
-  val sackEncoding: SackEncoding = SackEncoding.DYNAMIC,
-  // SackEncoding.FIXED requires maxChunksPerSession to pre-allocate bitfield
-  val maxChunksPerSession: UInt = 1024u // Used when sackEncoding = FIXED
+  val scoreboardEncoding: ScoreboardEncoding = ScoreboardEncoding.DYNAMIC,
+  // ScoreboardEncoding.FIXED requires maxChunksPerSession to pre-allocate bitfield
+  val maxChunksPerSession: UInt = 1024u // Used when scoreboardEncoding = FIXED
 )
+
+/**
+ * Scoreboard encoding strategy for selective acknowledgment.
+ * DYNAMIC adjusts bitfield size to transfer size; FIXED pre-allocates for predictability.
+ */
+enum class ScoreboardEncoding {
+  DYNAMIC,  // Dynamic bitfield size based on totalChunks - saves memory for small transfers
+  FIXED     // Fixed pre-allocated bitfield - predictable memory, maxChunksPerSession required
+}
 
 data class RoutingSettings(
   /**

@@ -6,7 +6,7 @@
 
 MeshLink requires power-aware operation to prevent battery drain during extended mesh participation. The current spec says "discrete power tiers governing scan duty cycle, advertisement interval, connection interval, concurrent-connection budget, and transfer chunk size" but doesn't define what those tiers are or their quantified behavior.
 
-## Decision: Four Tier Model with Adaptive Grace Periods
+## Decision: Three-Tier Model with Fixed Grace Periods
 
 ### PowerTier Enum
 
@@ -14,21 +14,20 @@ MeshLink requires power-aware operation to prevent battery drain during extended
 enum class PowerTier {
     HIGH,    // Performance prioritized
     MEDIUM,  // Balanced (default)
-    LOW,     // Battery conserved
-    IDLE     // No background activity
+    LOW      // Battery conserved
 }
 ```
 
 ### Tier Parameters with Rationale
 
-| Parameter | HIGH | MEDIUM | LOW | IDLE |
-|-----------|------|--------|-----|-----|
-| Scan duty cycle | 20% | 10% | 5% | 0% (no scans) |
-| Advertisement interval | 100ms | 500ms | 1000ms | Never |
-| Connection interval min | 7.5ms | 15ms | 30ms | N/A |
-| Connection interval max | 15ms | 30ms | 60ms | N/A |
-| Concurrent connections | 8 | 4 | 2 | 0 |
-| Transfer chunk size | 512 bytes | 256 bytes | 128 bytes | N/A |
+| Parameter | HIGH | MEDIUM | LOW |
+|-----------|------|--------|-----|
+| Scan duty cycle | 20% | 10% | 5% |
+| Advertisement interval | 100ms | 500ms | 1000ms |
+| Connection interval min | 7.5ms | 15ms | 30ms |
+| Connection interval max | 15ms | 30ms | 60ms |
+| Concurrent connections | 8 | 4 | 2 |
+| Transfer chunk size | 512 bytes | 256 bytes | 128 bytes |
 
 **Rationale for values:**
 
@@ -45,7 +44,6 @@ Fixed grace period per power tier:
 | HIGH | 15 seconds |
 | MEDIUM (default) | 30 seconds |
 | LOW | 45 seconds |
-| IDLE | 0 seconds |
 
 After the grace period expires without reconnection, the peer transitions to GONE and ephemeral state (presence, routes, pending transfers) is cleaned up. Pinned trust state persists.
 
@@ -56,7 +54,7 @@ After the grace period expires without reconnection, the peer transitions to GON
 Power tier integrates with Android PowerManager:
 
 ```kotlin
-suspend fun PowerTier.to AndroidScanSettings(): ScanSettings {
+suspend fun PowerTier.toAndroidScanSettings(): ScanSettings {
   return when(this) {
     HIGH -> ScanSettings.Builder()
       .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
@@ -68,7 +66,6 @@ suspend fun PowerTier.to AndroidScanSettings(): ScanSettings {
     LOW -> ScanSettings.Builder()
       .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
       .build()
-    IDLE -> null // No scanning
   }
 }
 ```
@@ -86,8 +83,6 @@ func applyPowerTier(_ tier: PowerTier) {
     // iOS doesn't have granular scan modes
     // Use background preservation instead
     self.delegate = self // Allow background scanning
-  case .IDLE:
-    self.centralManager.stopScan()
   default:
     break
   }
@@ -122,7 +117,7 @@ power:
 | Trade-off | Analysis |
 |-----------|----------|
 | Android vs iOS power control | iOS has fewer knobs; use background modes |
-| Granular tiers vs simplicity | 4 tiers balance flexibility with complexity |
+| Granular tiers vs simplicity | 3 tiers balance flexibility with reduced complexity |
 | No automatic tier switching | App controls tier; no hidden behavior |
 
 ## Related

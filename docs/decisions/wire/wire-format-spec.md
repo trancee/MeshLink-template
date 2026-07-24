@@ -24,7 +24,7 @@ The schemas below define the logical structure. The actual encoding/decoding is 
 ```flatbuffers
 // src/commonMain/proto/meshlink.fbs
 
-table HopEnvelope {
+table RoutingFrame {
   // Destination for this message
   destination: uint8Vector(16);  // 16-byte PeerIdentity
   
@@ -36,8 +36,8 @@ table HopEnvelope {
 }
 
 table KeyRotationAnnouncement {
-  // New public key (32 bytes)
-  public_key: uint8Vector(32);
+  // The NEW identity key (32 bytes)
+  identity_key: uint8Vector(32);
   
   // Seqno (always 1 for rotation)
   seq_no: uint32;
@@ -114,7 +114,7 @@ enum MessageType: byte {
 }
 
 // Union for payload
-union WirePayload = HopEnvelope | RouteUpdate | RouteWithdrawal | RouteDigest | 
+union WirePayload = RoutingFrame | RouteUpdate | RouteWithdrawal | RouteDigest | 
                     TransferChunk | TransferAck | TransferCancel | 
                     KeyRotationAnnouncement;
 
@@ -187,6 +187,19 @@ table HandshakePayload {
 
 ## Kotlin Implementation
 
+### Sequence Number Handling
+
+All sequence number comparisons use the `SeqNo` wrapper type (defined in §3.1 Core Data Models) to ensure correct wrap-around handling per RFC 8966 §3.7:
+
+```kotlin
+/**
+ * SeqNo comparisons MUST use signed interpretation.
+ * (candidate - current).toInt() represents the signed difference.
+ * Result > 0 means candidate is newer (handles wrap at 2^32).
+ */
+fun SeqNo.isNewerThan(other: SeqNo): Boolean = (value - other.value).toInt() > 0
+```
+
 ### Buffer Utilities
 
 ```kotlin
@@ -224,8 +237,8 @@ object WireCodec {
   fun decode(data: ByteArray): WireFrame
   
   // Specific encoders
-  fun encodeHopEnvelope(envelope: HopEnvelope): ByteArray
-  fun decodeHopEnvelope(data: ByteArray): HopEnvelope
+  fun encodeRoutingFrame(frame: RoutingFrame): ByteArray
+  fun decodeRoutingFrame(data: ByteArray): RoutingFrame
   
   fun encodeRouteUpdate(update: RouteUpdate): ByteArray
   fun decodeRouteUpdate(data: ByteArray): RouteUpdate

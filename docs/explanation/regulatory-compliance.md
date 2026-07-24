@@ -23,12 +23,12 @@ layer.
 
 ```kotlin
 public enum class RegulatoryRegion {
-    GLOBAL,
+    DEFAULT,
     EU,
 }
 ```
 
-- `GLOBAL` means "rely on the platform's normal behavior"
+- `DEFAULT` means "rely on the platform's normal behavior"
 - `EU` adds MeshLink-side clamping for the current compliance-oriented policy
 
 ## EU clamping
