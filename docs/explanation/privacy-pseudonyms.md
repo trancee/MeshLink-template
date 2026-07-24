@@ -16,9 +16,9 @@ That payload contains:
 - power-mode bits (3 bits)
 - a 16-bit `meshHash`
 - the L2CAP PSM hint (8 bits)
-- a 12-byte `keyHash`
+- a 12-byte `PeerKey`
 
-`keyHash` is the first 12 bytes of:
+`PeerKey` is the first 12 bytes of:
 
 ```text
 SHA-256(Ed25519Pub || X25519Pub)
@@ -26,7 +26,7 @@ SHA-256(Ed25519Pub || X25519Pub)
 
 ```mermaid
 flowchart TD
-    Advertisement["BLE discovery packet with two advertised service UUIDs"] --> Fields["Advertised fields: version, power mode, meshHash, L2CAP PSM hint, keyHash"]
+    Advertisement["BLE discovery packet with two advertised service UUIDs"] --> Fields["Advertised fields: version, power mode, meshHash, L2CAP PSM hint, PeerKey"]
     Fields --> Matching["MeshLink gets deterministic pre-connection matching"]
     Fields --> Correlation["Passive observers can correlate repeated sightings"]
     Matching --> Handshake["Noise XX hop handshake"]
@@ -39,7 +39,7 @@ flowchart TD
 This is a deliberate trade-off.
 
 A passive observer can now correlate repeated sightings of the same device more
-easily than with rotating pseudonyms, because `keyHash` is stable for a given
+easily than with rotating pseudonyms, because `PeerKey` is stable for a given
 identity. In return, MeshLink gets a deterministic, compact discovery hint that
 fits in one advertisement packet and aligns with its direct TOFU trust model.
 
@@ -51,7 +51,7 @@ Even with a stable discovery hint:
 - message plaintext never appears in advertisements
 - hop-to-hop and end-to-end session keys are still established after discovery
 - trust decisions still depend on the authenticated Noise XX session, not only
-  on the advertised `keyHash`
+  on the advertised `PeerKey`
 
 > **Two sessions, not one.** The "Noise XX session" referenced here is the
 > **hop-by-hop link** handshake between adjacent nodes. The **end-to-end** session
@@ -60,7 +60,7 @@ Even with a stable discovery hint:
 > [docs/decisions/crypto/e2e-handshake-pattern.md](../decisions/crypto/e2e-handshake-pattern.md).
 > Relays terminate only the link session and forward the still-sealed E2E frame.
 
-## Why keep the 12-byte key hash
+## Why keep the 12-byte PeerKey
 
 The 12-byte prefix is small enough to fit the advertisement contract while still
 being stable enough for deterministic initiation and peer matching. It is a

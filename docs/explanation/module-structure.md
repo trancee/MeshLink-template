@@ -29,9 +29,9 @@ They validate different things and need different levels of access:
   runtime. See
   [android-crypto-fallback-proof.md](../decisions/crypto/android-crypto-fallback-proof.md)
   for a concrete example of the kind of runtime-only behavior this module
-  exists to catch. It is currently Android-only and flat (not nested under
-  a platform sub-path); a future iOS proof harness would need its own
-  separate module rather than nesting under this one.
+  exists to catch. It contains `android/` and `ios/` subdirectories for
+  platform-specific real-device validation, testing the same proof scenarios
+  on each platform.
 
 Folding `meshlink-proof` into `meshlink-reference` as an
 instrumented test source set was considered and rejected: it would force

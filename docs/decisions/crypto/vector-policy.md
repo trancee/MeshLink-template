@@ -10,9 +10,10 @@ Use it when you are extending the local crypto corpus, updating
 
 - The machine-readable policy and the unmodified upstream Wycheproof vector
   files it classifies live under
-  `meshlink/src/commonTest/resources/wycheproof/` (planned path — the
-  `:meshlink` Gradle module doesn't exist yet)
-  (`policy.json`, `ed25519_test.json`, `x25519_test.json`), alongside the
+  `meshlink/src/commonTest/resources/wycheproof/`
+  (`policy.json`, `ed25519_test.json`, `x25519_test.json`,
+  `chacha20_poly1305_test.json`, `hkdf_sha256_test.json`,
+  `hmac_sha256_test.json`), alongside the
   separate, much smaller RFC-style regression corpus
   (`chacha20_poly1305.jsonl`, `ed25519.jsonl`, `hkdf_sha256.jsonl`,
   `hmac_sha256.jsonl`, `x25519.jsonl`) that `WycheproofRegressionTest` runs
@@ -46,15 +47,19 @@ manifest has no `ed25519` `fail_closed_or_match` buckets and no `x25519`
 ## Current manifest coverage
 
 The tracked manifest classifies the **entire** upstream Wycheproof corpus for
-Ed25519 verification and X25519 shared-secret derivation -- every `tcId` in
-`ed25519_test.json` and `x25519_test.json` is accounted for, and
-`CryptoPolicyCorpusTest` fails the build if that ever drifts.
+all required primitives -- Ed25519, X25519, ChaCha20-Poly1305, HKDF, HMAC, and
+SHA-256. Every `tcId` in the corresponding Wycheproof JSON files is accounted
+for, and `CryptoPolicyCorpusTest` fails the build if that ever drifts.
 
-| Algorithm | Accept | Reject | Fail closed or match | Total |
+| Algorithm | valid | invalid | acceptable | Total |
 |---|---:|---:|---:|---:|
 | `ed25519` | 88 | 62 | 0 | 150 |
 | `x25519` | 264 | 0 | 254 | 518 |
-| **Total** | **352** | **62** | **254** | **668** |
+| `chacha20_poly1305` | 256 | 69 | 0 | 325 |
+| `hkdf_sha256` | 83 | 3 | 0 | 86 |
+| `hmac_sha256` | 66 | 108 | 0 | 174 |
+| `sha256` | — | — | — | — (RFC-style regression corpus) |
+| **Total** | **757** | **242** | **254** | **1253** |
 
 If `policy.json` changes, update this table in the same change.
 

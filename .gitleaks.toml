@@ -14,5 +14,6 @@ useDefault = true
 # content rather than MeshLink's own code or docs.
 paths = [
   '''docs/rfcs/.*''',
+  '''wycheproof/.*''',
   '''\.agents/.*''',
 ]

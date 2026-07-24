@@ -60,11 +60,11 @@ This document captures the complete technical specification for implementing Mes
 ```text
 meshlink/          # Shipped library (JVM + Android + iOS)
 meshlink-reference/ # Reference app consuming public API only
-meshlink-proof/    # Real-device validation (Android + iOS)
+meshlink-proof/    # Real-device validation (android/ + ios/ subdirectories)
 meshlink-benchmark/ # Performance benchmarking
 ```
 
-**Critical Addition:** `meshlink-proof/ios` validates iOS platform crypto/behavior on real devices (simulators cannot substitute for BLE validation per CONSTITUTION.md §II).
+`meshlink-proof/` contains `android/` and `ios/` subdirectories for platform-specific real-device validation. Both test the same proof scenarios on their respective platforms. [Decision: docs/explanation/module-structure.md]
 
 ### 2.2 Source Set Structure
 
@@ -73,7 +73,7 @@ meshlink-benchmark/ # Performance benchmarking
 - `iosMain` - Platform-specific BLE glue
 - `commonTest` - Pure JVM tests (protocol logic, wire codecs, crypto)
 - `androidHostTest` - Host-side Android tests (crypto fallback paths)
-- `jvmTest` - JVM integration tests
+- `androidDeviceTest` - Instrumented device tests (reserved for future use; `:meshlink` currently has no Android-specific code requiring device tests)
 
 ### 2.3 Wire Protocol Reference Standards
 
@@ -85,6 +85,8 @@ meshlink-benchmark/ # Performance benchmarking
 - RFC 6234 (SHA-2 family)
 - RFC 9147 (DTLS 1.3 for replay protection patterns)
 - RFC 8966 (Babel routing for feasibility conditions and seqno)
+- RFC 9420 (MLS — design reference for group security)
+- RFC 7435 (Opportunistic security — design reference for best-effort encryption)
 
 ---
 
@@ -94,12 +96,12 @@ meshlink-benchmark/ # Performance benchmarking
 
 ```text
 PeerId: 16-byte stable/random identifier (generated once at install, survives key rotations)
-Ed25519PublicKey: 32-bit EdDSA signing key
-X25519PublicKey: 32-bit DH key for Noise handshakes
-PeerKey: 12-byte SHA-256 public key hash (truncated), used in discovery and NX fallback verification
+Ed25519PublicKey: 32-byte EdDSA signing key
+X25519PublicKey: 32-byte DH key for Noise handshakes
+PeerKey: 12-byte SHA-256 truncated public key hash, used in discovery [Decision: docs/decisions/model/core-types.md]
 ```
 
-**Design Note:** PeerId is stable/random, NOT derived from public key. This ensures identity persists across key rotations, enabling correct TrustStore lookups during key rotation announcements.
+**Design Note:** PeerId is stable/random, NOT derived from public key. This ensures identity persists across key rotations, enabling correct TrustStore lookups during key rotation announcements. [Decision: docs/decisions/model/core-types.md]
 
 ### 3.2 Trust Record Model
 
@@ -109,15 +111,14 @@ TrustRecord {
   publicKey: CryptoKey
   seenAt: Instant
   verifiedAt: Instant
-  status: TrustStatus (PINNED, VERIFIED, REVOKED)
+  status: TrustStatus (TRUSTED, REVOKED)
 }
 ```
 
 **TrustStatus enum:**
 
-- `PINNED` — TOFU-pinned identity (first successful handshake)
-- `VERIFIED` — Confirmed in current session
-- `REVOKED` — Explicitly revoked by user/application
+- `TRUSTED` — TOFU-pinned identity (first successful handshake)
+- `REVOKED` — Explicitly revoked by user/application [Decision: docs/decisions/model/core-types.md]
 
 ### 3.3 Route Entry Model
 
@@ -132,14 +133,14 @@ RouteEntry {
 }
 ```
 
-**Metric structure:** Low byte = RSSI normalized (0-255), high bits = flags (supportsCoC, fastInterval, highPowerTier), enabling path selection preferring better links.
+**Metric structure:** Low byte = RSSI normalized (0-255), high bits = flags (supportsCoC, fastInterval, highPowerTier), enabling path selection preferring better links. [Decision: docs/decisions/routing/link-quality-metric.md]
 
 ### 3.4 Message Envelope Model
 
 ```text
 MessageEnvelope {
   version: U8
-  messageId: 128-bit random
+  messageId: 64-bit random
   ttl: Duration (priority-based)
   priority: enum { HIGH, NORMAL, LOW }
   destination: PeerId
@@ -147,45 +148,36 @@ MessageEnvelope {
 }
 
 TransferSession {
-  sessionId: SessionId (128-bit random)
+  sessionId: SessionId (32-bit random)
   destination: PeerId
   status: TransferStatus (IN_PROGRESS, PAUSED, COMPLETE, FAILED, TIMEOUT)
-  chunkSize: U16 (MTU-dependent, power tier overridden)
-  scoreboard: Bitfield<UInt> (each bit = 1 if missing, 32 bytes per 256 chunks)
-  totalChunks: UInt32
+  chunkSize: Int (negotiated per transfer: MTU + power tier)
+  totalChunks: UInt (ceil(totalBytes / chunkSize))
+  scoreboard: ByteArray (dynamic bitfield: ceil(totalChunks / 8) bytes; bit N = 1 if chunk N missing)
+  totalBytes: Long
+  bytesReceived: Long
   startedAt: Instant
   deadline: Instant? (per power tier retry budget)
-  retryCount: U32
-}
-
-ChunkRef {
-  chunkIndex: U32
-  chunkSize: U16
-  totalChunks: U32
-}
-
-Chunk {
-  messageId: 128-bit
-  index: U32
-  total: U32
-  payload: ByteArray
-  padding: ByteArray (to fill BLE MTU)
+  retryCount: Int
 }
 ```
 
-**Note:** Scoreboard uses bitfield encoding (not ChunkRange pairs) for efficient SACK.
+**Scoreboard:** Dynamic bitfield encoding — bitfield length = `ceil(totalChunks / 8)` bytes, derived from `totalChunks` known via TransferSession. Bit N = 1 means chunk N is missing. [Decision: docs/decisions/model/core-types.md]
 
-### 3.5 Wire Frame Types (Current Design)
+### 3.5 Wire Frame Types
 
-| Type | Meaning |
-|------|---------|
-| MESH_ENVELOPE | Routed E2E handshake or payload |
-| ROUTE_UPDATE | Route announcement with metric + seqno |
-| ROUTE_DIGEST | FNV-1a hash of route table (32-bit) |
-| TRANSFER_CHUNK | Payload chunk with offset + length |
-| TRANSFER_ACK | Bitfield selective ACK (32 bytes per 256 chunks) |
-| TRANSFER_CANCEL | Session termination |
-| KEY_ROTATION_ANNOUNCEMENT | Signed key rotation announcement |
+| Type | Meaning | Encryption |
+|------|---------|------------|
+| MESH_ENVELOPE | Routed E2E handshake or payload | Link-layer AEAD per hop |
+| ROUTE_UPDATE | Route announcement with metric + seqno | Always AEAD-encrypted |
+| ROUTE_WITHDRAWAL | Route retraction | Always AEAD-encrypted |
+| ROUTE_DIGEST | FNV-1a hash of route table (32-bit) | Plaintext (digest only) |
+| TRANSFER_CHUNK | Payload chunk with offset + length | Link-layer AEAD per hop |
+| TRANSFER_ACK | Dynamic bitfield SACK | Link-layer AEAD per hop |
+| TRANSFER_CANCEL | Session termination | Link-layer AEAD per hop |
+| KEY_ROTATION_ANNOUNCEMENT | Signed key rotation announcement | Plaintext (signature verifiable) |
+
+ROUTE_UPDATE and ROUTE_WITHDRAWAL are always AEAD-encrypted using the Noise session key — no plaintext routing metadata is ever transmitted. [Decision: docs/decisions/routing/routing-metadata-privacy.md, docs/decisions/wire/wire-format-spec.md]
 
 ---
 
@@ -203,13 +195,15 @@ Single BLE advertisement packet containing:
 | Power tier | 3 bits | Current power mode |
 | Mesh hash | 16 bits | Application isolation filter |
 | L2CAP PSM hint | 8 bits | Non-zero if CoC supported |
-| Key hash | 12 bytes | SHA-256 truncated, discovery hint only |
+| PeerKey | 12 bytes | SHA-256 truncated, discovery hint only |
 
 ### 4.2 Privacy Trade-offs
 
-- **Stable keyHash**: Passive observers can correlate repeated sightings more easily than rotating pseudonyms
+- **Stable PeerKey**: Passive observers can correlate repeated sightings more easily than rotating pseudonyms
 - **Protected**: Full public keys not advertised, plaintext never in ads, hop/e2e session keys established after discovery
 - **Isolation**: Mesh hash derived from `appId` prevents cross-application discovery
+
+[Decision: docs/explanation/privacy-pseudonyms.md]
 
 ---
 
@@ -217,13 +211,15 @@ Single BLE advertisement packet containing:
 
 ### 5.1 Handshake Pattern
 
-- **Hop-by-hop link layer**: Noise XX (`Noise_XX_25619_ChaChaPoly_SHA256`) - mutual authentication for first contact
-- **End-to-end layer**: Noise IX (`Noise_IX_25519_ChaChaPoly_SHA256`) - origin knows destination key, destination may not know origin
+- **Hop-by-hop link layer**: `Noise_XX_25519_ChaChaPoly_SHA256` - mutual authentication for first contact
+- **End-to-end layer**: `Noise_IX_25519_ChaChaPoly_SHA256` - origin knows destination key, destination may not know origin
+
+[Decision: docs/decisions/crypto/e2e-handshake-pattern.md]
 
 ### 5.2 Trust Flow
 
 ```text
-Discovery → GATT connection → Noise XX handshake → TOFU pin → TrustRecord stored
+Discovery → GATT connection → Noise_XX_25519_ChaChaPoly_SHA256 handshake → TOFU pin → TrustRecord stored
 ```
 
 ### 5.3 Identity Gossip
@@ -240,7 +236,7 @@ Discovery → GATT connection → Noise XX handshake → TOFU pin → TrustRecor
 
 ### 5.5 NX Fallback for Unknown Keys
 
-When destination's public key is unknown, Noise NX provides a degraded but functional fallback:
+When destination's public key is unknown, `Noise_NX_25519_ChaChaPoly_SHA256` provides a degraded but functional fallback:
 
 **Security Mitigations:**
 
@@ -248,15 +244,17 @@ When destination's public key is unknown, Noise NX provides a degraded but funct
 - Timeout: 10s vs 30s for IX (limits resource window)
 - PeerKey verification in payload (validates identity claim)
 - 32-bit nonce in payload (replay protection)
-- Diagnostic flag: `e2e_handshake_used_fallback = true` (observability)
+- Diagnostic flag: `e2e_handshake.fallback_used = true` (observability)
 
 **Protocol:** NX_Msg1 includes PeerKey + nonce. Destination verifies: `Hash(received_static) == PeerKey`. Mismatch or replay = reject.
+
+[Decision: docs/decisions/crypto/nx-fallback-mitigation.md]
 
 ### 5.6 Key Rotation Protocol
 
 Key rotation triggered by:
 
-- Periodic timer (default: **3 days** - reduced from 90 for security)
+- Periodic timer (default: **3 days**)
 - Manual API: `meshLink.rotateIdentity()`
 - Security event (compromise detection)
 
@@ -278,12 +276,14 @@ KeyRotationAnnouncement {
 3. Seqno resets to 1 (new crypto era)
 4. Old key retained for 1-hour grace period verification
 
+[Decision: docs/decisions/crypto/key-rotation-protocol.md]
+
 ### 5.7 E2E Handshake Routing Over Mesh
 
 When destination is not a direct neighbor or key is unknown:
 
 ```text
-Phase 1: Link Setup (standard Noise XX)
+Phase 1: Link Setup (standard Noise_XX_25519_ChaChaPoly_SHA256)
 Origin --(GATT/L2CAP)--> Relay(s)
 
 Phase 2: E2E Handshake Routing
@@ -303,6 +303,8 @@ Phase 4: Origin now has E2E traffic keys
 
 **Security:** Relays cannot read E2E content; only link-layer encryption at each hop.
 
+[Decision: docs/decisions/crypto/e2e-routing-over-mesh.md]
+
 ---
 
 ## 6. Transport Layer
@@ -316,20 +318,22 @@ Phase 4: Origin now has E2E traffic keys
 
 **Important:** Control plane (handshake, routing, transfer control) MUST work over GATT alone for reliability.
 
+[Decision: docs/decisions/transport/gatt-l2cap-transport-selection.md]
+
 ### 6.2 Negotiation Sequence
 
 1. GATT connection establishes
-2. Noise XX handshake completes (control plane must work over GATT alone)
+2. `Noise_XX_25519_ChaChaPoly_SHA256` handshake completes (control plane must work over GATT alone)
 3. If both peers advertised PSM hint, attempt L2CAP CoC channel
 4. On CoC success, promote data-plane traffic to CoC
 5. On CoC failure, continue on GATT
 
 ### 6.3 Fallback Reasons (Machine Observable)
 
-- `fallback_no_psm_advertised`
-- `fallback_coc_connect_failed`
-- `fallback_coc_dropped_mid_transfer`
-- `fallback_local_policy`
+- `transport.fallback_no_psm_advertised`
+- `transport.fallback_coc_connect_failed`
+- `transport.fallback_coc_dropped_mid_transfer`
+- `transport.fallback_local_policy`
 
 ---
 
@@ -339,21 +343,23 @@ Phase 4: Origin now has E2E traffic keys
 
 All validated against Wycheproof test vectors:
 
-| Primitive | Standard | Minimum Coverage |
-|-----------|----------|------------------|
-| X25519 | RFC 7748 | 518 vectors |
-| Ed25519 | RFC 8032 | 150 vectors |
-| ChaCha20-Poly1305 | RFC 8439 | Comprehensive |
-| HKDF-SHA256 | RFC 5869 | Comprehensive |
-| HMAC-SHA256 | RFC 2104 | Comprehensive |
-| SHA-256 | RFC 6234 | Comprehensive |
+| Primitive | Standard | Test Vector Source | Coverage |
+|-----------|----------|-------------------|----------|
+| X25519 | RFC 7748 | Wycheproof | 518 vectors (264 valid + 254 acceptable) |
+| Ed25519 | RFC 8032 | Wycheproof | 150 vectors (88 valid + 62 invalid) |
+| ChaCha20-Poly1305 | RFC 8439 | Wycheproof | 325 vectors (256 valid + 69 invalid) |
+| HKDF-SHA256 | RFC 5869 | Wycheproof | 86 vectors (83 valid + 3 invalid) |
+| HMAC-SHA256 | RFC 2104 | Wycheproof | 174 vectors (66 valid + 108 invalid) |
+| SHA-256 | RFC 6234 | RFC-style regression corpus | Covered via other primitives' Wycheproof vectors |
+
+[Decision: docs/decisions/crypto/vector-policy.md]
 
 ### 7.2 Handshake Patterns
 
-- **Link layer (hop-by-hop):** Noise XX (`Noise_XX_25519_ChaChaPoly_SHA256`) - mutual authentication
-- **E2E layer:** Noise IX (`Noise_IX_25519_ChaChaPoly_SHA256`) - origin knows destination key
-- **E2E fallback:** Noise NX with PeerKey verification when destination key unknown
-- **Future optimization:** Noise IK for post-TOFU reconnect (deferred)
+- **Link layer (hop-by-hop):** `Noise_XX_25519_ChaChaPoly_SHA256` - mutual authentication
+- **E2E layer:** `Noise_IX_25519_ChaChaPoly_SHA256` - origin knows destination key
+- **E2E fallback:** `Noise_NX_25519_ChaChaPoly_SHA256` with PeerKey verification when destination key unknown
+- **Future optimization:** `Noise_IK_25519_ChaChaPoly_SHA256` for post-TOFU reconnect (deferred)
 
 ### 7.3 Fail-Closed Rules
 
@@ -368,6 +374,10 @@ All validated against Wycheproof test vectors:
 - Pure-Kotlin fallback implementations for older devices
 - Ed25519 fallback with constant-time arithmetic (optimized for performance)
 
+### 7.5 Future Work: PQ-Hybrid Key Establishment
+
+Post-quantum hybrid key establishment (X25519 + ML-KEM) is being evaluated per `docs/decisions/crypto/pq-hybrid-candidate-matrix.md`. The recommended shortlist candidate is C2 (conservative + staged extension frames), with measured overhead of +46ms latency and +184 bytes payload. PQ hybrid remains future work, not part of the current spec.
+
 ---
 
 ## 8. Routing Layer
@@ -380,11 +390,15 @@ Babel-style distance-vector (RFC 8966) adapted for BLE mesh:
 - **SeqNo freshness**: Destination self-reports sequence number, prevents stale route propagation
 - **Differential updates**: Only route changes advertised, not full table dumps
 
+[Decision: docs/decisions/routing/destination-sourced-seqno-ihu-removal-digest-resync-design.md]
+
 ### 8.2 Sequence Number Semantics
 
 - **Destination-owned**: Each node owns one seqno counter, incremented only on cold start
 - **Self-origin announcements**: After connection, each node sends RouteUpdate about itself
 - **No Hello/IHU frames**: BLE transport already provides liveness signals
+
+[Decision: docs/decisions/routing/destination-sourced-seqno-ihu-removal-digest-resync-design.md]
 
 ### 8.3 Route Digest & Resync
 
@@ -404,29 +418,20 @@ Babel-style distance-vector (RFC 8966) adapted for BLE mesh:
 
 ## 9. Transfer Layer
 
-### 9.1 Chunked Transfer Protocol
+### 9.1 Transfer Session
 
-```text
-TransferSession {
-  sessionId: SessionId (16-byte random token)
-  destination: PeerId
-  status: TransferStatus (IN_PROGRESS, PAUSED, COMPLETE, FAILED, TIMEOUT)
-  chunkSize: UInt16 (MTU-dependent, power tier overridden)
-  scoreboard: Bitfield<UInt> (each bit = 1 if missing, 32 bytes per 256 chunks)
-  totalChunks: UInt32
-  chunksReceived: UInt32
-  startedAt: Instant
-  deadline: Instant? (per power tier retry budget)
-  retryCount: UInt
-}
-```
+The `TransferSession` model is defined in §3.4. Key fields:
+
+- `chunkSize`: Negotiated per transfer based on MTU and power tier
+- `scoreboard`: Dynamic bitfield (`ByteArray`) of length `ceil(totalChunks / 8)` bytes
+- `totalBytes`/`bytesReceived`: Progress tracking in bytes (not chunks)
+
+[Decision: docs/decisions/model/core-types.md]
 
 ### 9.2 Selective Acknowledgment
 
-- **Bitfield encoding**: Each bit represents one chunk (bit N = chunk N missing)
-- **Single bitfield**: 32 bytes for up to 256 chunks (practical BLE transfer limit)
-- **Multi-bitfield**: For large transfers, concatenate bitfields (each 32 bytes)
-- Sparse/dense patterns both efficient - constant predictable overhead per 256-chunk window
+- **Dynamic bitfield encoding**: Bitfield length = `ceil(totalChunks / 8)` bytes, derived from `totalChunks` known via TransferSession. Bit N = 1 means chunk N is missing.
+- **Variable overhead**: Small transfers (10 chunks) use 1 byte; large transfers (1000 chunks) use 125 bytes
 - Partial ACK never forces re-send of already-received chunks
 - Scoreboard clears on session completion or explicit failure
 
@@ -440,14 +445,14 @@ TransferSession {
 
 ```text
 TransferAck {
-  sessionId: UInt128 (16 bytes)
-  bitfield: UInt8Vector (32 bytes per 256-chunk window, MSB = chunk 0)
+  sessionId: UInt32 (4 bytes)
+  bitfield: UInt8Vector (ceil(totalChunks / 8) bytes; receiver knows totalChunks from session)
 }
-
-// For large transfers: multiple bitfields concatenated
-// Each 32-byte bitfield covers chunks [N*256 .. (N+1)*256)
-// Example: 512 chunks = 64 bytes total (bitfield[0] + bitfield[1])
 ```
+
+The bitfield length is derived from `totalChunks` in the `TransferSession`, so no extra length field is needed in the SACK message.
+
+[Decision: docs/decisions/wire/wire-format-spec.md]
 
 ---
 
@@ -464,12 +469,21 @@ enum class PowerTier {
 }
 ```
 
-### 10.2 EU Regulatory Clamping
+### 10.2 Regulatory Region
+
+```text
+enum class RegulatoryRegion {
+  DEFAULT,  // Rely on platform's normal behavior
+  EU        // Apply EU clamping (adv interval floor 300ms, scan duty cycle ceiling 70%)
+}
+```
 
 When region = EU:
 
 - Advertisement interval floor: 300ms (below spec values clamped)
 - Scan duty cycle ceiling: 70%
+
+[Decision: docs/decisions/power/power-tier-behavior.md, docs/explanation/regulatory-compliance.md]
 
 ### 10.3 Adaptive Grace Period
 
@@ -479,6 +493,8 @@ Grace period adapts based on peer stability and power tier:
 - **Stability factor:** Increases for stable peers, decreases for frequent disconnectors
 - **Uptime factor:** Longer average sessions get longer grace periods
 - **Bonded minimum:** 10 seconds guarantee (never shorter)
+
+[Decision: docs/decisions/power/power-tier-behavior.md]
 
 ### 10.4 Tier-Driven Parameters
 
@@ -517,15 +533,16 @@ enum class PeerConnectionState {
 
 | Event Category | Fields |
 |----------------|--------|
-| Routing privacy | `negotiated_mode`, `fallback_reason`, `downgrade_verdict`, `envelope_version`, `envelope_failure` |
-| Transfer | `data_plane_bearer`, `fallback_reason` |
-| Power mode | `effective_values`, `clampWarnings` |
-| E2E Handshake | `protocol`, `fallback_used`, `peer_key_verified`, `rate_limit_attempts`, `nonce_replay_detected` |
-| Key Rotation | `old_key_verified`, `seqno_reset`, `propagation_deadline_met` |
+| `route.*` | `route.decrypt_failure_count`, `route.frame_type` |
+| `transport.*` | `transport.fallback_no_psm_advertised`, `transport.fallback_coc_connect_failed`, `transport.fallback_coc_dropped_mid_transfer`, `transport.fallback_local_policy` |
+| `transfer.*` | `transfer.data_plane_bearer`, `transfer.fallback_reason` |
+| `power.*` | `power.tier`, `power.regulatory_region`, `power.scan_duty_cycle_observed`, `power.advertisement_interval_ms`, `power.connection_interval_ms`, `power.grace_period_seconds`, `power.peer_stability` |
+| `e2e_handshake.*` | `e2e_handshake.protocol`, `e2e_handshake.fallback_used`, `e2e_handshake.peer_key_verified`, `e2e_handshake.rate_limit_attempts`, `e2e_handshake.nonce_replay_detected` |
+| `key_rotation.*` | `key_rotation.old_key_verified`, `key_rotation.seqno_reset`, `key_rotation.propagation_deadline_met` |
 
 ### 11.4 Error Model
 
-Sealed hierarchy in `commonMain`, platform exceptions wrapped:
+Errors use a sealed `MeshLinkException` hierarchy in `commonMain`, with platform exceptions wrapped and never leaking to consumers:
 
 - Trust/Security errors (PeerNotFoundError, TrustError, KeyUnknownError)
 - Routing errors (NoRouteError, RouteUpdateError)
@@ -563,6 +580,7 @@ Sealed hierarchy in `commonMain`, platform exceptions wrapped:
 - Android: API 26 (runtime crypto capability checks for 26-32)
 - iOS: 14.0
 - iOS: Native targets only on macOS host (cross-compilation limitation)
+- CHANGELOG.md is auto-generated from Conventional Commits at release time, not hand-maintained
 
 ---
 
@@ -574,13 +592,13 @@ Sealed hierarchy in `commonMain`, platform exceptions wrapped:
 |-------|----------|----------|
 | Unit/JVM | `commonTest` | Full coverage |
 | Host/Android | `androidHostTest` | Crypto fallback validation |
-| Device/Android | `meshlink-proof` | Real BLE behavior |
-| Device/iOS | `meshlink-proof/ios` | Real BLE behavior, platform crypto |
+| Device/Android | `meshlink-proof/android/` | Real BLE behavior |
+| Device/iOS | `meshlink-proof/ios/` | Real BLE behavior, platform crypto |
 | Reference app | `meshlink-reference` | Public API consumption only |
 
 ### 13.2 iOS Proof Testing (Security-Critical)
 
-iOS has no real-device validation in current design (simulator cannot validate BLE). Requires physical device testing for:
+iOS proof harness is planned under `meshlink-proof/ios/` for real-device validation (simulator cannot validate BLE). Requires physical device testing for:
 
 - `IosCryptoProviderTest`: Verify Security framework + Secure Enclave key usage (iOS 14+)
 - `CoreBluetoothThroughputTest`: Verify 15-20ms floor per BLE references
@@ -619,10 +637,10 @@ Multi-node scenarios exercised without physical hardware:
 ### 13.7 Acceptance Criteria Per Layer
 
 1. **Data Model / Trust**: Wire vectors, malformed input rejection
-2. **Discovery / Advertisement**: Single-packet format, key hash matching
+2. **Discovery / Advertisement**: Single-packet format, PeerKey matching
 3. **Security Contract**: Wycheproof vectors, fail-closed on all edge cases
 4. **Routing Control**: Convergence under virtual harness, seqno correctness
-5. **Chunked Transfer**: Bitfield SACK semantics, cut-through relay, retry bounds
+5. **Chunked Transfer**: Dynamic bitfield SACK semantics, cut-through relay, retry bounds
 6. **Power Policy**: Tier-to-parameter mapping, EU clamping observable
 7. **Public API**: Identical Android/iOS surface, lifecycle events
 
@@ -637,7 +655,7 @@ Per PROJECT.md suggested approach, sliced into vertical epics:
 3. **Noise Handshake XX (e03)** - Hop-by-hop link encryption with Android/iOS platform crypto
 4. **E2E Handshake IX/NX (e04)** - End-to-end encryption with mesh routing and fallback
 5. **Routing Coordinator (e05)** - Babel-style seqno management, metric-based path selection
-6. **Transfer Session (e06)** - Bitfield SACK protocol, cut-through relay, retry bounds
+6. **Transfer Session (e06)** - Dynamic bitfield SACK protocol, cut-through relay, retry bounds
 7. **Peer Lifecycle (e07)** - Adaptive grace period (CONNECTED → DISCONNECTED → GONE)
 8. **Key Rotation (e08)** - Signed announcements, seqno reset, 3-day default interval
 9. **iOS Proof Harness (e09)** - Real-device validation for iOS platform glue (security critical)
@@ -652,28 +670,62 @@ Each layer validated against RFC-grounded reference algorithms before platform g
 ### 14.1 Configuration DSL
 
 ```kotlin
-MeshLinkConfig {
-  powerTier: PowerTier (default: MEDIUM)
-  keyRotation: KeyRotationConfig {
-    interval: Duration (default: 3 days)
-    gracePeriod: Duration (default: 1 hour)
-  }
-  transfer: TransferConfig {
-    maxRetries: Int (default: 5)
-    chunkSize: Int (default: 256 bytes, overridden by power tier)
-  }
-  diagnostics: DiagnosticsConfig {
-    emitToLog: Boolean (default: true)
-    eventCallback: (DiagnosticEvent) -> Unit
-  }
+/**
+ * MeshLink configuration DSL.
+ * Single source of truth for all tunable parameters.
+ */
+data class MeshLinkConfig(
+  val powerTier: PowerTier = PowerTier.MEDIUM,
+  val regulatoryRegion: RegulatoryRegion = RegulatoryRegion.DEFAULT,
+  val keyRotation: KeyRotationConfig = KeyRotationConfig(),
+  val transfer: TransferConfig = TransferConfig(),
+  val diagnostics: DiagnosticsConfig = DiagnosticsConfig()
+)
+
+data class KeyRotationConfig(
+  val interval: Duration = Duration.days(3),
+  val gracePeriod: Duration = Duration.hours(1)
+)
+
+data class TransferConfig(
+  val maxRetries: Int = 5,
+  val chunkSize: Int = 256 // Default; overridden by power tier
+)
+
+data class DiagnosticsConfig(
+  val emitToLog: Boolean = true,
+  val eventCallback: (DiagnosticEvent) -> Unit = {}
+)
+
+fun meshLinkConfig(block: MeshLinkConfigBuilder.() -> Unit): MeshLinkConfig {
+  return MeshLinkConfigBuilder().apply(block).build()
+}
+
+class MeshLinkConfigBuilder {
+  var powerTier: PowerTier = PowerTier.MEDIUM
+  var regulatoryRegion: RegulatoryRegion = RegulatoryRegion.DEFAULT
+  var keyRotationInterval: Duration = Duration.days(3)
+  var keyRotationGracePeriod: Duration = Duration.hours(1)
+  
+  fun build(): MeshLinkConfig = MeshLinkConfig(
+    powerTier = powerTier,
+    regulatoryRegion = regulatoryRegion,
+    keyRotation = KeyRotationConfig(
+      interval = keyRotationInterval,
+      gracePeriod = keyRotationGracePeriod
+    )
+  )
 }
 ```
+
+[Decision: docs/decisions/model/core-types.md]
 
 ### 14.2 Usage Example
 
 ```kotlin
 val config = meshLinkConfig {
   powerTier = PowerTier.HIGH
+  regulatoryRegion = RegulatoryRegion.EU
   keyRotationInterval = Duration.days(1)  // Override 3-day default
   keyRotationGracePeriod = Duration.minutes(30)
 }

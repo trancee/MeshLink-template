@@ -1,9 +1,9 @@
-# Routing metadata privacy envelope and negotiation contract
+# Routing Metadata Privacy: Always-Encrypted Design
 
-This RFC defines the wire contract for protecting routing metadata in MeshLink,
-including envelope format, versioning, capability negotiation, fallback
-behavior, downgrade handling, and the machine-readable evidence required for the
-next implementation slices.
+This RFC defines the wire contract for protecting routing metadata in MeshLink.
+ROUTE_UPDATE and ROUTE_WITHDRAWAL frames are always AEAD-encrypted using the
+Noise session key — no capability negotiation, no plaintext fallback, no
+downgrade path.
 
 ## Scope
 
@@ -15,14 +15,13 @@ This contract covers routing-control metadata only. It does **not** redesign:
 
 ## Goals
 
-- protect route-control metadata from passive BLE observers when both peers
-  support privacy mode
-- preserve interoperability with legacy peers through explicit negotiation
-- make fallback and downgrade outcomes machine-observable
+- protect route-control metadata from passive BLE observers
+- no negotiation overhead — encryption is always on
+- fail-closed: decrypt/auth failures drop the frame, never fall back to plaintext
 
 ## Baseline
 
-Before this design, route-control payloads are plaintext `BabelRouteControlFrame`
+Before this design, route-control payloads were plaintext `BabelRouteFrameCodec`
 values encoded by `BabelRouteFrameCodec` with wire types:
 
 - `0x21` — UPDATE
@@ -31,211 +30,131 @@ values encoded by `BabelRouteFrameCodec` with wire types:
 That leaves destination, next-hop, metric, and sequence metadata visible to a
 nearby observer.
 
-## Envelope design
+## Always-Encrypted Design
 
-### New frame types
+ROUTE_UPDATE (0x21) and ROUTE_WITHDRAWAL (0x22) always carry AEAD-encrypted
+payloads. There is no plaintext mode, no capability negotiation, and no
+fallback.
 
-To preserve backward compatibility and explicit negotiation, this design adds:
+### Wire Format
 
-- `0x20` — `ROUTE_CAPS`
-- `0x23` — `ROUTE_PRIVACY_ENVELOPE`
+```flatbuffers
+table RouteUpdate {
+  destination: uint8Vector(16);   // Destination peer ID
+  next_hop: uint8Vector(16);       // Next hop toward destination
+  seq_no: uint32;                  // Sequence number
+  metric: uint32;                 // RSSI + flags
+  flags: uint8;                   // Direct route, stale bit, etc.
+  // AEAD ciphertext = encrypted_payload || 16-byte Poly1305 tag
+  // Nonce derived from Noise session counter (not transmitted)
+  ciphertext: uint8Vector(0);
+}
 
-Legacy frame types `0x21` and `0x22` remain valid for negotiated fallback mode.
+table RouteWithdrawal {
+  destination: uint8Vector(16);   // Destination peer ID
+  seq_no: uint32;                  // Sequence number
+  // AEAD ciphertext = encrypted_payload || 16-byte Poly1305 tag
+  // Nonce derived from Noise session counter (not transmitted)
+  ciphertext: uint8Vector(0);
+}
+```
 
-### `ROUTE_CAPS` (`0x20`)
+### Encryption
 
-`ROUTE_CAPS` is plaintext and intentionally small.
+- **Algorithm:** ChaCha20-Poly1305 (Noise session AEAD)
+- **Nonce:** Derived from the Noise session's internal counter — not transmitted
+- **Ciphertext:** `encrypted_payload || 16-byte Poly1305 tag`
+- **AAD:** Frame type + version (bound to ciphertext integrity)
 
-| Byte(s) | Field | Type | Notes |
-|---|---|---|---|
-| 0 | `frame_type` | u8 | `0x20` |
-| 1 | `version` | u8 | schema version, initial `1` |
-| 2 | `capability_bits` | u8 | bit0 = supports privacy envelope v1 |
-| 3 | `max_privacy_version` | u8 | highest supported privacy version |
-| 4 | `min_privacy_version` | u8 | lowest supported privacy version |
-| 5 | `flags` | u8 | reserved, must be `0` in v1 |
-
-### `ROUTE_PRIVACY_ENVELOPE` (`0x23`)
-
-`ROUTE_PRIVACY_ENVELOPE` carries an encrypted inner route-control frame.
-
-| Byte(s) | Field | Type | Notes |
-|---|---|---|---|
-| 0 | `frame_type` | u8 | `0x23` |
-| 1 | `envelope_version` | u8 | initial `1` |
-| 2 | `inner_frame_type` | u8 | `0x21` or `0x22` |
-| 3 | `cipher_suite_id` | u8 | `0x01` = Noise-session AEAD default |
-| 4 | `key_phase` | u8 | sender rekey epoch |
-| 5..8 | `seq` | u32 LE | monotonic per-neighbour privacy sequence |
-| 9 | `nonce_len` | u8 | v1 requires `12` |
-| 10.. | `nonce` | bytes | AEAD nonce |
-| next 2 | `ciphertext_len` | u16 LE | encrypted inner-frame length |
-| next N | `ciphertext` | bytes | encrypted inner frame |
-| next 16 | `tag` | bytes | AEAD tag |
-
-The encrypted plaintext is exactly the existing `BabelRouteFrameCodec.encode(...)`
+The encrypted plaintext is the existing `BabelRouteFrameCodec.encode(...)`
 output for UPDATE or WITHDRAWAL, so route-table logic can stay intact after a
 successful decrypt.
 
-### Authenticated data (AAD)
+### Why No Negotiation?
 
-AAD for v1 is:
+Since no MeshLink release has shipped, there are no legacy peers to be
+compatible with. Always-encrypt is simpler and more secure:
 
-`frame_type || envelope_version || inner_frame_type || cipher_suite_id || key_phase || seq || nonce_len`
+- No downgrade attacks (plaintext is never an option)
+- No negotiation overhead (no ROUTE_CAPS exchange)
+- No fallback logic (no graceful degradation to plaintext)
+- Simpler implementation (one code path, not two)
 
-That binds envelope metadata to ciphertext integrity.
+### Fail-Closed Rules
 
-## Version rules
+- Decrypt/auth failures drop the frame immediately
+- No silent fallback to plaintext
+- No retry with a different encryption mode
+- Route table logic only runs after successful decryption
 
-- `ROUTE_CAPS.version` and `ROUTE_PRIVACY_ENVELOPE.envelope_version` are
-  versioned independently
-- unknown versions are hard parse failures for the offending frame
-- privacy mode is valid only when both peers share at least one supported
-  envelope version
-- v1 selects envelope version `1`
+## Diagnostics Contract
 
-## Capability negotiation
+Since there is no negotiation or fallback, the diagnostics contract is minimal:
 
-### Exchange timing
+- `route.decrypt_failures` — count of frames dropped due to decrypt/auth failure
+- `route.frame_type` — the wire type (UPDATE or WITHDRAWAL)
 
-- after a Noise session is available for a neighbour, each side emits one
-  `ROUTE_CAPS` frame
-- capability state is bound to that session and cleared on disconnect or reset
+No `negotiated_mode`, `fallback_reason`, `downgrade_verdict`,
+`envelope_version`, or `envelope_failure` fields are needed.
 
-### Deterministic mode selection
+## Acceptance Evidence Contract
 
-Per neighbour:
+S02/S03 closeout bundles must include machine-readable evidence for:
 
-1. if local support and remote support overlap on privacy v1, select
-   `privacy_v1`
-2. otherwise, select `legacy` and record an explicit fallback reason
+- `route.decrypt_failures` count (should be 0 in normal operation)
+- `route.frame_type` distribution (UPDATE vs WITHDRAWAL)
+- encrypted frame counts on both legs of a transfer
 
-No implicit mode switching is allowed.
+The acceptance runner should fail closed when required fields are missing or
+malformed.
 
-### Compatibility matrix
+## Deterministic Test Vectors
 
-| Local | Remote | Selected mode | Reason |
-|---|---|---|---|
-| privacy_v1 | privacy_v1 | privacy_v1 | negotiated |
-| privacy_v1 | legacy/none | legacy | `fallback_legacy_peer` |
-| legacy/none | privacy_v1 | legacy | `fallback_local_legacy` |
-| legacy/none | legacy/none | legacy | `fallback_both_legacy` |
-
-## Fallback and downgrade rules
-
-Fallback is valid only for explicit capability mismatch, not for parse,
-decrypt, auth, or version failures.
-
-Required fallback reasons:
-
-- `fallback_legacy_peer`
-- `fallback_local_legacy`
-- `fallback_both_legacy`
-- `fallback_local_policy`
-
-Downgrade verdicts are separate:
-
-- `none`
-- `downgrade_suspected`
-- `downgrade_detected`
-
-Deterministic v1 rules:
-
-1. if privacy was negotiated and a legacy route frame arrives afterward, flag
-   downgrade (`suspected` first, then `detected` on repeat or threshold breach)
-2. if a privacy-capable peer sends an unsupported or rolled-back envelope
-   version, mark `downgrade_detected`
-3. if envelope auth or decrypt fails after privacy negotiation, mark
-   `downgrade_detected`
-4. benign capability-mismatch fallback keeps `downgrade=none`
-
-Privacy mode is fail-closed: auth, decrypt, and version failures drop the frame
-and do not silently switch the session to legacy mode.
-
-## Diagnostics contract
-
-S02/S03 must expose machine-readable diagnostics for at least:
-
-- `route.negotiated_mode`
-- `route.fallback_reason`
-- `route.downgrade_verdict`
-- `route.envelope_version`
-- `route.envelope_failure` when applicable
-
-Those fields may extend the current routing diagnostics or use a dedicated
-routing-privacy payload, but they must stay acceptance-projectable.
-
-## Acceptance evidence contract
-
-S03 closeout bundles must include machine-readable evidence for:
-
-- privacy-envelope counts on both legs
-- negotiated-mode counts
-- fallback-reason counts
-- suspected/detected downgrade counts
-- legacy compatibility application
-- attack-path legacy drop behavior
-
-The acceptance runner should fail closed when required fields are missing,
-malformed, or inconsistent with the claimed scenario.
-
-## Deterministic test vectors
-
-### Test vector 1 — `ROUTE_CAPS` advertises privacy v1
-
-Hex:
-
-`20 01 01 01 01 00`
-
-Meaning:
-
-- frame type `0x20`
-- schema version `0x01`
-- capability bit0 set
-- max/min privacy version `0x01`
-- flags `0x00`
-
-### Test vector 2 — negotiated privacy success
+### Test vector 1 — ROUTE_UPDATE with always-encrypted payload
 
 Input:
 
-- local caps: `20 01 01 01 01 00`
-- remote caps: `20 01 01 01 01 00`
+- destination: `0102030405060708090a0b0c0d0e0f10`
+- next_hop: `1112131415161718191a1b1c1d1e1f20`
+- seq_no: `42`
+- metric: `187`
+- flags: `0`
+- plaintext: `BabelRouteFrameCodec.encode(UPDATE, ...)`
+- ciphertext: `Noise_AEAD_Encrypt(plaintext, AAD=frame_type||version)`
 
 Expected:
 
-- `negotiated_mode=privacy_v1`
-- `fallback_reason=none`
-- `downgrade_verdict=none`
+- Frame type `0x21`
+- Ciphertext is non-empty (encrypted payload + 16-byte tag)
+- Plaintext is never visible on the wire
 
-### Test vector 3 — benign fallback with a legacy peer
+### Test vector 2 — ROUTE_WITHDRAWAL with always-encrypted payload
 
 Input:
 
-- local caps: `20 01 01 01 01 00`
-- remote caps: absent
+- destination: `0102030405060708090a0b0c0d0e0f10`
+- seq_no: `43`
+- plaintext: `BabelRouteFrameCodec.encode(WITHDRAWAL, ...)`
+- ciphertext: `Noise_AEAD_Encrypt(plaintext, AAD=frame_type||version)`
 
 Expected:
 
-- `negotiated_mode=legacy`
-- `fallback_reason=fallback_legacy_peer`
-- `downgrade_verdict=none`
+- Frame type `0x22`
+- Ciphertext is non-empty (encrypted payload + 16-byte tag)
+- Plaintext is never visible on the wire
 
-### Test vector 4 — legacy frame after privacy negotiation
+## Implementation Note
 
-Input:
+The route-table semantics stay unchanged: decrypt the ciphertext first, then
+pass the inner payload through the existing route-frame decode/application flow.
+The only change is that the payload is encrypted on the wire and decrypted
+before processing.
 
-- prior state: `negotiated_mode=privacy_v1`
-- received frame type: `0x21`
+## Related Docs
 
-Expected:
-
-- `downgrade_verdict=downgrade_suspected` on the first violation
-- escalation to `downgrade_detected` on repeat
-- offending frame dropped per policy
-
-## Implementation note
-
-The route-table semantics should stay unchanged: decrypt the envelope first,
-then pass the inner payload through the existing route-frame decode/application
-flow.
+- [Understanding Babel routing in MeshLink](../../explanation/understanding-babel-routing.md)
+- [Destination-sourced route freshness, IHU cost signal removal, and digest-triggered resync](destination-sourced-seqno-ihu-removal-digest-resync-design.md)
+- [Link quality metric](link-quality-metric.md)
+- [GATT as the always-available control plane, L2CAP CoC as the preferred data plane](../transport/gatt-l2cap-transport-selection.md)
+- [Wire Format Specification](../wire/wire-format-spec.md)
+- [Core Types](../model/core-types.md)
