@@ -8,7 +8,7 @@ Core data types for MeshLink. All types live in `meshlink/src/commonMain/kotlin/
 
 ## Core Types
 
-### PeerId
+### PeerIdentity
 
 A unique identifier for a peer in the mesh.
 
@@ -24,28 +24,28 @@ A unique identifier for a peer in the mesh.
  * - Clean size (power-of-2 byte alignment)
  */
 @JvmInline
-value class PeerId(private val bytes: ByteArray) {
+value class PeerIdentity(private val bytes: ByteArray) {
   init { require(bytes.size == 16) }
   
   val hex: String get() = bytes.joinToString("") { "%02x".format(it) }
   
   companion object {
-    fun generate(): PeerId {
+    fun generate(): PeerIdentity {
       val bytes = SecureRandom.nextBytes(16)
-      return PeerId(bytes)
+      return PeerIdentity(bytes)
     }
   }
 }
 ```
 
-### PeerKey
+### PeerFingerprint
 
 A truncated hash used in discovery advertisements.
 
 ```kotlin
 /**
  * 12-byte SHA-256 truncated public key hash.
- * Used in discovery packets and NX fallback verification.
+ * Used in discovery packets only (not in NX handshake — full keys used there).
  * 
  * Rationale: 12 bytes (96 bits) provides:
  * - Birthday bound 2^48 (infeasible collision)
@@ -53,20 +53,20 @@ A truncated hash used in discovery advertisements.
  * - Lightweight hint without full key exposure
  */
 @JvmInline
-value class PeerKey(private val bytes: ByteArray) {
+value class PeerFingerprint(private val bytes: ByteArray) {
   init { require(bytes.size == 12) }
 
   companion object {
     /**
-     * Derives PeerKey from both public keys.
+     * Derives PeerFingerprint from both public keys.
      * Order: Ed25519Pub || X25519Pub — Ed25519 first because it is the
      * identity/signing key (primary identity anchor); X25519 second because
      * it is the DH key (may be rotated independently).
      * If either key is missing, derivation fails — both keys are required.
      */
-    fun fromPublicKeys(ed25519Pub: CryptoKey, x25519Pub: CryptoKey): PeerKey {
+    fun fromPublicKeys(ed25519Pub: CryptoKey, x25519Pub: CryptoKey): PeerFingerprint {
       val hash = sha256(ed25519Pub.bytes + x25519Pub.bytes)
-      return PeerKey(hash.copyOf(12)) // First 12 bytes
+      return PeerFingerprint(hash.copyOf(12)) // First 12 bytes
     }
   }
 }
@@ -74,15 +74,15 @@ value class PeerKey(private val bytes: ByteArray) {
 
 ### Design Correction Note (2026-07-23)
 
-**Why PeerId is stable/random, not derived from publicKey:**
+**Why PeerIdentity is stable/random, not derived from publicKey:**
 
-Initial design derived PeerId from public key: `PeerId = SHA-256(publicKey).first(16)`. This created a critical flaw:
+Initial design derived PeerIdentity from public key: `PeerIdentity = SHA-256(publicKey).first(16)`. This created a critical flaw:
 
-1. **Key rotation changes public key** — Therefore changes PeerId
-2. **Neighbors can't look up old key** — TrustStore indexed by PeerId would be stale
-3. **KeyRotationAnnouncement breaks** — Cannot verify with "old key by PeerId"
+1. **Key rotation changes public key** — Therefore changes PeerIdentity
+2. **Neighbors can't look up old key** — TrustStore indexed by PeerIdentity would be stale
+3. **KeyRotationAnnouncement breaks** — Cannot verify with "old key by PeerIdentity"
 
-**Solution:** Generate stable PeerId ONCE at install time. This ensures:
+**Solution:** Generate stable PeerIdentity ONCE at install time. This ensures:
 
 - Peer identity persists across key rotations
 - TrustStore works correctly (old key lookups succeed)
@@ -118,7 +118,7 @@ Stored trust information for a peer.
  * Stored in persistent keystore; survives restarts.
  */
 data class TrustRecord(
-  val peerId: PeerId,
+  val peerIdentity: PeerIdentity,
   val publicKey: CryptoKey,
   val seenAt: Instant,
   val verifiedAt: Instant,
@@ -132,10 +132,10 @@ enum class TrustStatus {
 
 // Trust store interface
 interface TrustStore {
-  suspend fun getPublicKey(peerId: PeerId): CryptoKey?
-  suspend fun getPeerKey(peerId: PeerId): PeerKey?
-  suspend fun save(peerId: PeerId, publicKey: CryptoKey): Boolean
-  suspend fun revoke(peerId: PeerId)
+  suspend fun getPublicKey(peerIdentity: PeerIdentity): CryptoKey?
+  suspend fun getPeerFingerprint(peerIdentity: PeerIdentity): PeerFingerprint?
+  suspend fun save(peerIdentity: PeerIdentity, publicKey: CryptoKey): Boolean
+  suspend fun revoke(peerIdentity: PeerIdentity)
 }
 ```
 
@@ -149,8 +149,8 @@ Routing table entry for a destination.
  * Managed by RouteCoordinator; updates via RouteDigest.
  */
 data class RouteEntry(
-  val destination: PeerId,
-  val nextHop: PeerId?,      // null = destination unreachable
+  val destination: PeerIdentity,
+  val nextHop: PeerIdentity?,      // null = destination unreachable
   val seqNo: UInt,           // Destination-sourced sequence number
   val metric: UInt,            // Link quality metric (RSSI+flags)
   val publicKey: CryptoKey?   // Destination's public key, learned via route updates
@@ -182,7 +182,7 @@ Chunked transfer session state.
  */
 data class TransferSession(
   val sessionId: SessionId,
-  val destination: PeerId,
+  val destination: PeerIdentity,
   val status: TransferStatus,
   val chunkSize: Int,              // Based on power tier
   val totalChunks: UInt,           // ceil(totalBytes / chunkSize)
@@ -224,10 +224,10 @@ enum class TransferStatus {
   TIMED_OUT
 }
 
-// Session ID derives from E2E handshake
+// Session ID is a random 64-bit token used to correlate chunks within a transfer session
 @JvmInline
 value class SessionId(private val bytes: ByteArray) {
-  init { require(bytes.size == 4) } // Random token (32-bit)
+  init { require(bytes.size == 8) } // Random token (64-bit)
 }
 ```
 
@@ -241,7 +241,7 @@ Per-peer connection tracking.
  * Drives peer lifecycle (CONNECTED -> DISCONNECTED -> GONE).
  */
 data class ConnectionState(
-  val peerId: PeerId,
+  val peerId: PeerIdentity,
   val connectionState: PeerConnectionState,
   val graceSweeps: Int,        // 0-3 for transition to GONE
   val lastRssi: Int?,          // For metric calculation
@@ -326,7 +326,7 @@ a hop limit set by the routing layer.
  * Does NOT expose E2E payload content to relays.
  */
 data class MeshEnvelope(
-  val destination: PeerId,     // Final destination (set from MessageEnvelope)
+  val destination: PeerIdentity,     // Final destination (set from MessageEnvelope)
   val payload: ByteArray,      // Serialized MessageEnvelope + encrypted E2E content
   val hopLimit: UByte = 0      // Set by routing layer; 0 = direct only
 )
@@ -348,7 +348,7 @@ data class MessageEnvelope(
   val messageId: Long,         // 64-bit random for deduplication
   val ttl: Duration,           // Priority-based time-to-live
   val priority: MessagePriority, // HIGH, NORMAL, LOW
-  val destination: PeerId      // Final destination
+  val destination: PeerIdentity      // Final destination
 )
 
 enum class MessagePriority { HIGH, NORMAL, LOW }
@@ -361,10 +361,12 @@ E2E handshake payload.
 ```kotlin
 /**
  * Payload for E2E handshake (IX/NX).
- * Carries PeerKey and nonce for verification.
+ * NX carries full public keys (64 bytes) for verification.
+ * IX does not carry keys (destination key already known via route).
+ * PeerFingerprint included for logging/correlation.
  */
 data class HandshakePayload(
-  val peerKey: PeerKey,       // For NX verification
+  val peerFingerprint: PeerFingerprint,       // For logging/correlation
   val nonce: UInt,             // Replay protection
   val content: ByteArray      // Encrypted payload or handshake data
 )
@@ -403,7 +405,7 @@ Wire frame carrying a chunk of a large payload.
  * Carried over GATT or L2CAP CoC.
  */
 data class TransferChunk(
-  val sessionId: SessionId,     // 4-byte session identifier
+  val sessionId: SessionId,     // 8-byte session identifier
   val offset: UInt,             // Byte offset in overall payload
   val length: UShort,           // Length of this chunk's data
   val data: ByteArray,          // Chunk payload bytes
@@ -421,7 +423,7 @@ Wire frame carrying selective acknowledgment of received chunks.
  * Bit N = 1 means chunk N is received (standard SACK convention).
  */
 data class TransferAck(
-  val sessionId: SessionId,     // 4-byte session identifier
+  val sessionId: SessionId,     // 8-byte session identifier
   val bitfield: ByteArray       // Dynamic bitfield: ceil(totalChunks / 8) bytes
 )
 ```
@@ -435,7 +437,7 @@ Wire frame for canceling an active transfer session.
  * Cancel an active transfer session.
  */
 data class TransferCancel(
-  val sessionId: SessionId,     // 4-byte session identifier
+  val sessionId: SessionId,     // 8-byte session identifier
   val reason: TransferCancelReason,
   val error: String? = null     // Optional error message
 )
@@ -451,8 +453,8 @@ enum class TransferCancelReason {
 
 ## Testing Requirements
 
-- `PeerIdTest`: verify truncation and hex encoding
-- `PeerKeyTest`: verify 12-byte hash derivation
+- `PeerIdentityTest`: verify truncation and hex encoding
+- `PeerFingerprintTest`: verify 12-byte hash derivation
 - `CryptoKeyTest`: verify diagnostic ID doesn't leak key material
 - `TrustRecordTest`: verify serialization and state transitions
 - `RouteEntryTest`: verify seqno and metric handling

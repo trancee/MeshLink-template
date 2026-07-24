@@ -177,7 +177,7 @@ Route selection considers both metric and hop count:
 
 ```kotlin
 data class RouteCandidate(
-  val nextHop: PeerId,
+  val nextHop: PeerIdentity,
   val totalMetric: UInt,
   val hopCount: UInt,
   val feasibility: FeasibilityCondition

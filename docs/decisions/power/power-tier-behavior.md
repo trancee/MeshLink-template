@@ -15,13 +15,13 @@ enum class PowerTier {
     HIGH,    // Performance prioritized
     MEDIUM,  // Balanced (default)
     LOW,     // Battery conserved
-    OFF      // No background activity
+    IDLE     // No background activity
 }
 ```
 
 ### Tier Parameters with Rationale
 
-| Parameter | HIGH | MEDIUM | LOW | OFF |
+| Parameter | HIGH | MEDIUM | LOW | IDLE |
 |-----------|------|--------|-----|-----|
 | Scan duty cycle | 20% | 10% | 5% | 0% (no scans) |
 | Advertisement interval | 100ms | 500ms | 1000ms | Never |
@@ -56,7 +56,7 @@ fun calculateGracePeriod(state: PeerGraceState): Duration {
     HIGH -> Duration.seconds(15)
     MEDIUM -> Duration.seconds(30)
     LOW -> Duration.seconds(45)
-    OFF -> Duration.ZERO
+    IDLE -> Duration.ZERO
   }
   
   // Adjust based on peer history
@@ -96,7 +96,7 @@ suspend fun PowerTier.to AndroidScanSettings(): ScanSettings {
     LOW -> ScanSettings.Builder()
       .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
       .build()
-    OFF -> null // No scanning
+    IDLE -> null // No scanning
   }
 }
 ```
@@ -114,7 +114,7 @@ func applyPowerTier(_ tier: PowerTier) {
     // iOS doesn't have granular scan modes
     // Use background preservation instead
     self.delegate = self // Allow background scanning
-  case .OFF:
+  case .IDLE:
     self.centralManager.stopScan()
   default:
     break

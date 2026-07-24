@@ -6,6 +6,8 @@
 
 FlatBuffers-based wire protocol for MeshLink. All schemas live in `meshlink/src/commonMain/kotlin/ch/trancee/meshlink/wire/`.
 
+**Important**: MeshLink uses a **custom pure-Kotlin FlatBuffers implementation** (not `flatc` codegen). The implementation is optimized for KMP, zero-copy decoding, and minimal binary size. See `docs/explanation/why-pure-kotlin-flatbuffers.md` for rationale.
+
 ## Schema Design Principles
 
 1. **All fields required** — No optional fields to simplify parsing
@@ -15,6 +17,8 @@ FlatBuffers-based wire protocol for MeshLink. All schemas live in `meshlink/src/
 
 ## FlatBuffers Schemas
 
+The schemas below define the logical structure. The actual encoding/decoding is implemented in pure Kotlin (no `flatc` generated code).
+
 ### Base Types
 
 ```flatbuffers
@@ -22,7 +26,7 @@ FlatBuffers-based wire protocol for MeshLink. All schemas live in `meshlink/src/
 
 table MeshEnvelope {
   // Destination for this message
-  destination: uint8Vector(16);  // 16-byte PeerId
+  destination: uint8Vector(16);  // 16-byte PeerIdentity
   
   // Inner payload (encrypted or handshake)
   payload: uint8Vector(0);
@@ -130,8 +134,8 @@ table WireFrame {
 
 ```flatbuffers
 table TransferChunk {
-  // Session ID (4 bytes, 32-bit)
-  session_id: uint8Vector(4);
+  // Session ID (8 bytes, 64-bit)
+  session_id: uint8Vector(8);
   
   // Byte offset in overall payload
   offset: uint32;
@@ -147,8 +151,8 @@ table TransferChunk {
 }
 
 table TransferAck {
-  // Session ID (4 bytes, 32-bit)
-  session_id: uint8Vector(4);
+  // Session ID (8 bytes, 64-bit)
+  session_id: uint8Vector(8);
   
   // Dynamic bitfield: ceil(totalChunks / 8) bytes
   // Bit N = 1 if chunk N is received (standard SACK convention)
@@ -157,8 +161,8 @@ table TransferAck {
 }
 
 table TransferCancel {
-  // Session ID (4 bytes, 32-bit — matches TransferChunk and TransferAck)
-  session_id: uint8Vector(4);
+  // Session ID (8 bytes, 64-bit — matches TransferChunk and TransferAck)
+  session_id: uint8Vector(8);
   
   // Reason code
   reason: uint8;
@@ -172,8 +176,9 @@ table TransferCancel {
 
 ```flatbuffers
 table HandshakePayload {
-  // PeerKey for NX verification
-  peer_key: uint8Vector(12);
+  // Full public key for NX verification (64 bytes: Ed25519 || X25519)
+  ed25519_public_key: uint8Vector(32);
+  x25519_public_key: uint8Vector(32);
   
   // Replay nonce
   nonce: uint32;

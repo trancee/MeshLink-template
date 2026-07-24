@@ -176,6 +176,50 @@ data-driven follow-up — not a speculative optimization to build now.
 | `SeqNoRequest` | dead, encoded/decoded, no-op on receipt | remains dead, explicitly deferred (not removed — kept as reserved wire surface for a possible future starvation-recovery design, since unlike Hello/IHU it isn't solved by an existing MeshLink mechanism) |
 | `RouteDigest` | sent on nearly every advertisement, receive side no-op | receive side triggers a full-table push to the mismatched peer |
 
+## 4. Sequence Number Comparison with Wrap Handling
+
+Each node owns a single 32-bit unsigned sequence number counter (`UInt`), incremented only on cold start. The wire format transmits this as `UInt` (4 bytes). To correctly handle the theoretical wrap-around at 2^32, all seqno comparisons **must** use signed 32-bit arithmetic:
+
+```kotlin
+/**
+ * Returns true if [candidate] is newer than [current], handling 32-bit wrap-around.
+ * Uses signed comparison per RFC 8966 §3.7 and Babel convention:
+ * (candidate - current) interpreted as signed 32-bit integer > 0.
+ */
+fun SeqNo.isNewerThan(current: UInt): Boolean {
+    return (this - current).toInt() > 0
+}
+
+/** Companion for creating sequence numbers. */
+@Serializable
+inline class SeqNo(private val value: UInt) {
+    companion object {
+        val ZERO: SeqNo = SeqNo(0u)
+    }
+    
+    val raw: UInt = value
+    
+    fun increment(): SeqNo = SeqNo(value + 1u)
+    
+    fun isNewerThan(other: SeqNo): Boolean = (value - other.value).toInt() > 0
+    
+    fun isOlderThan(other: SeqNo): Boolean = other.isNewerThan(this)
+    
+    operator fun minus(other: SeqNo): Int = (value - other.value).toInt()
+}
+```
+
+**Why signed comparison**: RFC 8966 §3.7 specifies seqno comparison as "greater than" using modular arithmetic. The signed interpretation `(new - old) > 0` correctly handles wrap: if `old = 0xFFFFFFFE` and `new = 1` (wrapped), `1 - 0xFFFFFFFE = 3` (signed) > 0 → newer. If `old = 5` and `new = 3`, `3 - 5 = -2` < 0 → older.
+
+**Where this is used**:
+
+- `RouteCoordinator.onRouteUpdate`: when adopting a received route's seqno
+- `RouteCoordinator.feasibilityCondition`: comparing candidate route seqno against current route seqno
+- `RouteDigestTracker`: detecting stale self-origin seqnos
+- Wire codec: encoding/decoding `UInt` (no change needed, just comparison logic)
+
+**Testing**: Add property test verifying `isNewerThan` correctness across wrap boundary (0xFFFFFFFF → 0).
+
 Since no MeshLink release has shipped yet (`CHANGELOG.md`), removing
 `Hello`/`Ihu` is not a breaking wire-format change requiring a major version
 bump — it's cleanup before the wire format is ever deployed.

@@ -29,7 +29,7 @@ Using Noise patterns from the framework specification:
 
 **IX is correct when the key is known.** For unknown keys, **NX provides a degraded but functional fallback** — the initiator's identity is bound in msg1, but the responder's key isn't validated until msg2.
 
-**Mitigation:** NX fallback uses PeerKey verification (see `nx-fallback-mitigation.md`) and rate limiting to prevent abuse.
+**Mitigation:** NX fallback uses PeerFingerprint verification (see `nx-fallback-mitigation.md`) and rate limiting to prevent abuse.
 
 ## Proposed Solution: Route E2E Handshake to Destination
 
@@ -90,7 +90,7 @@ table MeshEnvelope {
 ```kotlin
 // In TransferSession or E2ESession
 suspend fun sendE2EHandshake(
-  destination: PeerId,
+  destination: PeerIdentity,
   content: ByteArray
 ): Result<Unit> {
   // Check if destination key is known
@@ -121,7 +121,7 @@ Relays MUST NOT inspect E2E payloads:
 
 ```kotlin
 // In RoutingLayer.onMeshEnvelope()
-if (envelope.destination != localPeerId) {
+if (envelope.destination != localPeerIdentity) {
   // E2E payload - forward without inspection
   val nextHop = routingTable.getNextHop(envelope.destination)
   hopSession.send(nextHop, envelope.serialized)
@@ -133,7 +133,7 @@ if (envelope.destination != localPeerId) {
 
 ```kotlin
 // In RoutingLayer.onMeshEnvelope()
-if (envelope.destination == localPeerId) {
+if (envelope.destination == localPeerIdentity) {
   // This is for me - check if it's E2E handshake
   when (parseE2EPayload(envelope.payload)) {
     is IX_Msg1 -> {

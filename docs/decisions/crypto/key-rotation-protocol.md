@@ -112,7 +112,7 @@ table KeyRotationAnnouncement {
 ```kotlin
 // In RouteCoordinator.onPeerConnected()
 suspend fun handleKeyRotationAnnouncement(
-  peerId: PeerId,
+  peerId: PeerIdentity,
   announcement: KeyRotationAnnouncement
 ) {
   // Verify signature with OLD known key (must exist for valid rotation)
@@ -142,7 +142,7 @@ suspend fun handleKeyRotationAnnouncement(
 
 **Key insight:** Key rotation changes the **crypto identity**, not the **peer identity**.
 
-- **PeerId** (stable) — remains unchanged across rotations
+- **PeerIdentity** (stable) — remains unchanged across rotations
 - **PublicKey** (volatile) — changes on key rotation
 - **SeqNo** (route metric) — resets to 1 to signal "new crypto era"
 
@@ -193,4 +193,4 @@ Since no MeshLink release has shipped yet, this is not a breaking change — wir
 - `docs/decisions/crypto/e2e-handshake-pattern.md`
 - `docs/decisions/routing/destination-sourced-seqno-ihu-removal-digest-resync-design.md`
 - `docs/decisions/crypto/vector-policy.md` (signature verification rules)
-- `docs/explanation/privacy-pseudonyms.md` (PeerKey in discovery)
+- `docs/explanation/privacy-pseudonyms.md` (PeerFingerprint in discovery)
