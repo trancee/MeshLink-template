@@ -49,8 +49,8 @@ Origin --(GATT/L2CAP)--> Relay1
 Relay1 --(GATT/L2CAP)--> Destination
 
 Phase 2: E2E Handshake Routing
-Origin wraps IX Msg1 in MeshEnvelope:
-  MeshEnvelope {
+Origin wraps IX Msg1 in HopEnvelope:
+  HopEnvelope {
     destination: destination.peerId,
     payload: IX_Msg1_encrypted_for_destination
   }
@@ -60,7 +60,7 @@ sees destination != origin, forwards via its hop to Destination
 
 Destination receives Hop Msg2, extracts IX_Msg1,
 verifies it's for itself, responds with IX_Msg2
-wrapped in MeshEnvelope back to Origin
+wrapped in HopEnvelope back to Origin
 
 Phase 3: Return Path
 Destination --(reverse route)--> Origin
@@ -70,10 +70,10 @@ Origin now has E2E traffic keys, can send encrypted payload
 
 ### Implementation Details
 
-#### 1. MeshEnvelope Wire Format
+#### 1. HopEnvelope Wire Format
 
 ```flatbuffers
-table MeshEnvelope {
+table HopEnvelope {
   // Destination peer ID (16-byte hash)
   destination: uint8Vector(16);
   
@@ -120,7 +120,7 @@ suspend fun sendE2EHandshake(
 Relays MUST NOT inspect E2E payloads:
 
 ```kotlin
-// In RoutingLayer.onMeshEnvelope()
+// In RoutingLayer.onHopEnvelope()
 if (envelope.destination != localPeerIdentity) {
   // E2E payload - forward without inspection
   val nextHop = routingTable.getNextHop(envelope.destination)
@@ -132,7 +132,7 @@ if (envelope.destination != localPeerIdentity) {
 #### 4. Destination Behavior
 
 ```kotlin
-// In RoutingLayer.onMeshEnvelope()
+// In RoutingLayer.onHopEnvelope()
 if (envelope.destination == localPeerIdentity) {
   // This is for me - check if it's E2E handshake
   when (parseE2EPayload(envelope.payload)) {

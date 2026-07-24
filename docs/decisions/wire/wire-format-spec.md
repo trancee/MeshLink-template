@@ -24,7 +24,7 @@ The schemas below define the logical structure. The actual encoding/decoding is 
 ```flatbuffers
 // src/commonMain/proto/meshlink.fbs
 
-table MeshEnvelope {
+table HopEnvelope {
   // Destination for this message
   destination: uint8Vector(16);  // 16-byte PeerIdentity
   
@@ -114,7 +114,7 @@ enum MessageType: byte {
 }
 
 // Union for payload
-union WirePayload = MeshEnvelope | RouteUpdate | RouteWithdrawal | RouteDigest | 
+union WirePayload = HopEnvelope | RouteUpdate | RouteWithdrawal | RouteDigest | 
                     TransferChunk | TransferAck | TransferCancel | 
                     KeyRotationAnnouncement;
 
@@ -145,9 +145,6 @@ table TransferChunk {
   
   // Data bytes
   data: uint8Vector(0);
-  
-  // Is this the last chunk?
-  is_last: bool;
 }
 
 table TransferAck {
@@ -227,8 +224,8 @@ object WireCodec {
   fun decode(data: ByteArray): WireFrame
   
   // Specific encoders
-  fun encodeMeshEnvelope(envelope: MeshEnvelope): ByteArray
-  fun decodeMeshEnvelope(data: ByteArray): MeshEnvelope
+  fun encodeHopEnvelope(envelope: HopEnvelope): ByteArray
+  fun decodeHopEnvelope(data: ByteArray): HopEnvelope
   
   fun encodeRouteUpdate(update: RouteUpdate): ByteArray
   fun decodeRouteUpdate(data: ByteArray): RouteUpdate

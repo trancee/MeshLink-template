@@ -38,44 +38,16 @@ enum class PowerTier {
 
 ### Grace Period Design
 
-The original spec used fixed sweeps (30-60s) but this doesn't adapt to peer behavior.
+Fixed grace period per power tier:
 
-**New approach:** Adaptive grace period based on peer's observed reliability:
+| Tier | Grace Period |
+|------|-------------|
+| HIGH | 15 seconds |
+| MEDIUM (default) | 30 seconds |
+| LOW | 45 seconds |
+| IDLE | 0 seconds |
 
-```kotlin
-data class PeerGraceState(
-  val disconnects: Int,
-  val recentDisconnects: Int,  // Last 5 minutes
-  val averageUptime: Duration,  // Average connected time
-  val powerTier: PowerTier
-)
-
-fun calculateGracePeriod(state: PeerGraceState): Duration {
-  // Base period from power tier
-  val base = when (state.powerTier) {
-    HIGH -> Duration.seconds(15)
-    MEDIUM -> Duration.seconds(30)
-    LOW -> Duration.seconds(45)
-    IDLE -> Duration.ZERO
-  }
-  
-  // Adjust based on peer history
-  val stabilityFactor = when {
-    state.recentDisconnects == 0 -> 1.0  // Stable peer
-    state.recentDisconnects <= 2 -> 0.7  // Occasional disconnect
-    else -> 0.5 // Frequent disconnect - shorter grace
-  }
-  
-  // Adjust based on average uptime
-  val uptimeFactor = when {
-    state.averageUptime > Duration.minutes(5) -> 1.2  // Long sessions - be patient
-    state.averageUptime < Duration.seconds(30) -> 0.8 // Very short - be quick
-    else -> 1.0
-  }
-  
-  return (base * stabilityFactor * uptimeFactor).coerceAtLeast(Duration.seconds(10))
-}
-```
+After the grace period expires without reconnection, the peer transitions to GONE and ephemeral state (presence, routes, pending transfers) is cleaned up. Pinned trust state persists.
 
 ### Platform Integration
 
@@ -136,22 +108,19 @@ power:
   connection_interval_ms: [15, 25]
   coc_fallback_count: 3
   grace_period_seconds: 32
-  peer_stability: "stable" # derived from disconnect history
+}
 ```
 
 ### Testing Requirements
 
 - `PowerTierTest`: verify each tier produces correct platform settings
-- `GracePeriodAdaptiveTest`: verify adaptive calculation based on peer history
 - `BatteryConsumptionBenchmark`: verify LOW tier consumes ≤1% battery/hour
-- `SweepTimerPrecisionTest`: verify grace period timing within ±2s tolerance
 - `CrossPlatformComparisonTest`: verify similar behavior on Android/iOS
 
 ### Trade-offs
 
 | Trade-off | Analysis |
 |-----------|----------|
-| Fixed vs adaptive grace | Adaptive better handles real-world peer behavior |
 | Android vs iOS power control | iOS has fewer knobs; use background modes |
 | Granular tiers vs simplicity | 4 tiers balance flexibility with complexity |
 | No automatic tier switching | App controls tier; no hidden behavior |

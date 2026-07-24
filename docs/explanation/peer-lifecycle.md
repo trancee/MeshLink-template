@@ -24,7 +24,7 @@ stateDiagram-v2
     [*] --> Connected: peer discovered
     Connected --> Disconnected: link lost
     Disconnected --> Connected: BLE reconnects
-    Disconnected --> Gone: 2 sweeps (~30-60 s)
+    Disconnected --> Gone: grace period expires (15s–45s depending on power tier)
     Gone --> [*]
 
     note right of Disconnected
@@ -61,40 +61,13 @@ stateDiagram-v2
   still recognized
 - `PeerEvent.Lost` is emitted to the host app
 
-## Why two sweeps?
+## How the grace period works
 
-A single-sweep eviction would fire at exactly one cleanup interval. In
-practice, that means the grace period depends on when the disconnect happened
-relative to the sweep timer.
-
-Two sweeps avoid that edge:
-
-1. a sweep might run almost immediately after the disconnect
-2. or it might run near the end of the interval
-
-Requiring two sweeps guarantees a bounded grace window instead of a nearly zero
-one. In the current model, that means roughly 30–60 seconds of grace rather
-than an arbitrary first sweep.
-
-## Intentional stop is different from accidental loss
-
-The `CONNECTED → DISCONNECTED → GONE` path describes unexpected loss:
-interference, movement, OS suspension, or a dropped BLE link. An intentional
-local stop is different because the departing peer knows it is leaving.
-
-On the live Android BLE proof path, relying only on platform disconnect
-callbacks was not enough. Physical multi-device evidence showed that disconnect
-signals could be asymmetric: one neighbor could learn about the departure while
-another kept stale reachability long enough to preserve bad routes.
-
-The current Android proof/runtime path handles intentional stop more directly:
-
-1. the stopping peer broadcasts a runtime-private self-withdrawal to direct
-   peers
-2. receivers treat that as an immediate reachability withdrawal for the direct
-   peer and routes learned through it
-3. BLE disconnect callbacks and sweep-based cleanup still run afterward as
-   backstops
+When a peer disconnects unexpectedly, MeshLink starts a fixed grace timer
+whose duration depends on the power tier (HIGH=15s, MEDIUM=30s, LOW=45s).
+If the peer reconnects before the timer expires, it moves back to CONNECTED.
+If the timer fires without reconnection, the peer moves to GONE and
+eviction of ephemeral state begins.
 
 This keeps the public API unchanged. The explicit withdrawal remains private
 control-plane behavior inside the runtime.
@@ -102,13 +75,8 @@ control-plane behavior inside the runtime.
 ## MeshStateManager
 
 `MeshStateManager` is the internal cleanup loop that drives this lifecycle.
-Conceptually, it:
-
-- runs on a fixed interval
-- checks peers that are currently disconnected
-- increments internal grace tracking for those peers
-- evicts peers whose grace window has expired
-- coordinates cleanup across routing, transfer, and presence state
+Conceptually, it starts a fixed grace timer per disconnected peer and evicts
+the peer when the timer fires without reconnection.
 
 The important public point is that host apps do not need to implement their own
 peer-loss timer just to smooth normal transport churn.

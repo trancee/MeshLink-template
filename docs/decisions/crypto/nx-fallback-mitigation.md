@@ -126,8 +126,8 @@ val IX_TIMEOUT_MS = 30_000
 │ (no key)│                              │(key known)│
 └────────┘                              └────────┘
 
-Phase 1: NX Handshake (MeshEnvelope routed)
-Origin --(MeshEnvelope)--> Relay(s) --> Destination
+Phase 1: NX Handshake (HopEnvelope routed)
+Origin --(HopEnvelope)--> Relay(s) --> Destination
 Msg1: -> e, s, es (NX pattern, no responder static known)
        Payload: ed25519PublicKey (32B) + x25519PublicKey (32B) + nonce (4B)
 Msg2: <- e, ee, se, s, es 

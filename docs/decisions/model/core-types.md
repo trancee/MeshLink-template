@@ -64,8 +64,8 @@ value class PeerFingerprint(private val bytes: ByteArray) {
      * it is the DH key (may be rotated independently).
      * If either key is missing, derivation fails — both keys are required.
      */
-    fun fromPublicKeys(ed25519Pub: CryptoKey, x25519Pub: CryptoKey): PeerFingerprint {
-      val hash = sha256(ed25519Pub.bytes + x25519Pub.bytes)
+    fun fromKeys(identityKey: Ed25519Key, handshakeKey: X25519Key): PeerFingerprint {
+      val hash = sha256(identityKey.bytes + handshakeKey.bytes)
       return PeerFingerprint(hash.copyOf(12)) // First 12 bytes
     }
   }
@@ -90,19 +90,31 @@ Initial design derived PeerIdentity from public key: `PeerIdentity = SHA-256(pub
 
 ### CryptoKey
 
-A full cryptographic key (Ed25519 or X25519).
+A sealed interface that distinguishes Ed25519 (identity/signing) keys from X25519 (DH) keys, so the compiler prevents mixing them up.
 
 ```kotlin
-/**
- * 32-byte cryptographic key (Ed25519 or X25519).
- * Raw key material MUST NOT be logged or exposed in diagnostics.
- */
-@JvmInline
-value class CryptoKey(private val bytes: ByteArray) {
-  init { require(bytes.size == 32) }
-  
-  // Returns hex identifier for diagnostics (NOT the raw key)
+enum class KeyType { ED25519, X25519 }
+
+sealed interface CryptoKey {
+  val bytes: ByteArray
+  val keyType: KeyType
+
+  /** Non-key hex identifier for diagnostics. Raw key material MUST NOT be logged. */
   val diagnosticId: String get() = "key:${bytes.first().toHexString()}"
+}
+
+@JvmInline
+value class Ed25519Key(private val bytes: ByteArray) : CryptoKey {
+  init { require(bytes.size == 32) }
+  override val keyType = KeyType.ED25519
+  override val bytes get() = bytes
+}
+
+@JvmInline
+value class X25519Key(private val bytes: ByteArray) : CryptoKey {
+  init { require(bytes.size == 32) }
+  override val keyType = KeyType.X25519
+  override val bytes get() = bytes
 }
 ```
 
@@ -119,22 +131,23 @@ Stored trust information for a peer.
  */
 data class TrustRecord(
   val peerIdentity: PeerIdentity,
-  val publicKey: CryptoKey,
+  val publicKey: Ed25519Key,
   val seenAt: Instant,
   val verifiedAt: Instant,
-  val status: TrustStatus
+  val state: TrustState
 )
 
-enum class TrustStatus {
+enum class TrustState {
+  INITIATED, // Handshake in progress, not yet verified
   TRUSTED,    // TOFU-pinned identity (first successful handshake)
   REVOKED     // Explicitly revoked by user/application
 }
 
 // Trust store interface
 interface TrustStore {
-  suspend fun getPublicKey(peerIdentity: PeerIdentity): CryptoKey?
+  suspend fun getPublicKey(peerIdentity: PeerIdentity): Ed25519Key?
   suspend fun getPeerFingerprint(peerIdentity: PeerIdentity): PeerFingerprint?
-  suspend fun save(peerIdentity: PeerIdentity, publicKey: CryptoKey): Boolean
+  suspend fun save(peerIdentity: PeerIdentity, identityKey: Ed25519Key): Boolean
   suspend fun revoke(peerIdentity: PeerIdentity)
 }
 ```
@@ -153,9 +166,15 @@ data class RouteEntry(
   val nextHop: PeerIdentity?,      // null = destination unreachable
   val seqNo: UInt,           // Destination-sourced sequence number
   val metric: UInt,            // Link quality metric (RSSI+flags)
-  val publicKey: CryptoKey?   // Destination's public key, learned via route updates
+  val identityKey: Ed25519Key?,   // Destination's identity key, learned via route updates
   val expiresAt: Instant,    // Route expiration
-  val isFeasible: Boolean,    // RFC 8966 feasibility condition
+  /**
+   * RFC 8966 §3.5.1 feasibility condition: true if this route's metric
+   * is strictly better than the feasible distance of any existing
+   * route for the same destination. Prevents loop formation in
+   * distance-vector routing.
+   */
+  val isFeasible: Boolean,
 )
 
 // Link quality metric (see link-quality-metric.md)
@@ -183,14 +202,14 @@ Chunked transfer session state.
 data class TransferSession(
   val sessionId: SessionId,
   val destination: PeerIdentity,
-  val status: TransferStatus,
+  val state: TransferState,
   val chunkSize: Int,              // Based on power tier
   val totalChunks: UInt,           // ceil(totalBytes / chunkSize)
   val scoreboard: Scoreboard,       // Dynamic bitfield; bit N = 1 if chunk N received
   val totalBytes: Long,
   val bytesReceived: Long,
   val startedAt: Instant,
-  val expiresAt: Instant?,        // Max time SUSPENDED before failing (startedAt + retryBudget)
+  val expiresAt: Instant?,        // Max time WAITING_FOR_ROUTE before failing (startedAt + retryBudget)
   val retryCount: Int
 )
 
@@ -199,11 +218,32 @@ data class TransferSession(
  * Bit N = 1 means chunk N is received (standard SACK convention).
  * Internally backed by ByteArray for wire-format compatibility.
  */
-class Scoreboard(private val totalChunks: UInt) {
-  private val bytes: ByteArray = ByteArray((totalChunks.toInt() + 7) / 8)
+/**
+ * Type-safe wrapper around a dynamic bitfield for selective acknowledgment.
+ * Bit N = 1 means chunk N is received (standard SACK convention).
+ * Internally backed by ByteArray for wire-format compatibility.
+ *
+ * This class is immutable — [markReceived] and [markMissing] return a new
+ * [Scoreboard] instance rather than mutating the original.
+ */
+class Scoreboard private constructor(
+  private val totalChunks: UInt,
+  private val bytes: ByteArray,
+) {
+  constructor(totalChunks: UInt) : this(totalChunks, ByteArray((totalChunks.toInt() + 7) / 8))
 
-  fun markReceived(chunkIndex: Int) { bytes[chunkIndex / 8] = bytes[chunkIndex / 8].setBit(chunkIndex % 8) }
-  fun markMissing(chunkIndex: Int) { bytes[chunkIndex / 8] = bytes[chunkIndex / 8].clearBit(chunkIndex % 8) }
+  fun markReceived(chunkIndex: Int): Scoreboard {
+    val new = bytes.copyOf()
+    new[chunkIndex / 8] = new[chunkIndex / 8].setBit(chunkIndex % 8)
+    return Scoreboard(totalChunks, new)
+  }
+
+  fun markMissing(chunkIndex: Int): Scoreboard {
+    val new = bytes.copyOf()
+    new[chunkIndex / 8] = new[chunkIndex / 8].clearBit(chunkIndex % 8)
+    return Scoreboard(totalChunks, new)
+  }
+
   fun isReceived(chunkIndex: Int): Boolean = bytes[chunkIndex / 8].isBitSet(chunkIndex % 8)
   fun isMissing(chunkIndex: Int): Boolean = !isReceived(chunkIndex)
   fun missingChunks(): List<Int> = (0 until totalChunks.toInt()).filter { isMissing(it) }
@@ -215,14 +255,31 @@ private fun Byte.setBit(bit: Int) = this.toInt() or (1 shl bit)
 private fun Byte.clearBit(bit: Int) = this.toInt() and (1 shl bit).inv()
 private fun Byte.isBitSet(bit: Int) = (this.toInt() shr bit) and 1 == 1
 
-enum class TransferStatus {
+enum class TransferState {
   IN_PROGRESS,
-  SUSPENDED,     // Waiting for route (transfer was in progress, route lost)
-  RETRYING,      // Actively retrying (retransmitting chunks, backoff)
+  WAITING_FOR_ROUTE,     // Waiting for route (transfer was in progress, route lost)
+  RETRYING,       // Actively retrying (retransmitting chunks, backoff)
   COMPLETED,
   FAILED,
   TIMED_OUT
 }
+
+/**
+ * Valid state transitions for [TransferSession].
+ *
+ * | Current State | Event | Next State |
+ * |---|---|---|
+ * | — | Session created | IN_PROGRESS |
+ * | IN_PROGRESS | All chunks received + scoreboard complete | COMPLETED |
+ * | IN_PROGRESS | Error, cancel, or trust failure | FAILED |
+ * | IN_PROGRESS | Route lost, waiting for route recovery | WAITING_FOR_ROUTE |
+ * | WAITING_FOR_ROUTE | Route found, resume transfer | IN_PROGRESS |
+ * | WAITING_FOR_ROUTE | Retry budget or grace period exhausted | TIMED_OUT |
+ * | IN_PROGRESS | Chunk missing, schedule retransmit | RETRYING |
+ * | RETRYING | Retransmission complete, back in progress | IN_PROGRESS |
+ * | RETRYING | Retry budget exhausted | FAILED |
+ * | Any terminal | Session cleaned up | — |
+ */
 
 // Session ID is a random 64-bit token used to correlate chunks within a transfer session
 @JvmInline
@@ -231,7 +288,7 @@ value class SessionId(private val bytes: ByteArray) {
 }
 ```
 
-### ConnectionState
+### PeerLifecycleState
 
 Per-peer connection tracking.
 
@@ -240,14 +297,14 @@ Per-peer connection tracking.
  * Connection state for a peer.
  * Drives peer lifecycle (CONNECTED -> DISCONNECTED -> GONE).
  */
-data class ConnectionState(
-  val peerId: PeerIdentity,
+data class PeerLifecycleState(
+  val peerIdentity: PeerIdentity,
   val connectionState: PeerConnectionState,
-  val graceSweeps: Int,        // 0-3 for transition to GONE
-  val lastRssi: Int?,          // For metric calculation
+  val expiresAt: Instant?,     // Non-null while in grace window; null when GONE
+  val rssi: Int?,          // For metric calculation
   val supportsCoc: Boolean,    // L2CAP CoC capability
   val connectionInterval: Int,   // ms
-  val lastHandshake: Instant?    // For timeout calculations
+  val handshakeAt: Instant?    // For timeout calculations
 )
 
 enum class PeerConnectionState {
@@ -266,57 +323,38 @@ Public API configuration.
  * MeshLink configuration DSL.
  * Single source of truth for all tunable parameters.
  */
-data class MeshLinkConfig(
+data class MeshLinkSettings(
   val powerTier: PowerTier = PowerTier.MEDIUM,
-  val keyRotation: KeyRotationConfig = KeyRotationConfig(),
-  val transfer: TransferConfig = TransferConfig(),
-  val diagnostics: DiagnosticsConfig = DiagnosticsConfig()
+  val keyRotation: KeyRotationSettings = KeyRotationSettings(),
+  val transfer: TransferSettings = TransferSettings(),
+  val diagnostics: DiagnosticsSettings = DiagnosticsSettings()
 )
 
-data class KeyRotationConfig(
+data class KeyRotationSettings(
   val interval: Duration = Duration.days(3),
   val gracePeriod: Duration = Duration.hours(1)
 )
 
-data class TransferConfig(
+data class TransferSettings(
   val maxRetries: Int = 5,
-  val chunkSize: Int = 256 // Default; overridden by power tier
+  val chunkSize: Int = 256, // Default; overridden by power tier
 )
 
-data class DiagnosticsConfig(
+data class DiagnosticsSettings(
   val emitToLog: Boolean = true,
-  val eventCallback: (DiagnosticEvent) -> Unit = {}
+  val eventBufferSize: Int = 1000
 )
 
-// Configuration builder
-fun meshLinkConfig(block: MeshLinkConfigBuilder.() -> Unit): MeshLinkConfig {
-  return MeshLinkConfigBuilder().apply(block).build()
-}
-
-class MeshLinkConfigBuilder {
-  var powerTier: PowerTier = PowerTier.MEDIUM
-  var keyRotationInterval: Duration = Duration.days(3)
-  var keyRotationGracePeriod: Duration = Duration.hours(1)
-  // ... other fields
-  
-  fun build(): MeshLinkConfig = MeshLinkConfig(
-    powerTier = powerTier,
-    keyRotation = KeyRotationConfig(
-      interval = keyRotationInterval,
-      gracePeriod = keyRotationGracePeriod
-    )
-  )
-}
 ```
 
 ## Wire Protocol Types
 
 ### Envelope
 
-### MeshEnvelope (wire-level routing frame)
+### RoutingFrame (wire-level routing frame)
 
 The wire-level routing frame that relays use to forward messages. It carries
-the destination, the serialized `MessageEnvelope` + encrypted E2E content, and
+the destination, the serialized `RoutingMessage` + encrypted E2E content, and
 a hop limit set by the routing layer.
 
 ```kotlin
@@ -325,28 +363,28 @@ a hop limit set by the routing layer.
  * Relays decrypt the hop layer, check destination, and forward.
  * Does NOT expose E2E payload content to relays.
  */
-data class MeshEnvelope(
-  val destination: PeerIdentity,     // Final destination (set from MessageEnvelope)
-  val payload: ByteArray,      // Serialized MessageEnvelope + encrypted E2E content
-  val hopLimit: UByte = 0      // Set by routing layer; 0 = direct only
+data class RoutingFrame(
+  val destination: PeerIdentity,     // Final destination (set from RoutingMessage)
+  val payload: ByteArray,        // Flexible inner content (RoutingMessage + E2E payload)
+  val hopLimit: UByte            // Set by routing layer; 0 = direct only
 )
 ```
 
-### MessageEnvelope (application-level message model)
+### RoutingMessage (application-level routing metadata)
 
-The application-level message model. Carries metadata describing a message.
-Serialized and placed inside `MeshEnvelope.payload` for transmission.
+The application-level metadata. Carries version, id, priority, destination for mesh routing.
+Serialized into `RoutingFrame.payload` for routing through the mesh.
 
 ```kotlin
 /**
- * Application-level message model.
- * Serialized into MeshEnvelope.payload for routing through the mesh.
- * hopLimit is NOT a field — it is set by the routing layer in MeshEnvelope.
+ * Application-level routing metadata.
+ * Serialized into RoutingFrame.payload for routing through the mesh.
+ * hopLimit and TTL are set by the routing layer, not the application.
+ * TTL is derived from priority by the routing layer.
  */
-data class MessageEnvelope(
+data class RoutingMessage(
   val version: UByte,           // Protocol version
   val messageId: Long,         // 64-bit random for deduplication
-  val ttl: Duration,           // Priority-based time-to-live
   val priority: MessagePriority, // HIGH, NORMAL, LOW
   val destination: PeerIdentity      // Final destination
 )
@@ -382,7 +420,7 @@ Key rotation wire format.
  * Signed with OLD key; enforces seqno reset.
  */
 data class KeyRotationAnnouncement(
-  val publicKey: CryptoKey,     // NEW public key
+  val identityKey: Ed25519Key,     // NEW identity key
   val seqNo: UInt,               // Always 1 (new identity)
   val signature: ByteArray,       // Ed25519 signature (64 bytes)
   val reason: KeyRotationReason = KeyRotationReason.PERIODIC
@@ -408,8 +446,7 @@ data class TransferChunk(
   val sessionId: SessionId,     // 8-byte session identifier
   val offset: UInt,             // Byte offset in overall payload
   val length: UShort,           // Length of this chunk's data
-  val data: ByteArray,          // Chunk payload bytes
-  val isLast: Boolean           // Is this the final chunk?
+  val data: ByteArray          // Chunk payload bytes
 )
 ```
 
@@ -459,7 +496,7 @@ enum class TransferCancelReason {
 - `TrustRecordTest`: verify serialization and state transitions
 - `RouteEntryTest`: verify seqno and metric handling
 - `TransferSessionTest`: verify dynamic bitfield scoreboard and status transitions
-- `MeshLinkConfigTest`: verify DSL and defaults
+- `MeshLinkSettingsTest`: verify DSL and defaults
 - `WireFormatTest`: verify FlatBuffers serialization
 
 ## Related

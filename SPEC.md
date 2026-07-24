@@ -46,11 +46,11 @@ This document captures the complete technical specification for implementing Mes
 | Offline operation | Zero connectivity required once permissions granted |
 | Persisted state | Only trust pin (identity material + first/verified instants); no plaintext or full identifiers cached |
 | Pending state | In-memory only; does not survive process restart |
-| Delivery outcomes | Explicit: success, in-progress, retrying, unreachable, trust-failure, timeout, unrecoverable-failure (maps from `TransferStatus`: COMPLETED→success, IN_PROGRESS→in-progress, RETRYING→retrying, WAITING_FOR_ROUTE→in-progress (waiting for route), TIMED_OUT→timeout, FAILED→unrecoverable-failure or trust-failure; `unreachable` is a routing-layer outcome, not a transfer status) |
+| Delivery outcomes | Explicit: success, in-progress, retrying, route-waiting, unreachable, trust-failure, timeout, unrecoverable-failure (maps from `TransferState`: COMPLETED→success, IN_PROGRESS→in-progress, RETRYING→retrying, WAITING_FOR_ROUTE→route-waiting, TIMED_OUT→timeout, FAILED→unrecoverable-failure or trust-failure; `unreachable` is a routing-layer outcome, not a transfer state) |
 | Wire compatibility | Backward-compatible evolution; breaking changes require major version bump + migration |
 | Performance budgets | See Section 12 |
-| Runtime dependency | Maximum one: `kotlinx-coroutines-core` for shipped artifact |
-| Test coverage | 100% line/branch coverage for `:meshlink` artifact; crypto validated against Wycheproof vectors |
+| Runtime dependency | Maximum one Maven artifact at runtime: `kotlinx-coroutines-core`. Crypto primitives are either platform APIs (Android Security Framework, iOS Security framework) or pure-Kotlin fallbacks — this is an implementation distinction, not a runtime dependency. |
+| Test coverage | 100% line/branch coverage for `:meshlink`; `commonMain` + `androidHostTest` + `iosMain`; crypto validated against Wycheproof vectors |
 
 ---
 
@@ -99,7 +99,7 @@ meshlink-benchmark/ # Performance benchmarking
 PeerIdentity: 16-byte stable/random identifier (generated once at install, survives key rotations)
 Ed25519PublicKey: 32-byte EdDSA signing key
 X25519PublicKey: 32-byte DH key for Noise handshakes
-PeerFingerprint: 12-byte SHA-256(Ed25519Pub || X25519Pub) truncated, used in discovery. Ed25519 first (identity anchor), X25519 second (DH key). Both keys required. [Decision: docs/decisions/model/core-types.md]
+PeerFingerprint: 12-byte SHA-256(Ed25519Pub || X25519Pub) truncated, used in discovery. Ed25519 first (identity anchor), X25519 second (DH key). Both keys required. **NOTE: 12 bytes (96 bits) provides birthday bound 2^48; collision probability negligible for any practical mesh size. This is a DISCOVERY HINT ONLY — never used for authentication.** [Decision: docs/decisions/model/core-types.md]
 ```
 
 **Design Note:** PeerIdentity is stable/random, NOT derived from public key. This ensures identity persists across key rotations, enabling correct TrustStore lookups during key rotation announcements. [Decision: docs/decisions/model/core-types.md]
@@ -107,23 +107,22 @@ PeerFingerprint: 12-byte SHA-256(Ed25519Pub || X25519Pub) truncated, used in dis
 ### PowerTier Enum
 
 ```text
-enum class PowerTier { HIGH, MEDIUM, LOW, IDLE }
+enum class PowerTier { HIGH, MEDIUM, LOW }
 ```
 
 - `HIGH` — Performance prioritized (20% scan, 100ms adv, 7.5ms conn, 8 concurrent, 512B chunks)
 - `MEDIUM` — Balanced (default) (10% scan, 500ms adv, 15ms conn, 4 concurrent, 256B chunks)
 - `LOW` — Battery conserved (5% scan, 1000ms adv, 30ms conn, 2 concurrent, 128B chunks)
-- `IDLE` — No background activity
 
 [Decision: docs/decisions/power/power-tier-behavior.md]
 
 ### RegulatoryRegion Enum
 
 ```text
-enum class RegulatoryRegion { GLOBAL, EU }
+enum class RegulatoryRegion { DEFAULT, EU }
 ```
 
-- `GLOBAL` — Rely on platform's normal behavior (default)
+- `DEFAULT` — Rely on platform's normal behavior (default)
 - `EU` — Apply EU clamping (adv interval floor 300ms, scan duty cycle ceiling 70%)
 
 [Decision: docs/decisions/regulatory-compliance.md]
@@ -136,12 +135,13 @@ TrustRecord {
   publicKey: CryptoKey
   seenAt: Instant
   verifiedAt: Instant
-  status: TrustStatus (TRUSTED, REVOKED)
+  state: TrustState (INITIATED, TRUSTED, REVOKED)
 }
 ```
 
-**TrustStatus enum:**
+**TrustState enum:**
 
+- `INITIATED` — Handshake in progress, not yet verified
 - `TRUSTED` — TOFU-pinned identity (first successful handshake)
 - `REVOKED` — Explicitly revoked by user/application [Decision: docs/decisions/model/core-types.md]
 
@@ -173,54 +173,69 @@ LinkMetric {
 
 **Metric structure:** Low byte = RSSI normalized (0-255), high bits = flags (supportsCoC, fastInterval, highPowerTier), enabling path selection preferring better links. [Decision: docs/decisions/routing/link-quality-metric.md]
 
-### 3.4 Message Envelope Model
+### 3.4 Message Header Model
 
-`MessageEnvelope` is the application-level message model. It carries the metadata
-that describes a message (version, id, ttl, priority, destination). When a message
-is sent through the mesh, the `MessageEnvelope` is serialized and placed inside a
-`MeshEnvelope.payload` (see §3.5, §5.7). The `MeshEnvelope` is the wire-level
+`RoutingMessage` is the application-level metadata. It carries the metadata
+that describes a message (version, id, priority, destination). When a message
+is sent through the mesh, the `RoutingMessage` is serialized and placed inside a
+`RoutingFrame.payload` (see §3.5, §5.7). The `RoutingFrame` is the wire-level
 routing frame that relays use to forward the message — it carries `destination`,
 `payload`, and `hopLimit`. The `hopLimit` is a routing concern set by the routing
-layer, not by the application, so it is not a field of `MessageEnvelope`.
+layer, not by the application, so it is not a field of `RoutingMessage`.
 
 ```text
-MessageEnvelope {
+RoutingMessage {
   version: U8
   messageId: 64-bit random
   priority: enum { HIGH, NORMAL, LOW }
   destination: PeerIdentity
-  // ttl is derived from priority by the routing layer (see §8.4), not set by the application
+  // ttl is derived from priority by the routing layer (see §8.5), not set by the application
 }
 
 TransferSession {
-  sessionId: SessionId (64-bit random)
+  sessionId: SessionId    // 64-bit random token; identifies a transfer session uniquely
   destination: PeerIdentity
-  status: TransferStatus (IN_PROGRESS, WAITING_FOR_ROUTE, RETRYING, COMPLETED, FAILED, TIMED_OUT)
+  state: TransferState (IN_PROGRESS, WAITING_FOR_ROUTE, RETRYING, COMPLETED, FAILED, TIMED_OUT)
   chunkSize: Int (selected by local power tier, bounded by peer MTU)
   totalChunks: UInt (ceil(totalBytes / chunkSize))
   scoreboard: Scoreboard (dynamic bitfield; bit N = 1 if chunk N received; see §3.4)
   totalBytes: Long
   bytesReceived: Long
   startedAt: Instant
-  expiresAt: Instant? (max time transfer can remain WAITING_FOR_ROUTE before failing; computed as startedAt + retryBudget per §10.4)
+  expiresAt: Instant? (max time transfer can remain WAITING_FOR_ROUTE before failing; computed as `startedAt + retryBudget`; see §10.4 tier table for per-tier values)
   retryCount: Int
 }
 ```
 
 **Scoreboard:** Dynamic bitfield encoding — bitfield length = `ceil(totalChunks / 8)` bytes, derived from `totalChunks` known via TransferSession. Bit N = 1 means chunk N is received (standard SACK convention). Backed by the `Scoreboard` helper class which provides type-safe `markReceived`, `markMissing`, `isReceived`, `missingChunks` methods. [Decision: docs/decisions/model/core-types.md]
 
-**TransferStatus to Delivery Outcome mapping:**
+**TransferState to Delivery Outcome mapping:**
 
-| TransferStatus | Delivery Outcome |
-|----------------|-----------------|
+| TransferState | Delivery Outcome |
+|---------------|-----------------|
 | COMPLETED | success |
 | IN_PROGRESS | in-progress |
 | RETRYING | retrying |
-| WAITING_FOR_ROUTE | in-progress (waiting for route) |
+| WAITING_FOR_ROUTE | route-waiting |
 | TIMED_OUT | timeout |
 | FAILED | unrecoverable-failure (or trust-failure if trust-related) |
 
-Note: `unreachable` is a routing-layer outcome (no route to destination), not a `TransferStatus`.
+### 3.4.1 Transfer Session State Transitions
+
+| Current State | Event | Next State |
+|---|---|---|
+| — | Session created | IN_PROGRESS |
+| IN_PROGRESS | All chunks received + scoreboard complete | COMPLETED |
+| IN_PROGRESS | Error, cancel, or trust failure | FAILED |
+| IN_PROGRESS | Route lost, waiting for route recovery | WAITING_FOR_ROUTE |
+| WAITING_FOR_ROUTE | Route found, resume transfer | IN_PROGRESS |
+| WAITING_FOR_ROUTE | Retry budget or grace period exhausted | TIMED_OUT |
+| IN_PROGRESS | Chunk missing, schedule retransmit | RETRYING |
+| RETRYING | Retransmission complete, back in progress | IN_PROGRESS |
+| RETRYING | Retry budget exhausted | FAILED |
+| Any terminal | Session cleaned up | — |
+
+Note: `unreachable` is a routing-layer outcome (no route to destination), not a `TransferState`.
 
 ### 3.5 Wire Frame Types
 
@@ -280,7 +295,7 @@ Single BLE advertisement packet containing:
 ### 5.2 Trust Flow
 
 ```text
-Discovery → GATT connection → Noise_XX_25519_ChaChaPoly_SHA256 handshake → TOFU pin → TrustRecord stored
+Discovery → GATT connection → Noise_XX_25519_ChaChaPoly_SHA256 handshake → INITIATED → TOFU pin → TRUSTED → TrustRecord stored
 ```
 
 ### 5.3 Identity Distribution via Route Updates
@@ -363,11 +378,11 @@ Phase 1: Link Setup (standard Noise_XX_25519_ChaChaPoly_SHA256)
 Origin --(GATT/L2CAP)--> Relay(s)
 
 Phase 2: E2E Handshake Routing
-Origin wraps IX_Msg1 in a MeshEnvelope (the wire-level routing frame):
-  MeshEnvelope {
-    destination: destination.peerId,   // set from MessageEnvelope.destination
-    payload: IX_Msg1_encrypted,          // MessageEnvelope serialized + E2E content
-    hopLimit: UByte                       // set by routing layer, not application
+Origin wraps IX_Msg1 in a RoutingFrame (the wire-level routing frame):
+  RoutingFrame {
+    destination: destination.peerIdentity,   // set from RoutingMessage.destination
+    payload: IX_Msg1_encrypted,               // RoutingMessage serialized + E2E content
+    hopLimit: UByte                         // set by routing layer, not application
   }
 
 Relay(s) decrypt hop layer → re-encrypt → forward without inspecting E2E payload
@@ -478,15 +493,21 @@ Babel-style distance-vector (RFC 8966) adapted for BLE mesh:
 - On mismatch, receiver pushes full table (no request/response round-trip)
 - Simple correct behavior, bandwidth optimization deferred
 
-### 8.4 TTL by Priority
+### 8.4 Route Table Capacity
+
+- Route tables are bounded by `maxRouteEntries` (default: 256)
+- When the table exceeds this limit, least-recently-updated entries are evicted
+- This prevents unbounded memory growth and ensures predictable convergence behavior
+
+### 8.5 TTL by Priority
 
 | Priority | TTL |
 |----------|-----|
-| HIGH | 45 minutes |
-| NORMAL | 15 minutes |
-| LOW | 5 minutes |
+| HIGH | 10 minutes |
+| NORMAL | 5 minutes |
+| LOW | 1 minute |
 
-### 8.5 Route Update Trigger Conditions
+### 8.6 Route Update Trigger Conditions
 
 Route updates are triggered by the following events. All non-immediate updates include random jitter (0–500 ms) to avoid synchronization storms.
 
@@ -542,6 +563,8 @@ TransferAck {
 
 The bitfield length is derived from `totalChunks` in the `TransferSession`, so no extra length field is needed in the SACK message.
 
+If the `TransferSession` is not found (expired or already completed), the receiver MUST reject the `TransferAck` with `TransferError.SessionNotFound`.
+
 [Decision: docs/decisions/wire/wire-format-spec.md]
 
 ---
@@ -550,14 +573,11 @@ The bitfield length is derived from `totalChunks` in the `TransferSession`, so n
 
 ### 10.1 Power Tiers
 
-```text
 enum class PowerTier {
   HIGH,     // Performance prioritized (20% scan, 100ms adv, 7.5ms conn, 8 concurrent, 512B chunks)
   MEDIUM,   // Balanced (10% scan, 500ms adv, 15ms conn, 4 concurrent, 256B chunks) - DEFAULT
-  LOW,      // Battery conserved (5% scan, 1000ms adv, 30ms conn, 2 concurrent, 128B chunks)
-  IDLE      // No background activity
+  LOW       // Battery conserved (5% scan, 1000ms adv, 30ms conn, 2 concurrent, 128B chunks)
 }
-```
 
 ### 10.2 Regulatory Region
 
@@ -575,14 +595,19 @@ When region = EU:
 
 [Decision: docs/decisions/power/power-tier-behavior.md, docs/explanation/regulatory-compliance.md]
 
-### 10.3 Adaptive Grace Period
+### 10.3 Grace Period
 
-Grace period adapts based on peer stability and power tier:
+Fixed grace period per power tier:
 
-- **Base period:** HIGH=15s, MEDIUM=30s, LOW=45s, IDLE=0s
-- **Stability factor:** Increases for stable peers, decreases for frequent disconnectors
-- **Uptime factor:** Longer average sessions get longer grace periods
-- **Bonded minimum:** 10 seconds guarantee (never shorter)
+| Tier | Grace Period |
+|------|-------------|
+| HIGH | 15 seconds |
+| MEDIUM (default) | 30 seconds |
+| LOW | 45 seconds |
+
+After the grace period expires without reconnection, the peer transitions to GONE and ephemeral state (presence, routes, pending transfers) is cleaned up. Pinned trust state persists.
+
+**Future work:** An adaptive grace period that adjusts based on peer stability (disconnect history) and session uptime is tracked in a separate design note and can be introduced as a future enhancement.
 
 [Decision: docs/decisions/power/power-tier-behavior.md]
 
@@ -593,7 +618,6 @@ Grace period adapts based on peer stability and power tier:
 | HIGH | 20% | 100ms | 7.5-15ms | 8 | 512B | 10 | 60s |
 | MEDIUM | 10% | 500ms | 15-30ms | 4 | 256B | 5 | 30s |
 | LOW | 5% | 1000ms | 30-60ms | 2 | 128B | 3 | 15s |
-| IDLE | 0% | Never | N/A | 0 | N/A | 0 | 0s |
 
 ---
 
@@ -621,36 +645,38 @@ enum class PeerConnectionState {
 
 ### 11.2.1 Internal Connection State Tracking
 
-`ConnectionState` is the internal runtime tracking type that drives the peer
+`PeerLifecycleState` is the internal runtime tracking type that drives the peer
 lifecycle (CONNECTED → DISCONNECTED → GONE). It is not exposed publicly —
 only `PeerConnectionState` (the enum above) is visible to the host app.
 
 ```text
-ConnectionState {
+PeerLifecycleState {
   peerIdentity: PeerIdentity
   connectionState: PeerConnectionState
-  graceSweeps: Int          // 0-3 for transition to GONE
-  rssi: Int?                // For metric calculation
+  expiresAt: Instant?        // Non-null while grace window is active; null when GONE
+  rssi: Int?                 // For metric calculation
   supportsCoc: Boolean       // L2CAP CoC capability
   connectionInterval: Int    // ms
   handshakeAt: Instant?      // For timeout calculations
 }
 ```
 
-`MeshStateManager` uses `ConnectionState` to track grace periods and
+`PeerStateCoordinator` uses `PeerLifecycleState` to track grace periods and
 coordinate cleanup across routing, transfer, and presence state. The host app
 only sees `PeerEvent.Found`, `PeerEvent.StateChanged`, and `PeerEvent.Lost`.
 
 ### 11.3 Diagnostic Events (Machine Observable)
 
-| Event Category | Fields |
-|----------------|--------|
-| `route.*` | `route.decrypt_failure_count`, `route.frame_type` |
-| `transport.*` | `transport.fallback_no_psm_advertised`, `transport.fallback_coc_connect_failed`, `transport.fallback_coc_dropped_mid_transfer`, `transport.fallback_local_policy` |
-| `transfer.*` | `transfer.data_plane_bearer`, `transfer.fallback_reason` |
-| `power.*` | `power.tier`, `power.regulatory_region`, `power.scan_duty_cycle_observed`, `power.advertisement_interval_ms`, `power.connection_interval_ms`, `power.grace_period_seconds`, `power.peer_stability` |
-| `e2e_handshake.*` | `e2e_handshake.protocol`, `e2e_handshake.fallback_used`, `e2e_handshake.peer_key_verified`, `e2e_handshake.rate_limit_attempts`, `e2e_handshake.nonce_replay_detected` |
-| `key_rotation.*` | `key_rotation.old_key_verified`, `key_rotation.seqno_reset`, `key_rotation.propagation_deadline_met` |
+All diagnostic events are defined in `meshlink/src/commonMain/kotlin/ch/trancee/meshlink/diagnostics/DiagnosticEvent.kt` as a sealed interface hierarchy. The table below summarizes key event categories.
+
+| Event Category | Fields | Code Type |
+|----------------|--------|-----------|
+| `route.*` | `route.decrypt_failure_count`, `route.frame_type` | `RouteDecryptFailure` |
+| `transport.*` | `transport.fallback_no_psm_advertised`, `transport.fallback_coc_connect_failed`, `transport.fallback_coc_dropped_mid_transfer`, `transport.fallback_local_policy` | `TransportFallback` |
+| `transfer.*` | `transfer.data_plane_bearer`, `transfer.fallback_reason` | `TransferSessionTransition`, `TransferDataPlaneBearer` |
+| `power.*` | `power.tier`, `power.regulatory_region`, `power.scan_duty_cycle_observed`, `power.advertisement_interval_ms`, `power.connection_interval_ms`, `power.grace_period_seconds` | `PowerTierEffective` |
+| `e2e_handshake.*` | `e2e_handshake.protocol`, `e2e_handshake.fallback_used`, `e2e_handshake.peer_key_verified`, `e2e_handshake.rate_limit_attempts`, `e2e_handshake.nonce_replay_detected` | `E2EHandshake` |
+| `key_rotation.*` | `key_rotation.old_key_verified`, `key_rotation.seqno_reset`, `key_rotation.propagation_deadline_met` | `KeyRotation` |
 
 ### 11.4 Error Model
 
@@ -773,24 +799,7 @@ Multi-node scenarios exercised without physical hardware:
 6. **Power Policy**: Tier-to-parameter mapping, EU clamping observable
 7. **Public API**: Identical Android/iOS surface, lifecycle events
 
----
-
-## Implementation Order (Spec-First)
-
-Per PROJECT.md suggested approach, sliced into vertical epics:
-
-1. **Core Data Types (e01)** - PeerIdentity, PeerFingerprint, CryptoKey, TrustRecord, RouteEntry, TransferSession
-2. **Wire Format (e02)** - FlatBuffers schemas, encode/decode, compatibility testing
-3. **Noise Handshake XX/IK (e03)** - Hop-by-hop link encryption (XX for first contact, IK for post-TOFU reconnect) with Android/iOS platform crypto
-4. **E2E Handshake IX/NX (e04)** - End-to-end encryption with mesh routing and fallback
-5. **Routing Coordinator (e05)** - Babel-style seqno management, metric-based path selection
-6. **Transfer Session (e06)** - Dynamic bitfield SACK protocol, cut-through relay, retry bounds
-7. **Peer Lifecycle (e07)** - Adaptive grace period (CONNECTED → DISCONNECTED → GONE)
-8. **Key Rotation (e08)** - Signed announcements, seqno reset, 3-day default interval
-9. **iOS Proof Harness (e09)** - Real-device validation for iOS platform glue (security critical)
-10. **Power Tiers (e10)** - Four-tier model with quantified parameters
-
-Each layer validated against RFC-grounded reference algorithms before platform glue. Epics ordered by WSJF: e09 (iOS proof) boosted for security gap mitigation.
+See PROJECT.md for implementation order and epic breakdown.
 
 ---
 
@@ -803,18 +812,17 @@ Each layer validated against RFC-grounded reference algorithms before platform g
  * MeshLink configuration DSL.
  * Single source of truth for all tunable parameters.
  */
-@Serializable
-data class MeshLinkConfig(
+data class MeshLinkSettings(
   val powerTier: PowerTier = PowerTier.MEDIUM,
-  val regulatoryRegion: RegulatoryRegion = RegulatoryRegion.GLOBAL,
-  val keyRotation: KeyRotationConfig = KeyRotationConfig(),
-  val transfer: TransferConfig = TransferConfig(),
-  val routing: RoutingConfig = RoutingConfig(),
-  val security: SecurityConfig = SecurityConfig(),
-  val diagnostics: DiagnosticsConfig = DiagnosticsConfig()
+  val regulatoryRegion: RegulatoryRegion = RegulatoryRegion.DEFAULT,
+  val keyRotation: KeyRotationSettings = KeyRotationSettings(),
+  val transfer: TransferSettings = TransferSettings(),
+  val routing: RoutingSettings = RoutingSettings(),
+  val security: SecuritySettings = SecuritySettings(),
+  val diagnostics: DiagnosticsSettings = DiagnosticsSettings()
 )
 
-data class KeyRotationConfig(
+data class KeyRotationSettings(
   /**
    * How often to automatically rotate identity keys.
    * Default: 3 days.
@@ -835,14 +843,16 @@ data class KeyRotationConfig(
   val compromiseGracePeriod: Duration = Duration.ZERO
 )
 
-data class TransferConfig(
+data class TransferSettings(
   val maxRetries: Int = 5,
-  val defaultChunkSize: Int = 256, // Default; overridden by power tier
+  val chunkSize: Int = 256, // Default; overridden by power tier
   val maxConcurrentSessionsPerPeer: Int = 3,
-  val sackEncoding: SackEncoding = SackEncoding.DYNAMIC
+  val sackEncoding: SackEncoding = SackEncoding.DYNAMIC,
+  // SackEncoding.FIXED requires maxChunksPerSession to pre-allocate bitfield
+  val maxChunksPerSession: UInt = 1024u // Used when sackEncoding = FIXED
 )
 
-data class RoutingConfig(
+data class RoutingSettings(
   /**
    * Minimum interval between route updates to the same peer.
    * Prevents update storms during link flapping.
@@ -882,7 +892,7 @@ data class RoutingConfig(
   val feasibilityConditionEnabled: Boolean = true
 )
 
-data class SecurityConfig(
+data class SecuritySettings(
   /**
    * Maximum fallback handshake attempts allowed per minute per destination.
    * Exceeding this limit causes new attempts to be rejected until the window resets.
@@ -911,102 +921,23 @@ data class SecurityConfig(
   val defaultHandshakePattern: HandshakePattern = HandshakePattern.IX
 )
 
-data class DiagnosticsConfig(
+data class DiagnosticsSettings(
   val emitToLog: Boolean = true,
   val eventBufferSize: Int = 1000
 )
 
 /**
- * Creates a MeshLinkConfig using a builder lambda.
- * Preferred over the builder class for Kotlin 1.9+ projects.
+ * MeshLink configuration DSL.
+ * Usage:
+ * ```kotlin
+ * val settings = meshLinkSettings {
+ *   powerTier = PowerTier.HIGH
+ *   keyRotation { interval = Duration.days(1) }
+ * }
+ * ```
  */
-fun meshLinkConfig(block: MeshLinkConfig.() -> Unit): MeshLinkConfig {
-  return MeshLinkConfig().apply(block)
-}
-
-// Extension function for backward compatibility with builder style
-fun meshLinkConfig(block: MeshLinkConfigBuilder.() -> Unit): MeshLinkConfig {
-  return MeshLinkConfigBuilder().apply(block).build()
-}
-
-class MeshLinkConfigBuilder {
-  var powerTier: PowerTier = PowerTier.MEDIUM
-  var regulatoryRegion: RegulatoryRegion = RegulatoryRegion.GLOBAL
-
-  fun keyRotation(block: KeyRotationConfigBuilder.() -> Unit) {
-    keyRotationConfig = KeyRotationConfigBuilder().apply(block).build()
-  }
-
-  fun transfer(block: TransferConfigBuilder.() -> Unit) {
-    transferConfig = TransferConfigBuilder().apply(block).build()
-  }
-
-  fun routing(block: RoutingConfigBuilder.() -> Unit) {
-    routingConfig = RoutingConfigBuilder().apply(block).build()
-  }
-
-  fun security(block: SecurityConfigBuilder.() -> Unit) {
-    securityConfig = SecurityConfigBuilder().apply(block).build()
-  }
-
-  fun diagnostics(block: DiagnosticsConfigBuilder.() -> Unit) {
-    diagnosticsConfig = DiagnosticsConfigBuilder().apply(block).build()
-  }
-
-  private var keyRotationConfig = KeyRotationConfig()
-  private var transferConfig = TransferConfig()
-  private var routingConfig = RoutingConfig()
-  private var securityConfig = SecurityConfig()
-  private var diagnosticsConfig = DiagnosticsConfig()
-
-  fun build(): MeshLinkConfig = MeshLinkConfig(
-    powerTier = powerTier,
-    regulatoryRegion = regulatoryRegion,
-    keyRotation = keyRotationConfig,
-    transfer = transferConfig,
-    routing = routingConfig,
-    security = securityConfig,
-    diagnostics = diagnosticsConfig
-  )
-}
-
-class KeyRotationConfigBuilder {
-  var interval: Duration = Duration.days(3)
-  var rotationGracePeriod: Duration = Duration.hours(1)
-  var compromiseGracePeriod: Duration = Duration.ZERO
-  fun build() = KeyRotationConfig(interval, rotationGracePeriod, compromiseGracePeriod)
-}
-
-class TransferConfigBuilder {
-  var maxRetries: Int = 5
-  var defaultChunkSize: Int = 256
-  var maxConcurrentSessionsPerPeer: Int = 3
-  var sackEncoding: SackEncoding = SackEncoding.DYNAMIC
-  fun build() = TransferConfig(maxRetries, defaultChunkSize, maxConcurrentSessionsPerPeer, sackEncoding)
-}
-
-class RoutingConfigBuilder {
-  var routeUpdateMinInterval: Duration = Duration.seconds(1)
-  var routeUpdateMaxInterval: Duration = Duration.seconds(30)
-  var routeUpdateChangeThreshold: Int = 3
-  var fullTableSyncInterval: Duration = Duration.minutes(5)
-  var routeEntryExpiry: Duration = Duration.minutes(15)
-  var feasibilityConditionEnabled: Boolean = true
-  fun build() = RoutingConfig(routeUpdateMinInterval, routeUpdateMaxInterval, routeUpdateChangeThreshold, fullTableSyncInterval, routeEntryExpiry, feasibilityConditionEnabled)
-}
-
-class SecurityConfigBuilder {
-  var fallbackMaxAttemptsPerMinute: Int = 3
-  var fallbackTimeout: Duration = Duration.seconds(10)
-  var requireSignatureOnRouteUpdates: Boolean = true
-  var defaultHandshakePattern: HandshakePattern = HandshakePattern.IX
-  fun build() = SecurityConfig(fallbackMaxAttemptsPerMinute, fallbackTimeout, requireSignatureOnRouteUpdates, defaultHandshakePattern)
-}
-
-class DiagnosticsConfigBuilder {
-  var emitToLog: Boolean = true
-  var eventBufferSize: Int = 1000
-  fun build() = DiagnosticsConfig(emitToLog, eventBufferSize)
+fun meshLinkSettings(block: MeshLinkSettings.() -> Unit): MeshLinkSettings {
+  return MeshLinkSettings().apply(block)
 }
 ```
 
@@ -1015,32 +946,32 @@ class DiagnosticsConfigBuilder {
 ### 14.2 Usage Example
 
 ```kotlin
-val config = meshLinkConfig {
+val config = meshLinkSettings {
   powerTier = PowerTier.HIGH
   regulatoryRegion = RegulatoryRegion.EU
-  keyRotation {
-    interval = Duration.days(1)              // Override 3-day default
-    rotationGracePeriod = Duration.minutes(30)
-    compromiseGracePeriod = Duration.ZERO
-  }
-  transfer {
-    maxRetries = 3
-    defaultChunkSize = 512
-    maxConcurrentSessionsPerPeer = 2
-  }
-  routing {
-    routeUpdateMinInterval = Duration.seconds(500)
-    routeUpdateChangeThreshold = 5
-    feasibilityConditionEnabled = true
-  }
-  security {
-    fallbackMaxAttemptsPerMinute = 5
-    requireSignatureOnRouteUpdates = true
-  }
-  diagnostics {
-    emitToLog = false
-    eventBufferSize = 2000
-  }
+  keyRotation = KeyRotationSettings(
+    interval = Duration.days(1),
+    rotationGracePeriod = Duration.minutes(30),
+    compromiseGracePeriod = Duration.ZERO,
+  )
+  transfer = TransferSettings(
+    maxRetries = 3,
+    chunkSize = 512,
+    maxConcurrentSessionsPerPeer = 2,
+  )
+  routing = RoutingSettings(
+    routeUpdateMinInterval = Duration.seconds(1),
+    routeUpdateChangeThreshold = 5,
+    feasibilityConditionEnabled = true,
+  )
+  security = SecuritySettings(
+    fallbackMaxAttemptsPerMinute = 5,
+    requireSignatureOnRouteUpdates = true,
+  )
+  diagnostics = DiagnosticsSettings(
+    emitToLog = false,
+    eventBufferSize = 2000,
+  )
 }
 ```
 

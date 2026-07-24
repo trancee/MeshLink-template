@@ -1,10 +1,20 @@
 package ch.trancee.meshlink.diagnostics
 
+import ch.trancee.meshlink.model.DataPlaneBearer
+import ch.trancee.meshlink.model.DecryptFailureReason
+import ch.trancee.meshlink.model.FrameType
+import ch.trancee.meshlink.model.HandshakePattern
 import ch.trancee.meshlink.model.KeyRotationReason
+import ch.trancee.meshlink.model.NoiseFailureReason
+import ch.trancee.meshlink.model.NoiseLayer
+import ch.trancee.meshlink.model.NoiseRole
+import ch.trancee.meshlink.model.NoiseSessionState
 import ch.trancee.meshlink.model.PeerIdentity
 import ch.trancee.meshlink.model.PowerTier
 import ch.trancee.meshlink.model.RegulatoryRegion
 import ch.trancee.meshlink.model.SessionId
+import ch.trancee.meshlink.model.TransferState
+import ch.trancee.meshlink.model.TransportFallbackReason
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
@@ -117,126 +127,15 @@ sealed interface DiagnosticEvent {
         val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
-    /** Transfer session state transition. Emitted for every state change in [TransferStatus]. */
+    /** Transfer session state transition. Emitted for every state change in [TransferState]. */
     @Serializable
     data class TransferSessionTransition(
         val sessionId: SessionId,
         val peerIdentity: PeerIdentity,
-        val fromStatus: TransferStatus,
-        val toStatus: TransferStatus,
+        val fromState: TransferState,
+        val toState: TransferState,
         val bytesTransferred: Long,
         val totalBytes: Long,
         val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
-}
-
-/** Frame types that appear on the wire. */
-@Serializable
-enum class FrameType {
-    MESH_ENVELOPE,
-    ROUTE_UPDATE,
-    ROUTE_WITHDRAWAL,
-    ROUTE_DIGEST,
-    TRANSFER_CHUNK,
-    TRANSFER_ACK,
-    TRANSFER_CANCEL,
-    KEY_ROTATION_ANNOUNCEMENT,
-}
-
-/** Why a frame failed to decrypt. */
-@Serializable
-enum class DecryptFailureReason {
-    AUTHENTICATION_TAG_MISMATCH,
-    REPLAY_DETECTED,
-    SEQUENCE_NUMBER_MISMATCH,
-    KEY_UNAVAILABLE,
-    MALFORMED_FRAME,
-}
-
-/** Why the data plane fell back to GATT. */
-@Serializable
-enum class TransportFallbackReason {
-    NO_PSM_ADVERTISED,
-    L2CAP_CONNECT_FAILED,
-    L2CAP_DROPPED_MID_TRANSFER,
-    LOCAL_POLICY,
-}
-
-/** Data plane bearer in use. */
-@Serializable
-enum class DataPlaneBearer {
-    GATT,
-    L2CAP,
-}
-
-/** Handshake pattern used. */
-@Serializable
-enum class HandshakePattern {
-    IX,
-    NX,
-}
-
-/** Key rotation trigger reason. */
-@Serializable
-enum class KeyRotationReason {
-    PERIODIC,
-    MANUAL,
-    SECURITY_EVENT,
-}
-
-/** Noise session layer. */
-@Serializable
-enum class NoiseLayer {
-    PEER,
-    MESH,
-}
-
-/** Noise link-layer session states. */
-@Serializable
-enum class NoiseSessionState {
-    DISCONNECTED,
-    HANDSHAKING_XX,
-    HANDSHAKING_IK,
-    ESTABLISHED,
-    REKEYING,
-    FAILED,
-}
-
-/** Role in Noise handshake. */
-@Serializable
-enum class NoiseRole {
-    INITIATOR,
-    RESPONDER,
-}
-
-/** Noise link-layer failure reasons. */
-@Serializable
-enum class NoiseFailureReason {
-    HANDSHAKE_TIMEOUT,
-    HANDSHAKE_MESSAGE_MALFORMED,
-    HANDSHAKE_MESSAGE_OUT_OF_ORDER,
-    REMOTE_STATIC_KEY_MISMATCH,
-    REMOTE_STATIC_KEY_UNKNOWN,
-    REKEY_REJECTED,
-    TRANSPORT_CLOSED,
-    MAX_RETRIES_EXCEEDED,
-    INTERNAL_ERROR,
-}
-
-/** Transfer session status (public API). */
-@Serializable
-enum class TransferStatus {
-    IN_PROGRESS,
-    WAITING_FOR_ROUTE,
-    RETRYING,
-    COMPLETED,
-    FAILED,
-    TIMED_OUT,
-}
-
-/** SACK bitfield encoding mode. */
-@Serializable
-enum class SackEncoding {
-    DYNAMIC,
-    FIXED,
 }
