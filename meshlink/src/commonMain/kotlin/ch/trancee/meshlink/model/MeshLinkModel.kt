@@ -40,7 +40,7 @@ enum class ScoreboardEncoding {
 
 /** Message priority that affects routing behavior and TTL. */
 @Serializable
-enum class MessagePriority {
+enum class Priority {
     HIGH,
     NORMAL,
     LOW,

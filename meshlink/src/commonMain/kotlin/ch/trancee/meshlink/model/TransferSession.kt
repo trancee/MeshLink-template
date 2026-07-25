@@ -35,6 +35,8 @@ data class TransferSession(
     val sessionId: SessionId,
     /** Final destination peer for this transfer. */
     val destination: PeerIdentity,
+    /** QoS priority inherited from the originating RoutingMessage. */
+    val priority: Priority,
     /** Current lifecycle state of this transfer. */
     val state: TransferState,
     /** Selected chunk size in bytes (bounded by peer MTU). */

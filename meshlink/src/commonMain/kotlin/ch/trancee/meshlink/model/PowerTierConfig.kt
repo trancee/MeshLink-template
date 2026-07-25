@@ -23,7 +23,9 @@ enum class PowerTier {
             PowerTierConfig(
                 scanDutyCyclePercent = 20,
                 advertisementIntervalMs = 100,
-                connectionIntervalMs = 7,
+                // 7.5ms = minimum valid BLE connection interval (6 × 1.25ms);
+                // Android BLE stack floor
+                connectionIntervalMs = 7.5,
                 concurrentConnections = 8,
                 chunkSize = 512,
                 maxRetries = 10,
@@ -65,7 +67,7 @@ data class PowerTierConfig(
     /** Minimum advertisement interval in milliseconds. */
     val advertisementIntervalMs: Int,
     /** Connection interval in milliseconds. */
-    val connectionIntervalMs: Int,
+    val connectionIntervalMs: Double,
     /** Maximum number of concurrent BLE connections this tier supports. */
     val concurrentConnections: Int,
     /** Transfer chunk size in bytes, bounded by peer MTU. */

@@ -9,17 +9,17 @@ object RoutingPolicy {
     const val MaxHops: Int = 32
 
     /** TTL derived from message priority — governs how long a message stays routable. */
-    fun ttlFor(priority: MessagePriority): Duration =
+    fun ttlFor(priority: Priority): Duration =
         when (priority) {
-            MessagePriority.HIGH -> Duration.minutes(10)
-            MessagePriority.NORMAL -> Duration.minutes(5)
-            MessagePriority.LOW -> Duration.minutes(1)
+            Priority.HIGH -> Duration.minutes(10)
+            Priority.NORMAL -> Duration.minutes(5)
+            Priority.LOW -> Duration.minutes(1)
         }
 }
 
 /** Priority level that affects routing behavior and TTL. */
 @Serializable
-enum class MessagePriority {
+enum class Priority {
     HIGH,
     NORMAL,
     LOW,

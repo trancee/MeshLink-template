@@ -117,7 +117,7 @@ fun normalizeRssi(rssiDbm: Int): UInt {
 
 ```kotlin
 fun estimateLinkQualityFromConnection(
-  connectionIntervalMs: Int,
+  connectionIntervalMs: Double,
   powerTier: PowerTier
 ): UInt {
   // Connection interval is a proxy for latency

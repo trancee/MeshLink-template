@@ -112,19 +112,36 @@ PeerFingerprint: 12-byte SHA-256(Ed25519Pub || X25519Pub) truncated, used in dis
  * RFC 8966 §3.7 requires signed interpretation for seqno comparison.
  */
 @JvmInline
+@Serializable
 value class SeqNo(private val value: UInt) {
   companion object {
     val ZERO: SeqNo = SeqNo(0u)
   }
-  
+
   val raw: UInt = value
-  
+
   /**
    * Returns true if this seqno is newer than [other], handling 32-bit wrap-around.
    * Uses signed comparison: (this - other) > 0 interprets as signed 32-bit.
    */
   fun isNewerThan(other: SeqNo): Boolean = (value - other.value).toInt() > 0
-  
+
+  /**
+   * Returns true if this seqno is older than [other].
+   * RFC 8966 §3.7 comparison symmetry.
+   */
+  fun isOlderThan(other: SeqNo): Boolean = other.isNewerThan(this)
+
+  /**
+   * Signed difference for modular arithmetic comparison.
+   * (this - other) interpreted as signed 32-bit integer.
+   */
+  operator fun minus(other: SeqNo): Int = (value - other.value).toInt()
+
+  /**
+   * Increments this seqno by 1, wrapping at 2^32.
+   * Used on cold start of mesh participation (MeshLink.start()).
+   */
   fun increment(): SeqNo = SeqNo(value + 1u)
 }
 ```
@@ -183,6 +200,7 @@ TrustRecord {
 RouteEntry {
   destination: PeerIdentity
   nextHop: PeerIdentity?
+  source: PeerIdentity (peer from whom this route was learned; used for loop detection per RFC 8966)
   metric: UInt (composite via LinkMetric; see below)
   seqNo: SeqNo (destination-self-reported sequence number, wrapped for safe comparison)
   publicKey: CryptoKey? (destination's public key, learned via route updates)
@@ -230,6 +248,7 @@ TransferSession {
   destination: PeerIdentity
   priority: Priority  // Transfer priority for QoS-like behavior
   state: TransferState (IN_PROGRESS, WAITING_FOR_ROUTE, RETRYING, COMPLETED, FAILED, TIMED_OUT)
+  failureReason: TransferFailureReason? (reason for terminal FAILED state; null otherwise)
   chunkSize: Int (selected by local power tier, bounded by peer MTU; see §10.4 for power-tier-based values)
   totalChunks: UInt (ceil(totalBytes / chunkSize))
   scoreboard: Scoreboard (dynamic bitfield; bit N = 1 if chunk N received; see §3.4)
@@ -239,9 +258,25 @@ TransferSession {
   expiresAt: Instant? (max time transfer can remain WAITING_FOR_ROUTE before failing; computed as `startedAt + retryBudget`; see §10.4 tier table for per-tier values)
   retryCount: Int
 }
+
+### TransferFailureReason
+
+```text
+sealed interface TransferFailureReason {
+  data class Unrecoverable(val message: String) : TransferFailureReason
+  data class TrustFailure(val peerIdentity: PeerIdentity) : TransferFailureReason
+}
 ```
 
-**Scoreboard:** Dynamic bitfield encoding — bitfield length = `ceil(totalChunks / 8)` bytes, derived from `totalChunks` known via TransferSession. Bit N = 1 means chunk N is received (standard SACK convention). Backed by the `Scoreboard` helper class which provides type-safe `markReceived`, `markMissing`, `isReceived`, `missingChunks` methods. [Decision: docs/decisions/model/core-types.md]
+**Scoreboard:** Dynamic bitfield encoding — bitfield length = `ceil(totalChunks / 8)` bytes, derived from `totalChunks` known via TransferSession. Bit N = 1 means chunk N is received (standard SACK convention). Backed by the `Scoreboard` helper class which provides type-safe methods:
+
+- `markReceived(chunkIndex)` / `markMissing(chunkIndex)` — return new immutable `Scoreboard` instances
+- `isReceived(chunkIndex)` / `isMissing(chunkIndex)` — bit inspection
+- `missingChunks()` — list of unreceived chunk indices
+- `receivedCount()` / `missingCount()` — counts for progress tracking
+- `toByteArray()` — raw bitfield for wire serialization
+
+[Decision: docs/decisions/model/core-types.md]
 
 **Transfer Priority:** Transfers inherit priority from the RoutingMessage that created them (see §3.4), enabling QoS-like behavior where higher priority transfers can preempt lower priority ones when resources are constrained.
 
@@ -254,7 +289,7 @@ TransferSession {
 | RETRYING | retrying |
 | WAITING_FOR_ROUTE | route-waiting |
 | TIMED_OUT | timeout |
-| FAILED | unrecoverable-failure (or trust-failure if trust-related) |
+| FAILED | unrecoverable-failure or trust-failure (see §11.4's `TransferFailureReason` type; trust-failure when `failureReason` is `TrustFailure`) [note 1] |
 
 ### 3.4.1 Transfer Session State Transitions
 
@@ -270,6 +305,11 @@ TransferSession {
 | RETRYING | Retransmission complete, back in progress | IN_PROGRESS |
 | RETRYING | Retry budget exhausted | FAILED |
 | Any terminal | Session cleaned up | — |
+
+[note 1] FAILED transitions carry a `TransferFailureReason` in the `failureReason` field:
+
+- **`Unrecoverable`**: Generic error, cancel, retry budget exhausted, or non-trust transfer failure.
+- **`TrustFailure`**: Trust-related failure (e.g. identity mismatch, revoked peer). The delivery outcome maps to `trust-failure` only in this case.
 
 Note: `unreachable` is a routing-layer outcome (no route to destination), not a `TransferState`.
 
@@ -291,6 +331,8 @@ ROUTE_UPDATE and ROUTE_WITHDRAWAL are always AEAD-encrypted using the Noise sess
 **Note:** `Hello` and `Ihu` frame types were considered and removed — BLE connection state (GATT/L2CAP connect/disconnect) provides liveness, making periodic Hello/IHU frames redundant. See [Destination-sourced route freshness, IHU cost signal removal, and digest-triggered resync](docs/decisions/routing/destination-sourced-seqno-ihu-removal-digest-resync-design.md) for rationale.
 
 ---
+
+<a id="4-discovery--identity"></a>
 
 ## 4. Discovery & Identity
 
@@ -317,6 +359,8 @@ Single BLE advertisement packet containing:
 [Decision: docs/explanation/privacy-pseudonyms.md]
 
 ---
+
+<a id="5-trust-model-tofu"></a>
 
 ## 5. Trust Model (TOFU)
 
@@ -359,7 +403,7 @@ When destination's public key is unknown, `Noise_NX_25519_ChaChaPoly_SHA256` pro
 - Timeout: 10s vs 30s for IX (limits resource window)
 - Full public key verification in payload (validates identity claim)
 - 32-bit nonce in payload (replay protection)
-- Diagnostic flag: `e2e_handshake.fallback_used = true` (observability)
+- Diagnostic flag: `handshake.fallback_used = true` (observability)
 
 **Protocol:** NX_Msg1 includes the full 64-byte concatenated public key (Ed25519 || X25519) + nonce. Destination verifies: `received_ed25519 == expected_ed25519 AND received_x25519 == expected_x25519`. Mismatch or replay = reject.
 
@@ -538,6 +582,26 @@ Babel-style distance-vector (RFC 8966) adapted for BLE mesh:
 
 **Rationale:** 256 entries balance mesh size expectations (~10-20 peers common in typical deployment) with memory bounds. Evicting least-recently-updated entries ensures stale routes are removed first while active routes persist. The eviction happens atomically during route table updates.
 
+### 8.4.1 Loop Detection
+
+MeshLink uses two complementary mechanisms to prevent routing loops, following RFC 8966:
+
+#### 1. Source-peer tracing (primary defense)
+
+Each `RouteEntry` records the `source` peer — the immediate neighbor from whom the route was received. When evaluating a route update for a destination, the receiving peer checks whether the `source` is the same as itself. If it is, the update is silently discarded — it is a loop back to the origin.
+
+This is the Babel-style "split horizon with poisoned reverse" principle: a node never advertises a route back to the peer from which it learned that route.
+
+#### 2. Feasibility condition (loop avoidance)
+
+The Babel feasibility condition (`route.metric < feasibleDistance(destination)`) is the second defense. Even if a route update passes the source check, it is only accepted if its metric is strictly better than any feasible route already in the table for the same destination. This prevents a two-node ping-pong where each node keeps accepting the other's slightly-better metric.
+
+#### 3. SeqNo freshness (stale-route prevention)
+
+Each `RouteEntry` carries a destination-self-reported `seqNo`. A route update whose `seqNo` is not newer than the currently accepted route for the same destination is rejected. This is handled by `SeqNo.isNewerThan()` using signed 32-bit comparison per RFC 8966 §3.7.
+
+Together, these three mechanisms — source tracing, feasibility filtering, and seqno freshness — provide robust loop prevention for the Babel-style distance-vector routing plane.
+
 ### 8.5 TTL by Priority
 
 | Priority | TTL |
@@ -662,12 +726,12 @@ After the grace period expires without reconnection, the peer transitions to GON
 
 - **Scan duty cycle**: Based on BLE power consumption studies showing linear relationship with current draw
 - **Advertisement interval**: Shorter intervals improve discovery latency but increase power consumption
-- **Connection interval**: 7.5ms is Android minimum; 15ms represents iOS sweet spot for throughput/power balance
+- **Connection interval**: BLE connection intervals are quantized in 1.25ms units; 7.5ms (=6 units) is the minimum valid interval and the Android BLE stack floor. 15ms (=12 units) is the iOS sweet spot for throughput/power balance. The code stores these as `Double` milliseconds to preserve the exact BLE-valid values without rounding artifacts.
 - **Concurrent connections**: Limited by controller resources and connection management overhead
 - **Chunk sizes**: Sized to fit within BLE MTU (23-251 bytes) after accounting for L2CAP/GATT headers (4 bytes), security overhead (nonce+tag=16 bytes for ChaCha20-Poly1305), and protocol framing, while minimizing packetization overhead
 - **Max retries & retry budget**: Tuned to balance reliability against resource exhaustion and battery drain
 
-*Note: Connection intervals are shown as min-max ranges supported by the controller stack.*
+*Note: Connection intervals are shown as min-max ranges supported by the controller stack. Values that are multiples of 1.25ms are guaranteed to be valid across BLE controllers; non-multiples (e.g. 7ms) may be rejected or silently rounded by the stack.*
 
 ---
 
@@ -717,20 +781,28 @@ only sees `PeerEvent.Found`, `PeerEvent.StateChanged`, and `PeerEvent.Lost`.
 
 ### 11.3 Diagnostic Events (Machine Observable)
 
-All diagnostic events are defined in `meshlink/src/commonMain/kotlin/ch/trancee/meshlink/diagnostics/DiagnosticEvent.kt` as a sealed interface hierarchy. The table below summarizes key event categories.
+All diagnostic events are defined in `meshlink/src/commonMain/kotlin/ch/trancee/meshlink/diagnostics/DiagnosticEvent.kt` as a sealed interface hierarchy. The table below summarizes the event types with their fields.
 
 | Event Category | Fields | Code Type |
 |----------------|--------|-----------|
-| `route.*` | `route.decrypt_failure_count`, `route.frame_type` | `RouteDecryptFailure` |
-| `transport.*` | `transport.fallback_no_psm_advertised`, `transport.fallback_coc_connect_failed`, `transport.fallback_coc_dropped_mid_transfer`, `transport.fallback_local_policy` | `TransportFallback` |
-| `transfer.*` | `transfer.data_plane_bearer`, `transfer.fallback_reason`, `transfer.priority` | `TransferSessionTransition`, `TransferDataPlaneBearer` |
-| `power.*` | `power.tier`, `power.regulatory_region`, `power.scan_duty_cycle_observed`, `power.advertisement_interval_ms`, `power.connection_interval_ms`, `power.grace_period_seconds` | `PowerTierEffective` |
-| `e2e_handshake.*` | `e2e_handshake.protocol`, `e2e_handshake.fallback_used`, `e2e_handshake.peer_key_verified`, `e2e_handshake.rate_limit_attempts`, `e2e_handshake.nonce_replay_detected` | `E2EHandshake` |
-| `key_rotation.*` | `key_rotation.old_key_verified`, `key_rotation.seqno_reset`, `key_rotation.propagation_deadline_met` | `KeyRotation` |
+| `route.*` | `peerIdentity`, `frameType`, `failureReason` | `RouteDecryptFailureEvent` |
+| `transport.*` | `peerIdentity`, `reason` | `TransportFallbackEvent` |
+| `transfer.*` | `sessionId`, `bearer` | `TransferDataPlaneBearerEvent` |
+| `power.*` | `requestedTier`, `effectiveTier`, `regulatoryRegion`, `scanDutyCyclePercent`, `advertisementIntervalMs`, `connectionIntervalMs` | `PowerTierEffectiveEvent` |
+| `handshake.*` | `sessionId`, `pattern`, `fallbackUsed`, `fullPublicKeyVerified`, `rateLimitAttempts`, `nonceReplayDetected` | `HandshakeEvent` |
+| `key_rotation.*` | `peerIdentity`, `oldKeyVerified`, `sequenceNumberReset`, `propagationDeadlineMet`, `reason` | `KeyRotationEvent` |
+| `route.*` | `peerIdentity`, `localDigest`, `remoteDigest` | `RouteDigestMismatchEvent` |
+| `transfer.*` | `sessionId`, `peerIdentity`, `fromState`, `toState`, `bytesTransferred`, `totalBytes` | `TransferSessionTransitionEvent` |
+| `transfer.*` | `sessionId`, `peerIdentity`, `reason` | `TransferFailureEvent` |
+| `noise.*` | `peerIdentity`, `layer`, `fromState`, `toState`, `role`, `handshakePattern`, `failureReason` | `NoiseSessionTransitionEvent` |
 
 **Diagnostic Field Descriptions:**
 
-- `transfer.priority`: Reflects the Priority (HIGH/NORMAL/LOW) of the transfer, inherited from the originating RoutingMessage. Enables QoS monitoring and resource allocation decisions.
+- `transfer.priority`: Reflects the Priority (HIGH/NORMAL/LOW) of the transfer, inherited from the originating RoutingMessage. Enables QoS monitoring and resource allocation decisions. This field is surfaced on `TransferSessionTransitionEvent` via the transfer session's `priority` field.
+- `handshake.fallbackUsed`: `true` when the NX fallback handshake pattern is used instead of IX; set when the destination's public key is unknown.
+- `handshake.fullPublicKeyVerified`: `true` when the NX fallback verified the full 64-byte concatenated public key (Ed25519 || X25519) byte-for-byte in Msg1.
+- `key_rotation.sequenceNumberReset`: `true` when the neighbor accepted the new key and reset its seqno to 1.
+- `key_rotation.propagationDeadlineMet`: `true` when the key rotation announcement reached all direct neighbors within the deadline.
 
 ### 11.4 Error Model
 
@@ -741,7 +813,21 @@ Errors use a sealed `MeshLinkException` hierarchy in `commonMain`, with platform
 - Transfer errors (TransferTimeoutError, TransferCancelledError, TransferCorruptedError)
 - Transport errors (BluetoothStateError, ConnectionTimeoutError, CocNotSupportedError)
 
-**ErrorCode enum:** PEER_NOT_FOUND, KEY_UNKNOWN, TRUST_VIOLATION, TRANSFER_TIMEOUT, BLUETOOTH_DISABLED, CONNECTION_FAILED, INVALID_PARAMETER, INTERNAL_ERROR
+**ErrorCode enum:** `PEER_NOT_FOUND`, `KEY_UNKNOWN`, `TRUST_VIOLATION`, `TRANSFER_TIMEOUT`, `BLUETOOTH_DISABLED`, `CONNECTION_FAILED`, `INVALID_PARAMETER`, `INTERNAL_ERROR`
+
+**TransferFailureReason:**
+
+```text
+sealed interface TransferFailureReason {
+  data class Unrecoverable(val message: String) : TransferFailureReason
+  data class TrustFailure(val peerIdentity: PeerIdentity) : TransferFailureReason
+}
+```
+
+This type is carried by `TransferSession.failureReason` and distinguishes the two terminal failure modes that map to the `FAILED` delivery outcome:
+
+- `Unrecoverable` → delivery outcome `unrecoverable-failure`
+- `TrustFailure` → delivery outcome `trust-failure`
 
 ---
 

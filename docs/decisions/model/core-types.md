@@ -207,6 +207,7 @@ Chunked transfer session state.
 data class TransferSession(
   val sessionId: SessionId,
   val destination: PeerIdentity,
+  val priority: Priority,           // QoS priority inherited from RoutingMessage
   val state: TransferState,
   val chunkSize: Int,              // Based on power tier
   val totalChunks: UInt,           // ceil(totalBytes / chunkSize)
@@ -492,11 +493,11 @@ Serialized into `RoutingFrame.payload` for routing through the mesh.
 data class RoutingMessage(
   val version: UByte,           // Protocol version
   val messageId: Long,         // 64-bit random for deduplication
-  val priority: MessagePriority, // HIGH, NORMAL, LOW
+  val priority: Priority, // HIGH, NORMAL, LOW
   val destination: PeerIdentity      // Final destination
 )
 
-enum class MessagePriority { HIGH, NORMAL, LOW }
+enum class Priority { HIGH, NORMAL, LOW }
 ```
 
 ### HandshakePayload

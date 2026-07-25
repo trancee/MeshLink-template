@@ -61,7 +61,7 @@ sealed interface DiagnosticEvent {
         val regulatoryRegion: RegulatoryRegion,
         val scanDutyCyclePercent: Int,
         val advertisementIntervalMs: Int,
-        val connectionIntervalMs: Int,
+        val connectionIntervalMs: Double,
         val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
