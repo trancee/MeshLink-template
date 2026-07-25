@@ -1,0 +1,30 @@
+package ch.trancee.meshlink.model
+
+/**
+ * Ed25519 public key for mesh identity verification. Stored as a 32-byte array, serialized as hex
+ * string.
+ */
+@JvmInline
+public value class IdentityKey(private val bytes: ByteArray) {
+    /** Raw 32-byte key data. */
+    public val raw: ByteArray
+        get() = bytes
+
+    /** Hex-encoded representation. */
+    public val hex: String
+        get() = bytes.toHexString()
+
+    public companion object {
+        /** Creates an IdentityKey from a hex string. */
+        public fun fromHex(hex: String): IdentityKey {
+            require(hex.length == 64) { "IdentityKey must be 64 hex chars (32 bytes)" }
+            return IdentityKey(hex.hexToByteArray())
+        }
+
+        /** Creates an IdentityKey from raw bytes. */
+        public fun fromBytes(bytes: ByteArray): IdentityKey {
+            require(bytes.size == 32) { "IdentityKey must be 32 bytes" }
+            return IdentityKey(bytes)
+        }
+    }
+}

@@ -1,6 +1,7 @@
 package ch.trancee.meshlink.model
 
 import kotlin.random.Random
+import kotlin.text.HexFormat
 
 /**
  * Stable 16-byte peer identifier. Generated ONCE at install/first launch, stored permanently. NOT
@@ -20,7 +21,8 @@ public value class PeerIdentity(private val parts: Pair<ULong, ULong>) {
 
     /** Hex-encoded representation for diagnostics and display. */
     public val hex: String
-        get() = "%016x%016x".format(lo.toLong(), hi.toLong())
+        get() =
+            "${lo.toHexString(HexFormat { number.minLength = 16 })}${hi.toHexString(HexFormat { number.minLength = 16 })}"
 
     public companion object {
         /** The zero identity (all bytes zero) — for initialization and comparison. */

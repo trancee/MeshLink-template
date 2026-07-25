@@ -231,27 +231,6 @@ public final class ch/trancee/meshlink/model/DecryptFailureReason : java/lang/En
 	public static fun values ()[Lch/trancee/meshlink/model/DecryptFailureReason;
 }
 
-public final class ch/trancee/meshlink/model/Ed25519Key {
-	public static final field Companion Lch/trancee/meshlink/model/Ed25519Key$Companion;
-	public static final synthetic fun box-impl (Ljava/lang/String;)Lch/trancee/meshlink/model/Ed25519Key;
-	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
-	public fun equals (Ljava/lang/Object;)Z
-	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
-	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
-	public static final fun getHex-impl (Ljava/lang/String;)Ljava/lang/String;
-	public static final fun getRaw-impl (Ljava/lang/String;)[B
-	public fun hashCode ()I
-	public static fun hashCode-impl (Ljava/lang/String;)I
-	public fun toString ()Ljava/lang/String;
-	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
-	public final synthetic fun unbox-impl ()Ljava/lang/String;
-}
-
-public final class ch/trancee/meshlink/model/Ed25519Key$Companion {
-	public final fun fromBytes-9tJEytI ([B)Ljava/lang/String;
-	public final fun fromHex-9tJEytI (Ljava/lang/String;)Ljava/lang/String;
-}
-
 public final class ch/trancee/meshlink/model/FrameType : java/lang/Enum {
 	public static final field KEY_ROTATION_ANNOUNCEMENT Lch/trancee/meshlink/model/FrameType;
 	public static final field MESH_ENVELOPE Lch/trancee/meshlink/model/FrameType;
@@ -274,6 +253,27 @@ public final class ch/trancee/meshlink/model/HandshakePattern : java/lang/Enum {
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lch/trancee/meshlink/model/HandshakePattern;
 	public static fun values ()[Lch/trancee/meshlink/model/HandshakePattern;
+}
+
+public final class ch/trancee/meshlink/model/IdentityKey {
+	public static final field Companion Lch/trancee/meshlink/model/IdentityKey$Companion;
+	public static final synthetic fun box-impl ([B)Lch/trancee/meshlink/model/IdentityKey;
+	public static fun constructor-impl ([B)[B
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl ([BLjava/lang/Object;)Z
+	public static final fun equals-impl0 ([B[B)Z
+	public static final fun getHex-impl ([B)Ljava/lang/String;
+	public static final fun getRaw-impl ([B)[B
+	public fun hashCode ()I
+	public static fun hashCode-impl ([B)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl ([B)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()[B
+}
+
+public final class ch/trancee/meshlink/model/IdentityKey$Companion {
+	public final fun fromBytes-7wvsk2U ([B)[B
+	public final fun fromHex-7wvsk2U (Ljava/lang/String;)[B
 }
 
 public final class ch/trancee/meshlink/model/KeyRotationReason : java/lang/Enum {
@@ -449,20 +449,20 @@ public final class ch/trancee/meshlink/model/RegulatoryRegion : java/lang/Enum {
 }
 
 public final class ch/trancee/meshlink/model/RouteEntry {
-	public synthetic fun <init> (Lkotlin/Pair;Lkotlin/Pair;Lkotlin/Pair;IILjava/lang/String;Lkotlin/time/Instant;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Lkotlin/Pair;Lkotlin/Pair;Lkotlin/Pair;II[BLkotlin/time/Instant;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-jkpD0pM ()Lkotlin/Pair;
 	public final fun component2-sO4cmW8 ()Lkotlin/Pair;
 	public final fun component3-jkpD0pM ()Lkotlin/Pair;
 	public final fun component4-pVg5ArA ()I
 	public final fun component5-lOAkoVk ()I
-	public final fun component6-IhCeTgg ()Ljava/lang/String;
+	public final fun component6-K5AmCWU ()[B
 	public final fun component7 ()Lkotlin/time/Instant;
-	public final fun copy-8RgRCO4 (Lkotlin/Pair;Lkotlin/Pair;Lkotlin/Pair;IILjava/lang/String;Lkotlin/time/Instant;)Lch/trancee/meshlink/model/RouteEntry;
-	public static synthetic fun copy-8RgRCO4$default (Lch/trancee/meshlink/model/RouteEntry;Lkotlin/Pair;Lkotlin/Pair;Lkotlin/Pair;IILjava/lang/String;Lkotlin/time/Instant;ILjava/lang/Object;)Lch/trancee/meshlink/model/RouteEntry;
+	public final fun copy--ThSKVs (Lkotlin/Pair;Lkotlin/Pair;Lkotlin/Pair;II[BLkotlin/time/Instant;)Lch/trancee/meshlink/model/RouteEntry;
+	public static synthetic fun copy--ThSKVs$default (Lch/trancee/meshlink/model/RouteEntry;Lkotlin/Pair;Lkotlin/Pair;Lkotlin/Pair;II[BLkotlin/time/Instant;ILjava/lang/Object;)Lch/trancee/meshlink/model/RouteEntry;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getDestination-jkpD0pM ()Lkotlin/Pair;
 	public final fun getExpiresAt ()Lkotlin/time/Instant;
-	public final fun getIdentityKey-IhCeTgg ()Ljava/lang/String;
+	public final fun getIdentityKey-K5AmCWU ()[B
 	public final fun getMetric-pVg5ArA ()I
 	public final fun getNextHop-sO4cmW8 ()Lkotlin/Pair;
 	public final fun getSeqNo-lOAkoVk ()I

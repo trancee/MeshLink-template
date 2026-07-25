@@ -64,7 +64,7 @@ value class PeerFingerprint(private val bytes: ByteArray) {
      * it is the DH key (may be rotated independently).
      * If either key is missing, derivation fails — both keys are required.
      */
-    fun fromKeys(identityKey: Ed25519Key, handshakeKey: X25519Key): PeerFingerprint {
+    fun fromKeys(identityKey: IdentityKey, handshakeKey: HandshakeKey): PeerFingerprint {
       val hash = sha256(identityKey.bytes + handshakeKey.bytes)
       return PeerFingerprint(hash.copyOf(12)) // First 12 bytes
     }
@@ -112,7 +112,7 @@ sealed interface CryptoKey {
 }
 
 @JvmInline
-value class Ed25519Key(private val keyBytes: ByteArray) : CryptoKey {
+value class IdentityKey(private val keyBytes: ByteArray) : CryptoKey {
   init { require(keyBytes.size == 32) }
   override val keyType = KeyType.ED25519
   override val diagnosticId: String get() = "ed:${keyBytes.first().toHexString()}"
@@ -120,7 +120,7 @@ value class Ed25519Key(private val keyBytes: ByteArray) : CryptoKey {
 }
 
 @JvmInline
-value class X25519Key(private val keyBytes: ByteArray) : CryptoKey {
+value class HandshakeKey(private val keyBytes: ByteArray) : CryptoKey {
   init { require(keyBytes.size == 32) }
   override val keyType = KeyType.X25519
   override val diagnosticId: String get() = "x255:${keyBytes.first().toHexString()}"
@@ -141,7 +141,7 @@ Stored trust information for a peer.
  */
 data class TrustRecord(
   val peerIdentity: PeerIdentity,
-  val publicKey: Ed25519Key,
+  val publicKey: IdentityKey,
   val seenAt: Instant,
   val verifiedAt: Instant,
   val state: TrustState
@@ -155,9 +155,9 @@ enum class TrustState {
 
 // Trust store interface
 interface TrustStore {
-  suspend fun getPublicKey(peerIdentity: PeerIdentity): Ed25519Key?
+  suspend fun getPublicKey(peerIdentity: PeerIdentity): IdentityKey?
   suspend fun getPeerFingerprint(peerIdentity: PeerIdentity): PeerFingerprint?
-  suspend fun save(peerIdentity: PeerIdentity, identityKey: Ed25519Key): Boolean
+  suspend fun save(peerIdentity: PeerIdentity, identityKey: IdentityKey): Boolean
   suspend fun revoke(peerIdentity: PeerIdentity)
 }
 ```
@@ -176,7 +176,7 @@ data class RouteEntry(
   val nextHop: PeerIdentity?,      // null = destination unreachable
   val seqNo: SeqNo,           // Destination-sourced sequence number (wrapped for safe comparison)
   val metric: UInt,            // Link quality metric (RSSI+flags)
-  val identityKey: Ed25519Key?,   // Destination's identity key, learned via route updates
+  val identityKey: IdentityKey?,   // Destination's identity key, learned via route updates
   val expiresAt: Instant    // Route expiration
   // Note: isFeasible is computed dynamically via feasibilityCondition(routeTable)
   // per RFC 8966 §3.5.1, NOT stored as a field
@@ -528,7 +528,7 @@ Key rotation wire format.
  * Signed with OLD key; enforces seqno reset.
  */
 data class KeyRotationAnnouncement(
-  val identityKey: Ed25519Key,     // NEW identity key
+  val identityKey: IdentityKey,     // NEW identity key
   val seqNo: SeqNo,               // Always 1 (new identity)
   val signature: ByteArray,       // Ed25519 signature (64 bytes)
   val reason: KeyRotationReason = KeyRotationReason.PERIODIC
