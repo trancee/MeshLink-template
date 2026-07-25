@@ -234,8 +234,10 @@ Every PR MUST, before merge:
 - The shipped `:meshlink` artifact may depend on exactly one runtime
   dependency: `kotlinx-coroutines-core`. Other modules (app/host/proof/
   benchmark/docs) may add their own runtime deps as long as none leak into
-  the shipped `:meshlink` artifact. Adding another one there needs an
-  amendment.
+  the shipped `:meshlink` artifact. The config DSL uses `kotlinx-datetime`
+  for `Duration` types (§14.1) — this is the acknowledged second exception
+  documented in the config model DSL design.
+  Adding another one there needs an amendment.
 - Dokka (API documentation) and SKIE (Swift-friendly Kotlin/Native interop)
   apply to the shipped `:meshlink` artifact only. `meshlink-reference`,
   `meshlink-proof`, and `meshlink-benchmark` are internal/test-only modules

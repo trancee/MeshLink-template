@@ -22,29 +22,28 @@ enum class KeyRotationReason {
     SECURITY_EVENT,
 }
 
-/** Handshake pattern used for Noise link-layer and end-to-end sessions. */
+/** Noise handshake pattern used for link-layer and end-to-end sessions. */
 @Serializable
 enum class HandshakePattern {
+    XX,
+    IK,
     IX,
     NX,
 }
 
-/** SACK bitfield encoding mode for chunked transfers. */
+/** Scoreboard bitfield encoding strategy for selective acknowledgment. */
 @Serializable
-enum class SackEncoding {
+enum class ScoreboardEncoding {
     DYNAMIC,
     FIXED,
 }
 
-/** Transfer session state (public API). */
+/** Message priority that affects routing behavior and TTL. */
 @Serializable
-enum class TransferState {
-    IN_PROGRESS,
-    WAITING_FOR_ROUTE,
-    RETRYING,
-    COMPLETED,
-    FAILED,
-    TIMED_OUT,
+enum class MessagePriority {
+    HIGH,
+    NORMAL,
+    LOW,
 }
 
 // ---------------------------------------------------------------------------
@@ -105,8 +104,8 @@ enum class DataPlaneBearer {
 /** Which layer of the mesh a Noise session belongs to. */
 @Serializable
 enum class NoiseLayer {
-    PEER,
-    MESH,
+    HOP_BY_HOP,
+    END_TO_END,
 }
 
 /** Noise link-layer session states. */

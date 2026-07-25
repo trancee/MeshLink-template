@@ -101,7 +101,7 @@ Required fallback reasons:
 
 | Local offers PSM | Remote offers PSM | CoC attempt outcome | Data-plane bearer | Reason |
 |---|---|---|---|---|
-| yes | yes | succeeds | `l2cap_coc` | negotiated |
+| yes | yes | succeeds | `l2cap` | negotiated |
 | yes | no | not attempted | `gatt` | `fallback_no_psm_advertised` |
 | yes | yes | fails or times out | `gatt` | `fallback_coc_connect_failed` |
 | yes | yes | succeeds, then channel drops mid-transfer | `gatt` for the rest of that session | `fallback_coc_dropped_mid_transfer` |
@@ -118,7 +118,7 @@ regardless of CoC state.
 
 Per active link/transfer session, expose at minimum:
 
-- `transfer.data_plane_bearer` (`gatt` | `l2cap_coc`)
+- `transfer.data_plane_bearer` (`gatt` | `l2cap`)
 - `transfer.fallback_reason` (one of the reasons above, or absent when
   negotiated)
 

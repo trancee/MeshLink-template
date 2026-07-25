@@ -13,6 +13,7 @@ import ch.trancee.meshlink.model.PeerIdentity
 import ch.trancee.meshlink.model.PowerTier
 import ch.trancee.meshlink.model.RegulatoryRegion
 import ch.trancee.meshlink.model.SessionId
+import ch.trancee.meshlink.model.TransferFailureReason
 import ch.trancee.meshlink.model.TransferState
 import ch.trancee.meshlink.model.TransportFallbackReason
 import kotlinx.datetime.Clock
@@ -27,43 +28,34 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface DiagnosticEvent {
 
-    /**
-     * A routed frame failed to decrypt at the link layer. Indicates either corruption, replay
-     * attack, or key mismatch.
-     */
+    /** A routed frame failed to decrypt at the link layer. */
     @Serializable
-    data class RouteDecryptFailure(
+    data class RouteDecryptFailureEvent(
         val peerIdentity: PeerIdentity,
         val frameType: FrameType,
         val failureReason: DecryptFailureReason,
         val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
-    /** Data plane fell back from L2CAP CoC to GATT. Emitted once per peer when fallback occurs. */
+    /** Data plane fell back from L2CAP CoC to GATT. */
     @Serializable
-    data class TransportFallback(
+    data class TransportFallbackEvent(
         val peerIdentity: PeerIdentity,
         val reason: TransportFallbackReason,
         val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
-    /**
-     * Data plane bearer selected for a transfer session. Emitted at session start and on any
-     * migration.
-     */
+    /** Data plane bearer selected for a transfer session. */
     @Serializable
-    data class TransferDataPlaneBearer(
+    data class TransferDataPlaneBearerEvent(
         val sessionId: SessionId,
         val bearer: DataPlaneBearer,
         val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
-    /**
-     * Effective power tier parameters after regulatory clamping. Emitted on tier change and at
-     * startup.
-     */
+    /** Effective power tier parameters after regulatory clamping. */
     @Serializable
-    data class PowerTierEffective(
+    data class PowerTierEffectiveEvent(
         val requestedTier: PowerTier,
         val effectiveTier: PowerTier,
         val regulatoryRegion: RegulatoryRegion,
@@ -73,12 +65,9 @@ sealed interface DiagnosticEvent {
         val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
-    /**
-     * End-to-end handshake completed or failed. Emitted for both IX (key known) and NX (fallback)
-     * patterns.
-     */
+    /** End-to-end or link-layer handshake completed or failed. */
     @Serializable
-    data class E2EHandshake(
+    data class HandshakeEvent(
         val sessionId: SessionId,
         val pattern: HandshakePattern,
         val fallbackUsed: Boolean,
@@ -88,12 +77,9 @@ sealed interface DiagnosticEvent {
         val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
-    /**
-     * Key rotation announcement processed. Emitted by both initiator (sent) and receiver
-     * (verified).
-     */
+    /** Key rotation announcement processed by a peer. */
     @Serializable
-    data class KeyRotation(
+    data class KeyRotationEvent(
         val peerIdentity: PeerIdentity,
         val oldKeyVerified: Boolean,
         val sequenceNumberReset: Boolean,
@@ -102,9 +88,9 @@ sealed interface DiagnosticEvent {
         val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
-    /** Noise session state transition. Emitted for every state change in [NoiseSessionState]. */
+    /** Noise session state transition. */
     @Serializable
-    data class NoiseSessionTransition(
+    data class NoiseSessionTransitionEvent(
         val peerIdentity: PeerIdentity,
         val layer: NoiseLayer,
         val fromState: NoiseSessionState,
@@ -115,27 +101,33 @@ sealed interface DiagnosticEvent {
         val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
-    /**
-     * Route table digest mismatch triggered a full resync. Emitted when receiving a peer's
-     * advertisement with different digest.
-     */
+    /** Route table digest mismatch triggered a full resync. */
     @Serializable
-    data class RouteDigestMismatch(
+    data class RouteDigestMismatchEvent(
         val peerIdentity: PeerIdentity,
         val localDigest: UInt,
         val remoteDigest: UInt,
         val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
-    /** Transfer session state transition. Emitted for every state change in [TransferState]. */
+    /** Transfer session state transition. */
     @Serializable
-    data class TransferSessionTransition(
+    data class TransferSessionTransitionEvent(
         val sessionId: SessionId,
         val peerIdentity: PeerIdentity,
         val fromState: TransferState,
         val toState: TransferState,
         val bytesTransferred: Long,
         val totalBytes: Long,
+        val timestamp: Instant = Clock.System.now(),
+    ) : DiagnosticEvent
+
+    /** Transfer session reached a terminal failure state. */
+    @Serializable
+    data class TransferFailureEvent(
+        val sessionId: SessionId,
+        val peerIdentity: PeerIdentity,
+        val reason: TransferFailureReason,
         val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 }

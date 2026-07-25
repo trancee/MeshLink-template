@@ -143,6 +143,11 @@ enum class PowerTier { HIGH, MEDIUM, LOW }
 
 [Decision: docs/decisions/power/power-tier-behavior.md]
 
+```text
+enum class Priority { HIGH, NORMAL, LOW }
+
+```
+
 ### RegulatoryRegion Enum
 
 ```text
@@ -216,16 +221,16 @@ layer, not by the application, so it is not a field of `RoutingMessage`.
 RoutingMessage {
   version: U8
   messageId: 64-bit random
-  priority: enum { HIGH, NORMAL, LOW }
+  priority: Priority
   destination: PeerIdentity
-  // ttl is derived from priority by the routing layer (see §8.5), not set by the application
-}
+  // ttl is derived from priority by the routing layer (see §8.5) and applied to the TTL field in RoutingFrame (see §3.5)
 
 TransferSession {
   sessionId: SessionId    // 64-bit random token; identifies a transfer session uniquely
   destination: PeerIdentity
+  priority: Priority  // Transfer priority for QoS-like behavior
   state: TransferState (IN_PROGRESS, WAITING_FOR_ROUTE, RETRYING, COMPLETED, FAILED, TIMED_OUT)
-  chunkSize: Int (selected by local power tier, bounded by peer MTU)
+  chunkSize: Int (selected by local power tier, bounded by peer MTU; see §10.4 for power-tier-based values)
   totalChunks: UInt (ceil(totalBytes / chunkSize))
   scoreboard: Scoreboard (dynamic bitfield; bit N = 1 if chunk N received; see §3.4)
   totalBytes: Long
@@ -237,6 +242,8 @@ TransferSession {
 ```
 
 **Scoreboard:** Dynamic bitfield encoding — bitfield length = `ceil(totalChunks / 8)` bytes, derived from `totalChunks` known via TransferSession. Bit N = 1 means chunk N is received (standard SACK convention). Backed by the `Scoreboard` helper class which provides type-safe `markReceived`, `markMissing`, `isReceived`, `missingChunks` methods. [Decision: docs/decisions/model/core-types.md]
+
+**Transfer Priority:** Transfers inherit priority from the RoutingMessage that created them (see §3.4), enabling QoS-like behavior where higher priority transfers can preempt lower priority ones when resources are constrained.
 
 **TransferState to Delivery Outcome mapping:**
 
@@ -350,11 +357,11 @@ When destination's public key is unknown, `Noise_NX_25519_ChaChaPoly_SHA256` pro
 
 - Rate limiting: max 3 NX attempts/minute per destination (prevents DoS)
 - Timeout: 10s vs 30s for IX (limits resource window)
-- PeerFingerprint verification in payload (validates identity claim)
+- Full public key verification in payload (validates identity claim)
 - 32-bit nonce in payload (replay protection)
 - Diagnostic flag: `e2e_handshake.fallback_used = true` (observability)
 
-**Protocol:** NX_Msg1 includes PeerFingerprint + nonce. Destination verifies: `Hash(received_static) == PeerFingerprint`. Mismatch or replay = reject.
+**Protocol:** NX_Msg1 includes the full 64-byte concatenated public key (Ed25519 || X25519) + nonce. Destination verifies: `received_ed25519 == expected_ed25519 AND received_x25519 == expected_x25519`. Mismatch or replay = reject.
 
 [Decision: docs/decisions/crypto/nx-fallback-mitigation.md]
 
@@ -479,7 +486,7 @@ All validated against Wycheproof test vectors:
 - **Link layer (first contact):** `Noise_XX_25519_ChaChaPoly_SHA256` - mutual authentication for initial TOFU
 - **Link layer (post-TOFU reconnect):** `Noise_IK_25519_ChaChaPoly_SHA256` - proactive mutual auth + 0-RTT when both peers hold pinned keys (1 round trip vs XX's 1.5)
 - **E2E layer:** `Noise_IX_25519_ChaChaPoly_SHA256` - origin knows destination key
-- **E2E fallback:** `Noise_NX_25519_ChaChaPoly_SHA256` with PeerFingerprint verification when destination key unknown
+- **E2E fallback:** `Noise_NX_25519_ChaChaPoly_SHA256` with full public key verification when destination key unknown
 
 ### 7.3 Fail-Closed Rules
 
@@ -487,6 +494,7 @@ All validated against Wycheproof test vectors:
 - Invalid X25519 public keys fail before HKDF derivation
 - Decrypt/sign/verify failures stop operation immediately
 - No fallback to plaintext or cached secrets
+- All cryptographic field operations and comparisons MUST implement constant-time algorithms to prevent timing side-channel attacks
 
 ### 7.4 Android Crypto Constraints
 
@@ -650,6 +658,17 @@ After the grace period expires without reconnection, the peer transitions to GON
 | MEDIUM | 10% | 500ms | 15-30ms | 4 | 256B | 5 | 30s |
 | LOW | 5% | 1000ms | 30-60ms | 2 | 128B | 3 | 15s |
 
+*Parameter rationale:*
+
+- **Scan duty cycle**: Based on BLE power consumption studies showing linear relationship with current draw
+- **Advertisement interval**: Shorter intervals improve discovery latency but increase power consumption
+- **Connection interval**: 7.5ms is Android minimum; 15ms represents iOS sweet spot for throughput/power balance
+- **Concurrent connections**: Limited by controller resources and connection management overhead
+- **Chunk sizes**: Sized to fit within BLE MTU (23-251 bytes) after accounting for L2CAP/GATT headers (4 bytes), security overhead (nonce+tag=16 bytes for ChaCha20-Poly1305), and protocol framing, while minimizing packetization overhead
+- **Max retries & retry budget**: Tuned to balance reliability against resource exhaustion and battery drain
+
+*Note: Connection intervals are shown as min-max ranges supported by the controller stack.*
+
 ---
 
 ## 11. Diagnostics & Events
@@ -704,10 +723,14 @@ All diagnostic events are defined in `meshlink/src/commonMain/kotlin/ch/trancee/
 |----------------|--------|-----------|
 | `route.*` | `route.decrypt_failure_count`, `route.frame_type` | `RouteDecryptFailure` |
 | `transport.*` | `transport.fallback_no_psm_advertised`, `transport.fallback_coc_connect_failed`, `transport.fallback_coc_dropped_mid_transfer`, `transport.fallback_local_policy` | `TransportFallback` |
-| `transfer.*` | `transfer.data_plane_bearer`, `transfer.fallback_reason` | `TransferSessionTransition`, `TransferDataPlaneBearer` |
+| `transfer.*` | `transfer.data_plane_bearer`, `transfer.fallback_reason`, `transfer.priority` | `TransferSessionTransition`, `TransferDataPlaneBearer` |
 | `power.*` | `power.tier`, `power.regulatory_region`, `power.scan_duty_cycle_observed`, `power.advertisement_interval_ms`, `power.connection_interval_ms`, `power.grace_period_seconds` | `PowerTierEffective` |
 | `e2e_handshake.*` | `e2e_handshake.protocol`, `e2e_handshake.fallback_used`, `e2e_handshake.peer_key_verified`, `e2e_handshake.rate_limit_attempts`, `e2e_handshake.nonce_replay_detected` | `E2EHandshake` |
 | `key_rotation.*` | `key_rotation.old_key_verified`, `key_rotation.seqno_reset`, `key_rotation.propagation_deadline_met` | `KeyRotation` |
+
+**Diagnostic Field Descriptions:**
+
+- `transfer.priority`: Reflects the Priority (HIGH/NORMAL/LOW) of the transfer, inherited from the originating RoutingMessage. Enables QoS monitoring and resource allocation decisions.
 
 ### 11.4 Error Model
 
@@ -726,15 +749,15 @@ Errors use a sealed `MeshLinkException` hierarchy in `commonMain`, with platform
 
 ### 12.1 Performance Budgets (CI-Enforced)
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| Throughput (1-hop L2CAP) | ≥80 KB/s Android, ≥60 KB/s iOS | Benchmark |
-| Latency (1-hop, 256B, p95) | <50 ms | Benchmark |
-| Memory (steady state, 8 peers) | ≤8 MB heap | Benchmark |
-| Battery scan duty cycle | ≤5% | Instrumentation |
-| Cold start | <500 ms to first advertisement | Benchmark |
-| Routing convergence (10 nodes) | ≤3 s | Virtual harness |
-| Wire codec op | <1 μs/message | JMH |
+| Metric | Target | Measurement | Rationale |
+|--------|--------|-------------|-----------|
+| Throughput (1-hop L2CAP) | ≥80 KB/s Android, ≥60 KB/s iOS | Benchmark | Matches practical file transfer requirements while respecting BLE limitations |
+| Latency (1-hop, 256B, p95) | <50 ms | Benchmark | Ensures responsive interactive applications (messaging, gaming) |
+| Memory (steady state, 8 peers) | ≤8 MB heap | Benchmark | Targets <0.5% of typical 2GB RAM device, minimizing impact on host apps |
+| Battery scan duty cycle | ≤5% | Instrumentation | Targets <5% additional drain beyond baseline for all-day operation |
+| Cold start | <500 ms to first advertisement | Benchmark | Ensures responsive user experience when enabling mesh |
+| Routing convergence (10 nodes) | ≤3 s | Virtual harness | Balances rapid topology adaptation with control plane overhead |
+| Wire codec op | <1 μs/message | JMH | Ensures minimal CPU impact for high-throughput scenarios |
 
 ### 12.2 Code Quality Rules
 
@@ -929,7 +952,13 @@ data class RoutingSettings(
    * Should always be true in production; false only for testing.
    * Default: true.
    */
-  val feasibilityConditionEnabled: Boolean = true
+  val feasibilityConditionEnabled: Boolean = true,
+  /**
+   * Maximum number of route entries to maintain in the routing table.
+   * When exceeded, least-recently-updated entries are evicted.
+   * Default: 256 (suitable for typical personal mesh networks of 10-20 peers).
+   */
+  val maxRouteEntries: Int = 256
 )
 
 data class SecuritySettings(
