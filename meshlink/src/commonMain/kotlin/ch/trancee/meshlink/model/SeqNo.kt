@@ -1,5 +1,7 @@
 package ch.trancee.meshlink.model
 
+import kotlin.jvm.JvmInline
+
 /**
  * Sequence number for route versioning. Wrapped for safe comparison to handle wrap-around. Values
  * are 32-bit unsigned to match Babel protocol semantics.

@@ -1,5 +1,7 @@
 package ch.trancee.meshlink.model
 
+import kotlin.jvm.JvmInline
+
 /**
  * Ed25519 public key for mesh identity verification. Stored as a 32-byte array, serialized as hex
  * string.

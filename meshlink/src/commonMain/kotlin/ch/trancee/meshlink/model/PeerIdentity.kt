@@ -1,5 +1,6 @@
 package ch.trancee.meshlink.model
 
+import kotlin.jvm.JvmInline
 import kotlin.random.Random
 import kotlin.text.HexFormat
 
