@@ -191,7 +191,6 @@ fun SeqNo.isNewerThan(current: UInt): Boolean {
 }
 
 /** Companion for creating sequence numbers. */
-@Serializable
 inline class SeqNo(private val value: UInt) {
     companion object {
         val ZERO: SeqNo = SeqNo(0u)

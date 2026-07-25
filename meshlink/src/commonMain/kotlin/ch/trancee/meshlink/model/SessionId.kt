@@ -1,6 +1,6 @@
 package ch.trancee.meshlink.model
 
-import kotlinx.serialization.Serializable
+import kotlin.random.Random
 
 /**
  * A random 64-bit token used to correlate chunks within a transfer session.
@@ -9,18 +9,17 @@ import kotlinx.serialization.Serializable
  * destination. It is generated at session creation and persists for the lifetime of that transfer.
  */
 @JvmInline
-@Serializable
-value class SessionId(private val value: ULong) {
+public value class SessionId(private val value: ULong) {
     /** Raw 64-bit value of this session ID. */
-    val raw: ULong
+    public val raw: ULong
         get() = value
 
-    companion object {
+    public companion object {
         /** A zero session ID (placeholder, not for real sessions). */
-        val ZERO: SessionId = SessionId(0UL)
+        public val ZERO: SessionId = SessionId(0UL)
 
         /** Generates a random 64-bit session token. */
-        fun generate(): SessionId =
-            SessionId(((kotlin.random.Random.Default.nextULong()) shl 1) or 1UL)
+        public fun generate(): SessionId =
+            SessionId(((Random.Default.nextLong().toULong()) shl 1) or 1UL)
     }
 }

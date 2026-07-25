@@ -112,7 +112,6 @@ PeerFingerprint: 12-byte SHA-256(Ed25519Pub || X25519Pub) truncated, used in dis
  * RFC 8966 §3.7 requires signed interpretation for seqno comparison.
  */
 @JvmInline
-@Serializable
 value class SeqNo(private val value: UInt) {
   companion object {
     val ZERO: SeqNo = SeqNo(0u)

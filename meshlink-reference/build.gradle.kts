@@ -36,12 +36,17 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":meshlink"))
             implementation(libs.compose.runtime)
-            implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
         }
+        // Declare commonTest explicitly to silence the KMP warning about
+        // an auto-created source set that is not added to any compilation.
+        // No test sources exist in this reference consumer module.
+        commonTest {}
     }
 }
 
 detekt { buildUponDefaultConfig = true }
 
 ktfmt { kotlinLangStyle() }
+
+tasks.register("localCheck") { dependsOn(tasks.named("check")) }

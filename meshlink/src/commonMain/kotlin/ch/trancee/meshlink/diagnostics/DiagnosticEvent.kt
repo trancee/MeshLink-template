@@ -16,118 +16,106 @@ import ch.trancee.meshlink.model.SessionId
 import ch.trancee.meshlink.model.TransferFailureReason
 import ch.trancee.meshlink.model.TransferState
 import ch.trancee.meshlink.model.TransportFallbackReason
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-import kotlinx.serialization.Serializable
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * Unified diagnostic event schema for MeshLink. All layers (routing, transport, transfer, power,
  * crypto) emit these events. Consumed by [DiagnosticsConfig.eventCallback] and logged when
  * [DiagnosticsConfig.emitToLog] is true.
  */
-@Serializable
-sealed interface DiagnosticEvent {
+public sealed interface DiagnosticEvent {
 
     /** A routed frame failed to decrypt at the link layer. */
-    @Serializable
-    data class RouteDecryptFailureEvent(
-        val peerIdentity: PeerIdentity,
-        val frameType: FrameType,
-        val failureReason: DecryptFailureReason,
-        val timestamp: Instant = Clock.System.now(),
+    public data class RouteDecryptFailureEvent(
+        public val peerIdentity: PeerIdentity,
+        public val frameType: FrameType,
+        public val failureReason: DecryptFailureReason,
+        public val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
     /** Data plane fell back from L2CAP CoC to GATT. */
-    @Serializable
-    data class TransportFallbackEvent(
-        val peerIdentity: PeerIdentity,
-        val reason: TransportFallbackReason,
-        val timestamp: Instant = Clock.System.now(),
+    public data class TransportFallbackEvent(
+        public val peerIdentity: PeerIdentity,
+        public val reason: TransportFallbackReason,
+        public val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
     /** Data plane bearer selected for a transfer session. */
-    @Serializable
-    data class TransferDataPlaneBearerEvent(
-        val sessionId: SessionId,
-        val bearer: DataPlaneBearer,
-        val timestamp: Instant = Clock.System.now(),
+    public data class TransferDataPlaneBearerEvent(
+        public val sessionId: SessionId,
+        public val bearer: DataPlaneBearer,
+        public val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
     /** Effective power tier parameters after regulatory clamping. */
-    @Serializable
-    data class PowerTierEffectiveEvent(
-        val requestedTier: PowerTier,
-        val effectiveTier: PowerTier,
-        val regulatoryRegion: RegulatoryRegion,
-        val scanDutyCyclePercent: Int,
-        val advertisementIntervalMs: Int,
-        val connectionIntervalMs: Double,
-        val timestamp: Instant = Clock.System.now(),
+    public data class PowerTierEffectiveEvent(
+        public val requestedTier: PowerTier,
+        public val effectiveTier: PowerTier,
+        public val regulatoryRegion: RegulatoryRegion,
+        public val scanDutyCyclePercent: Int,
+        public val advertisementIntervalMs: Int,
+        public val connectionIntervalMs: Double,
+        public val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
     /** End-to-end or link-layer handshake completed or failed. */
-    @Serializable
-    data class HandshakeEvent(
-        val sessionId: SessionId,
-        val pattern: HandshakePattern,
-        val fallbackUsed: Boolean,
-        val fullPublicKeyVerified: Boolean,
-        val rateLimitAttempts: Int,
-        val nonceReplayDetected: Boolean,
-        val timestamp: Instant = Clock.System.now(),
+    public data class HandshakeEvent(
+        public val sessionId: SessionId,
+        public val pattern: HandshakePattern,
+        public val fallbackUsed: Boolean,
+        public val fullPublicKeyVerified: Boolean,
+        public val rateLimitAttempts: Int,
+        public val nonceReplayDetected: Boolean,
+        public val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
     /** Key rotation announcement processed by a peer. */
-    @Serializable
-    data class KeyRotationEvent(
-        val peerIdentity: PeerIdentity,
-        val oldKeyVerified: Boolean,
-        val sequenceNumberReset: Boolean,
-        val propagationDeadlineMet: Boolean,
-        val reason: KeyRotationReason,
-        val timestamp: Instant = Clock.System.now(),
+    public data class KeyRotationEvent(
+        public val peerIdentity: PeerIdentity,
+        public val oldKeyVerified: Boolean,
+        public val sequenceNumberReset: Boolean,
+        public val propagationDeadlineMet: Boolean,
+        public val reason: KeyRotationReason,
+        public val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
     /** Noise session state transition. */
-    @Serializable
-    data class NoiseSessionTransitionEvent(
-        val peerIdentity: PeerIdentity,
-        val layer: NoiseLayer,
-        val fromState: NoiseSessionState,
-        val toState: NoiseSessionState,
-        val role: NoiseRole,
-        val handshakePattern: HandshakePattern,
-        val failureReason: NoiseFailureReason?,
-        val timestamp: Instant = Clock.System.now(),
+    public data class NoiseSessionTransitionEvent(
+        public val peerIdentity: PeerIdentity,
+        public val layer: NoiseLayer,
+        public val fromState: NoiseSessionState,
+        public val toState: NoiseSessionState,
+        public val role: NoiseRole,
+        public val handshakePattern: HandshakePattern,
+        public val failureReason: NoiseFailureReason?,
+        public val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
     /** Route table digest mismatch triggered a full resync. */
-    @Serializable
-    data class RouteDigestMismatchEvent(
-        val peerIdentity: PeerIdentity,
-        val localDigest: UInt,
-        val remoteDigest: UInt,
-        val timestamp: Instant = Clock.System.now(),
+    public data class RouteDigestMismatchEvent(
+        public val peerIdentity: PeerIdentity,
+        public val localDigest: UInt,
+        public val remoteDigest: UInt,
+        public val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
     /** Transfer session state transition. */
-    @Serializable
-    data class TransferSessionTransitionEvent(
-        val sessionId: SessionId,
-        val peerIdentity: PeerIdentity,
-        val fromState: TransferState,
-        val toState: TransferState,
-        val bytesTransferred: Long,
-        val totalBytes: Long,
-        val timestamp: Instant = Clock.System.now(),
+    public data class TransferSessionTransitionEvent(
+        public val sessionId: SessionId,
+        public val peerIdentity: PeerIdentity,
+        public val fromState: TransferState,
+        public val toState: TransferState,
+        public val bytesTransferred: Long,
+        public val totalBytes: Long,
+        public val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
     /** Transfer session reached a terminal failure state. */
-    @Serializable
-    data class TransferFailureEvent(
-        val sessionId: SessionId,
-        val peerIdentity: PeerIdentity,
-        val reason: TransferFailureReason,
-        val timestamp: Instant = Clock.System.now(),
+    public data class TransferFailureEvent(
+        public val sessionId: SessionId,
+        public val peerIdentity: PeerIdentity,
+        public val reason: TransferFailureReason,
+        public val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 }

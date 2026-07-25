@@ -1,11 +1,9 @@
 package ch.trancee.meshlink.model
 
-import kotlinx.datetime.Instant
-import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 
 /** State that a transfer session can be in. */
-@Serializable
-enum class TransferState {
+public enum class TransferState {
     /** Transfer is actively in progress. */
     IN_PROGRESS,
     /** Route was lost; waiting for route recovery before resuming. */
@@ -29,32 +27,31 @@ enum class TransferState {
  * The [scoreboard] uses a dynamic bitfield whose length is derived from [totalChunks] — bit N = 1
  * means chunk N is received (standard SACK).
  */
-@Serializable
-data class TransferSession(
+public data class TransferSession(
     /** Unique 64-bit token identifying this transfer session. */
-    val sessionId: SessionId,
+    public val sessionId: SessionId,
     /** Final destination peer for this transfer. */
-    val destination: PeerIdentity,
+    public val destination: PeerIdentity,
     /** QoS priority inherited from the originating RoutingMessage. */
-    val priority: Priority,
+    public val priority: Priority,
     /** Current lifecycle state of this transfer. */
-    val state: TransferState,
+    public val state: TransferState,
     /** Selected chunk size in bytes (bounded by peer MTU). */
-    val chunkSize: Int,
+    public val chunkSize: Int,
     /** Total number of chunks in this transfer. */
-    val totalChunks: UInt,
+    public val totalChunks: UInt,
     /** Tracks which chunks have been received via SACK bitfield. */
-    val scoreboard: Scoreboard,
+    public val scoreboard: Scoreboard,
     /** Total payload size in bytes. */
-    val totalBytes: Long,
+    public val totalBytes: Long,
     /** Bytes received so far. */
-    val bytesReceived: Long,
+    public val bytesReceived: Long,
     /** When this transfer session was started. */
-    val startedAt: Instant,
+    public val startedAt: Instant,
     /** Deadline for WAITING_FOR_ROUTE state; null when in-progress or retrying. */
-    val expiresAt: Instant?,
+    public val expiresAt: Instant?,
     /** Number of retransmit attempts made so far. */
-    val retryCount: Int,
+    public val retryCount: Int,
     /** Why this session reached a terminal failure state. */
-    val failureReason: TransferFailureReason?,
+    public val failureReason: TransferFailureReason?,
 )

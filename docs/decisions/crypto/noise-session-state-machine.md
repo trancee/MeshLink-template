@@ -58,7 +58,6 @@ enum class NoiseRole {
 ### Session Data Model
 
 ```kotlin
-@Serializable
 data class NoiseSession(
     val sessionId: SessionId,                    // 64-bit random, unique per session
     val peerId: PeerIdentity,                          // Remote peer's stable identifier

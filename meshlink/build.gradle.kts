@@ -1,8 +1,7 @@
 import org.jetbrains.kotlin.konan.target.HostManager
 
 // :meshlink is the single artifact this repository ships. Per
-// CONSTITUTION.md's Technical Constraints, only this module: carries the
-// single kotlinx-coroutines-core runtime dependency, is validated for 100%
+// CONSTITUTION.md's Technical Constraints, only this module: is validated for 100%
 // coverage (Kover), has its public API frozen (Binary Compatibility
 // Validator), and is documented/exported via Dokka and SKIE. None of that
 // applies to meshlink-reference/meshlink-proof/meshlink-benchmark.
@@ -17,6 +16,7 @@ plugins {
 }
 
 kotlin {
+    explicitApi()
     jvmToolchain(21)
 
     android {
@@ -43,13 +43,7 @@ kotlin {
         }
     }
 
-    sourceSets {
-        commonMain.dependencies {
-            // The only runtime dependency the shipped artifact may carry.
-            implementation(libs.kotlinx.coroutines.core)
-        }
-        commonTest.dependencies { implementation(kotlin("test")) }
-    }
+    sourceSets { commonTest.dependencies { implementation(kotlin("test")) } }
 }
 
 detekt { buildUponDefaultConfig = true }
