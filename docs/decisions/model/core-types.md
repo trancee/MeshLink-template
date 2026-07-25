@@ -27,7 +27,7 @@ A unique identifier for a peer in the mesh.
 value class PeerIdentity(private val bytes: ByteArray) {
   init { require(bytes.size == 16) }
   
-  val hex: String get() = bytes.joinToString("") { "%02x".format(it) }
+  val hex: String get() = bytes.toHexString()
   
   companion object {
     fun generate(): PeerIdentity {

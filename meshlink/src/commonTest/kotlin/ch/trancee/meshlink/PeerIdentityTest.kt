@@ -30,7 +30,7 @@ class PeerIdentityTest {
         val bytes = ByteArray(16) { i -> i.toByte() }
         val id = PeerIdentity.fromBytes(bytes)
         assertEquals(bytes.toList(), id.toByteArray().toList())
-        assertEquals(bytes.joinToString("") { "%02x".format(it) }, id.hex)
+        assertEquals(bytes.toHexString(), id.hex)
     }
 
     @Test
