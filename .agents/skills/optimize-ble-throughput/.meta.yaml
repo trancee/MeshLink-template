@@ -1,0 +1,17 @@
+# Optimize BLE Throughput Metadata
+
+model: gpt-5
+version: 1.1.2
+
+changelog:
+- 1.1.2 — Rewrote description, sharpened around throughput analysis
+- 1.1.1 — Added trigger evals, chunk sizing, peripheral latency
+- 1.1.0 — Added practical ranges, 244/495-byte guidance, 15 ms interval advice
+- Initial — Core throughput analysis framework
+
+links:
+- https://interrupt.memfault.com/blog/ble-throughput-primer
+- https://novelbits.io/bluetooth-5-speed-maximum-throughput/
+- https://punchthrough.com/maximizing-ble-throughput-on-ios-and-android/
+- https://punchthrough.com/ble-throughput-optimization-faq/
+- https://argenox.com/blog/bluetooth-le-throughput-max-performance

@@ -1,22 +1,20 @@
 ---
 name: diataxis
-description: Write, audit, and restructure documentation using the Diataxis framework. Classifies content into four types — tutorials, how-to guides, reference, explanation — and provides writing guidance for each. Use when creating docs, reviewing docs, restructuring a docs site, writing READMEs, or when asked about documentation strategy, information architecture, or "what kind of doc should this be?"
+description: "Write, audit, and restructure documentation using the Diataxis framework. Classifies content into four types (tutorials, how-to guides, reference, explanation) and provides writing guidance for each. Use when creating docs, reviewing docs, structuring docs, or deciding what kind of doc should this be."
 ---
 
 # Diataxis — Systematic Documentation Authoring
 
-Diataxis is a systematic approach to technical documentation. It identifies four distinct documentation types that serve four different user needs, and prescribes how to write each one correctly.
-
-Source: [diataxis.fr](https://diataxis.fr) by Daniele Procida.
+Diataxis identifies four documentation types serving four different user needs. Source: [diataxis.fr](https://diataxis.fr).
 
 ## The Four Types
 
-| Type | Orientation | Serves | User is... | Analogy |
-|------|-------------|--------|------------|---------|
-| **Tutorial** | Learning | Acquisition of skill | Studying | A cooking lesson |
-| **How-to guide** | Goals/Tasks | Application of skill | Working | A recipe |
-| **Reference** | Information | Application of skill | Working | A nutrition label |
-| **Explanation** | Understanding | Acquisition of skill | Studying | A food history book |
+| Type | Orientation | Serves | User is... |
+|------|-------------|--------|------------|
+| **Tutorial** | Learning | Acquisition of skill | Studying |
+| **How-to guide** | Goals/Tasks | Application of skill | Working |
+| **Reference** | Information | Information lookup | Looking up |
+| **Explanation** | Understanding | Deeper understanding | Studying |
 
 ## The Compass (Decision Tree)
 
