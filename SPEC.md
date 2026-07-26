@@ -99,7 +99,7 @@ meshlink-benchmark/ # Performance benchmarking
 PeerIdentity: 16-byte stable/random identifier (generated once at install, survives key rotations)
 Ed25519PublicKey: 32-byte EdDSA signing key
 X25519PublicKey: 32-byte DH key for Noise handshakes
-PeerFingerprint: 12-byte SHA-256(Ed25519Pub || X25519Pub) truncated, used in discovery. Ed25519 first (identity anchor), X25519 second (DH key). Both keys required. **NOTE: 12 bytes (96 bits) provides birthday bound 2^48; collision probability negligible for any practical mesh size. This is a DISCOVERY HINT ONLY — never used for authentication.** [Decision: docs/decisions/model/core-types.md]
+PeerFingerprint: 12-byte SHA-256(Ed25519Pub || X25519Pub) truncated, used in discovery. Ed25519 first (identity anchor), X25519 second (DH key). Both keys required. **NOTE: 12 bytes (96 bits) provides birthday bound 2^48; collision probability negligible for any practical mesh size. This is a DISCOVERY HINT ONLY — never used for authentication.** [Decision: docs/decisions/model/core-types-adr.md]
 ```
 
 **Design Note:** PeerIdentity is stable/random, NOT derived from public key. This ensures identity persists across key rotations, enabling correct TrustStore lookups during key rotation announcements. [Decision: docs/decisions/model/core-types.md]
@@ -175,7 +175,57 @@ enum class RegulatoryRegion { DEFAULT, EU }
 
 [Decision: docs/decisions/regulatory-compliance.md]
 
-### 3.2 Trust Record Model
+### 3.6 Platform Enums (from Type.kt)
+
+All enums defined in `meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Type.kt`:
+
+```kotlin
+// Key type distinction for compile-time safety
+enum class KeyType { ED25519, X25519 }
+
+// Handshake patterns used in Noise protocol
+enum class HandshakePattern { XX, IK, IX, NX }
+
+// Scoreboard encoding strategy for selective acknowledgment
+enum class ScoreboardEncoding { DYNAMIC, FIXED }
+
+// Message priority affecting TTL and routing
+enum class Priority { HIGH, NORMAL, LOW }
+
+// Wire frame types
+enum class FrameType {
+    MESH_ENVELOPE, ROUTE_UPDATE, ROUTE_WITHDRAWAL, ROUTE_DIGEST,
+    TRANSFER_CHUNK, TRANSFER_ACK, TRANSFER_CANCEL, KEY_ROTATION_ANNOUNCEMENT
+}
+
+// Transport fallback reasons (machine observable)
+enum class TransportFallbackReason {
+    NO_PSM_ADVERTISED, L2CAP_CONNECT_FAILED, L2CAP_DROPPED_MID_TRANSFER, LOCAL_POLICY
+}
+
+// Data plane bearer in use
+enum class DataPlaneBearer { GATT, L2CAP }
+
+// Noise session layer distinction
+enum class NoiseLayer { HOP_BY_HOP, END_TO_END }
+
+// Noise session states for state machine
+enum class NoiseSessionState {
+    DISCONNECTED, HANDSHAKING_XX, HANDSHAKING_IK, ESTABLISHED, REKEYING, FAILED
+}
+
+// Role in Noise handshake
+enum class NoiseRole { INITIATOR, RESPONDER }
+
+// Reason for Noise handshake failure
+enum class NoiseFailureReason {
+    HANDSHAKE_TIMEOUT, HANDSHAKE_MESSAGE_MALFORMED, HANDSHAKE_MESSAGE_OUT_OF_ORDER,
+    REMOTE_STATIC_KEY_MISMATCH, REMOTE_STATIC_KEY_UNKNOWN, REKEY_REJECTED,
+    TRANSPORT_CLOSED, MAX_RETRIES_EXCEEDED, INTERNAL_ERROR
+}
+```
+
+### 3.7 Trust Record Model
 
 ```text
 TrustRecord {

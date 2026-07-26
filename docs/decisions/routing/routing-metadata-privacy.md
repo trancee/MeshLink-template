@@ -161,4 +161,4 @@ before processing.
 - [Link quality metric](link-quality-metric.md)
 - [GATT as the always-available control plane, L2CAP CoC as the preferred data plane](../transport/gatt-l2cap-transport-selection.md)
 - [Wire Format Specification](../wire/wire-format-spec.md)
-- [Core Types](../model/core-types.md)
+- [Core Types](../model/core-types-adr.md)
