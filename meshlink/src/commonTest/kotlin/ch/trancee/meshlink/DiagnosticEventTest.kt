@@ -17,6 +17,7 @@ import ch.trancee.meshlink.model.SessionId
 import ch.trancee.meshlink.model.TransferFailureReason
 import ch.trancee.meshlink.model.TransferState
 import ch.trancee.meshlink.model.TransportFallbackReason
+import ch.trancee.meshlink.model.VerificationLevel
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -84,13 +85,13 @@ class DiagnosticEventTest {
                 sessionId = SessionId.ZERO,
                 pattern = HandshakePattern.XX,
                 fallbackUsed = true,
-                fullPublicKeyVerified = true,
+                verificationLevel = VerificationLevel.FULL,
                 rateLimitAttempts = 3,
                 nonceReplayDetected = false,
             )
         assertEquals(HandshakePattern.XX, event.pattern)
         assertTrue(event.fallbackUsed)
-        assertTrue(event.fullPublicKeyVerified)
+        assertEquals(VerificationLevel.FULL, event.verificationLevel)
         assertEquals(3, event.rateLimitAttempts)
         assertFalse(event.nonceReplayDetected)
         assertNotNull(event.timestamp)

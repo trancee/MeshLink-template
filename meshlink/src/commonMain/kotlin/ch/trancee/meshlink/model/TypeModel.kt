@@ -4,6 +4,19 @@ package ch.trancee.meshlink.model
 // Common enums shared across layers.  These live in model/ so they are not
 // co-located with the diagnostic event hierarchy.
 // ---------------------------------------------------------------------------
+// SPEC-ANCHOR: type-model
+
+/** Verification level achieved during handshake. */
+public enum class VerificationLevel {
+    /** Full 64-byte public key verified against routing table. */
+    FULL,
+    /** TOFU-first-contact: key pinned on first successful handshake. */
+    TOFU_PIN,
+    /** NX fallback: key verified via payload but not pre-known. */
+    NX_VERIFIED,
+    /** No verification — handshake failed or was rejected. */
+    NONE,
+}
 
 /** Distinguishes Ed25519 (identity/signing) keys from X25519 (DH) keys. */
 public enum class KeyType {

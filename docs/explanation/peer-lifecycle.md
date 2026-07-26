@@ -37,7 +37,6 @@ stateDiagram-v2
 ### Connected
 
 - Active BLE link
-- Hello messages exchanged for neighbor discovery
 - Transfers may be in progress
 - Route entries remain live
 - The host app sees `PeerEvent.Found(..., CONNECTED)` or

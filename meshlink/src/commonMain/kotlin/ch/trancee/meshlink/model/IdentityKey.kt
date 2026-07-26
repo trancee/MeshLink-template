@@ -5,6 +5,8 @@ import kotlin.jvm.JvmInline
 /**
  * Ed25519 public key for mesh identity verification. Stored as a 32-byte array, serialized as hex
  * string.
+ *
+ * SPEC-ANCHOR: identity-key-model
  */
 @JvmInline
 public value class IdentityKey(private val bytes: ByteArray) {

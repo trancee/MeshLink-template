@@ -1,6 +1,6 @@
 # Wire Format Specification — Reference
 
-For the design decisions rationale, see [`wire-format-contract.md`](wire-format-contract.md).
+For the design decisions rationale, see [`routing-design.md`](../routing/routing-design.md).
 
 For complete type definitions, see [SPEC.md](../../../SPEC.md#3-core-data-models).
 
@@ -11,8 +11,8 @@ For complete type definitions, see [SPEC.md](../../../SPEC.md#3-core-data-models
 | Frame Type | Section | Purpose |
 |------------|---------|---------|
 | `RoutingFrame` | SPEC.md §3.5 | Wire-level routing container |
-| `RouteUpdate` | SPEC.md §3.5, [`routing-metadata-privacy.md`](../routing/routing-metadata-privacy.md) | Encrypted route announcement |
-| `RouteWithdrawal` | SPEC.md §3.5, [`routing-metadata-privacy.md`](../routing/routing-metadata-privacy.md) | Encrypted route retraction |
+| `RouteUpdate` | SPEC.md §3.5, [`routing-design.md`](../routing/routing-design.md) | Encrypted route announcement |
+| `RouteWithdrawal` | SPEC.md §3.5, [`routing-design.md`](../routing/routing-design.md) | Encrypted route retraction |
 | `RouteDigest` | SPEC.md §8.3 | Table hash for synchronization |
 | `TransferChunk` | SPEC.md §3.5 | Payload chunk |
 | `TransferAck` | SPEC.md §9.4 | Selective acknowledgment |

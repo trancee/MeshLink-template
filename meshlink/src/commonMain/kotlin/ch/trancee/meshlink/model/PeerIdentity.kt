@@ -1,7 +1,7 @@
 package ch.trancee.meshlink.model
 
+import ch.trancee.meshlink.util.*
 import kotlin.jvm.JvmInline
-import kotlin.random.Random
 import kotlin.text.HexFormat
 
 /**
@@ -9,6 +9,8 @@ import kotlin.text.HexFormat
  * derived from public key — remains stable across key rotations.
  *
  * Backed by two [ULong] fields to avoid [ByteArray] boxing overhead in value-class contexts.
+ *
+ * SPEC-ANCHOR: peer-identity-model
  */
 @JvmInline
 public value class PeerIdentity(private val parts: Pair<ULong, ULong>) {
@@ -31,46 +33,27 @@ public value class PeerIdentity(private val parts: Pair<ULong, ULong>) {
 
         /** Generates a cryptographically random 16-byte peer identity. */
         public fun generate(): PeerIdentity {
-            val lo = generateRandomULong()
-            val hi = generateRandomULong()
+            val lo = randomULong()
+            val hi = randomULong()
             return PeerIdentity(lo to hi)
         }
 
         /** Creates a [PeerIdentity] from a 16-byte [ByteArray]. */
         public fun fromBytes(bytes: ByteArray): PeerIdentity {
             require(bytes.size == 16) { "PeerIdentity must be exactly 16 bytes" }
-            val lo = bytesToULongBigEndian(bytes, 0)
-            val hi = bytesToULongBigEndian(bytes, 8)
+            val lo = bytes.toULongBE(0)
+            val hi = bytes.toULongBE(8)
             return PeerIdentity(lo to hi)
         }
     }
 
     /** Converts this identity to a 16-byte [ByteArray]. */
-    public fun toByteArray(): ByteArray =
-        buildList(16) {
-                addAll(lo.toBigEndianBytes())
-                addAll(hi.toBigEndianBytes())
-            }
-            .toByteArray()
-
-    private fun ULong.toBigEndianBytes(): List<Byte> =
-        (7 downTo 0).map { shift -> ((this shr (shift * 8)) and 0xFFu).toByte() }
-}
-
-private fun generateRandomULong(): ULong {
-    val bytes = ByteArray(8)
-    Random.Default.nextBytes(bytes)
-    var result: ULong = 0u
-    for (b in bytes) {
-        result = (result shl 8) or b.toULong()
+    public fun toByteArray(): ByteArray {
+        val result = ByteArray(16)
+        val loBytes = lo.toBytesBE()
+        val hiBytes = hi.toBytesBE()
+        loBytes.copyInto(result, 0, 0, 8)
+        hiBytes.copyInto(result, 8, 0, 8)
+        return result
     }
-    return result
-}
-
-private fun bytesToULongBigEndian(bytes: ByteArray, offset: Int): ULong {
-    var result: ULong = 0u
-    for (i in 0..7) {
-        result = (result shl 8) or bytes[offset + i].toULong()
-    }
-    return result
 }

@@ -1,0 +1,285 @@
+# MeshLink Enum Definitions
+# Machine-readable reference for all public enums in the codebase.
+# Source of truth: meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TypeModel.kt
+# SPEC-ANCHOR: type-model
+
+enums:
+  - name: KeyType
+    package: ch.trancee.meshlink.model
+    description: "Distinguishes Ed25519 (identity/signing) keys from X25519 (DH) keys."
+    values:
+      - name: ED25519
+        ordinal: 0
+      - name: X25519
+        ordinal: 1
+
+  - name: KeyRotationReason
+    package: ch.trancee.meshlink.model
+    description: "Reason a key rotation was triggered."
+    values:
+      - name: PERIODIC
+        ordinal: 0
+      - name: MANUAL
+        ordinal: 1
+      - name: SECURITY_EVENT
+        ordinal: 2
+
+  - name: HandshakePattern
+    package: ch.trancee.meshlink.model
+    description: "Noise handshake pattern used for link-layer and end-to-end sessions."
+    values:
+      - name: XX
+        ordinal: 0
+      - name: IK
+        ordinal: 1
+      - name: IX
+        ordinal: 2
+      - name: NX
+        ordinal: 3
+
+  - name: ScoreboardEncoding
+    package: ch.trancee.meshlink.model
+    description: "Scoreboard bitfield encoding strategy for selective acknowledgment."
+    values:
+      - name: DYNAMIC
+        ordinal: 0
+        description: "Dynamic bitfield size based on totalChunks - saves memory for small transfers"
+      - name: FIXED
+        ordinal: 1
+        description: "Fixed pre-allocated bitfield - predictable memory, requires maxChunksPerSession"
+
+  - name: Priority
+    package: ch.trancee.meshlink.model
+    description: "Message priority affecting routing behavior and TTL."
+    values:
+      - name: HIGH
+        ordinal: 0
+        ttl_minutes: 10
+      - name: NORMAL
+        ordinal: 1
+        ttl_minutes: 5
+      - name: LOW
+        ordinal: 2
+        ttl_minutes: 1
+
+  - name: FrameType
+    package: ch.trancee.meshlink.model
+    description: "Frame type that appears on the wire."
+    values:
+      - name: MESH_ENVELOPE
+        ordinal: 0
+        encryption: "Link-layer AEAD per hop"
+      - name: ROUTE_UPDATE
+        ordinal: 1
+        encryption: "Always AEAD-encrypted"
+      - name: ROUTE_WITHDRAWAL
+        ordinal: 2
+        encryption: "Always AEAD-encrypted"
+      - name: ROUTE_DIGEST
+        ordinal: 3
+        encryption: "Plaintext (digest only)"
+      - name: TRANSFER_CHUNK
+        ordinal: 4
+        encryption: "Link-layer AEAD per hop"
+      - name: TRANSFER_ACK
+        ordinal: 5
+        encryption: "Link-layer AEAD per hop"
+      - name: TRANSFER_CANCEL
+        ordinal: 6
+        encryption: "Link-layer AEAD per hop"
+      - name: KEY_ROTATION_ANNOUNCEMENT
+        ordinal: 7
+        encryption: "Plaintext (signature verifiable)"
+
+  - name: DecryptFailureReason
+    package: ch.trancee.meshlink.model
+    description: "Why a routed frame failed to decrypt at the link layer."
+    values:
+      - name: AUTHENTICATION_TAG_MISMATCH
+        ordinal: 0
+      - name: REPLAY_DETECTED
+        ordinal: 1
+      - name: SEQUENCE_NUMBER_MISMATCH
+        ordinal: 2
+      - name: KEY_UNAVAILABLE
+        ordinal: 3
+      - name: MALFORMED_FRAME
+        ordinal: 4
+
+  - name: TransportFallbackReason
+    package: ch.trancee.meshlink.model
+    description: "Why the data plane fell back from L2CAP CoC to GATT."
+    values:
+      - name: NO_PSM_ADVERTISED
+        ordinal: 0
+      - name: L2CAP_CONNECT_FAILED
+        ordinal: 1
+      - name: L2CAP_DROPPED_MID_TRANSFER
+        ordinal: 2
+      - name: LOCAL_POLICY
+        ordinal: 3
+
+  - name: DataPlaneBearer
+    package: ch.trancee.meshlink.model
+    description: "Data plane bearer in use for a transfer session."
+    values:
+      - name: GATT
+        ordinal: 0
+      - name: L2CAP
+        ordinal: 1
+
+  - name: RegulatoryRegion
+    package: ch.trancee.meshlink.model
+    description: "Regulatory region controlling BLE radio policy clamping."
+    values:
+      - name: DEFAULT
+        ordinal: 0
+        description: "Rely on platform BLE stack behavior"
+      - name: EU
+        ordinal: 1
+        description: "Apply EU clamping (adv interval >= 300ms, scan duty cycle <= 70%)"
+
+  - name: NoiseLayer
+    package: ch.trancee.meshlink.model
+    description: "Which layer of the mesh a Noise session belongs to."
+    values:
+      - name: HOP_BY_HOP
+        ordinal: 0
+      - name: END_TO_END
+        ordinal: 1
+
+  - name: NoiseSessionState
+    package: ch.trancee.meshlink.model
+    description: "Noise link-layer session states."
+    values:
+      - name: DISCONNECTED
+        ordinal: 0
+      - name: HANDSHAKING_XX
+        ordinal: 1
+      - name: HANDSHAKING_IK
+        ordinal: 2
+      - name: ESTABLISHED
+        ordinal: 3
+      - name: REKEYING
+        ordinal: 4
+      - name: FAILED
+        ordinal: 5
+
+  - name: NoiseRole
+    package: ch.trancee.meshlink.model
+    description: "Role in a Noise handshake."
+    values:
+      - name: INITIATOR
+        ordinal: 0
+      - name: RESPONDER
+        ordinal: 1
+
+  - name: NoiseFailureReason
+    package: ch.trancee.meshlink.model
+    description: "Reason a Noise handshake failed."
+    values:
+      - name: HANDSHAKE_TIMEOUT
+        ordinal: 0
+      - name: HANDSHAKE_MESSAGE_MALFORMED
+        ordinal: 1
+      - name: HANDSHAKE_MESSAGE_OUT_OF_ORDER
+        ordinal: 2
+      - name: REMOTE_STATIC_KEY_MISMATCH
+        ordinal: 3
+      - name: REMOTE_STATIC_KEY_UNKNOWN
+        ordinal: 4
+      - name: REKEY_REJECTED
+        ordinal: 5
+      - name: TRANSPORT_CLOSED
+        ordinal: 6
+      - name: MAX_RETRIES_EXCEEDED
+        ordinal: 7
+      - name: INTERNAL_ERROR
+        ordinal: 8
+
+  - name: PowerTier
+    package: ch.trancee.meshlink.model
+    description: "Power tier governing scan duty cycle, advertisement interval, connection interval, concurrent connections, and transfer chunk size."
+    values:
+      - name: HIGH
+        ordinal: 0
+        scan_duty_cycle_percent: 20
+        adv_interval_ms: 100
+        conn_interval_min_ms: 7.5
+        conn_interval_max_ms: 15
+        max_concurrent: 8
+        chunk_size_bytes: 512
+        max_retries: 10
+        retry_budget_seconds: 60
+        grace_period_seconds: 15
+      - name: MEDIUM
+        ordinal: 1
+        scan_duty_cycle_percent: 10
+        adv_interval_ms: 500
+        conn_interval_min_ms: 15
+        conn_interval_max_ms: 30
+        max_concurrent: 4
+        chunk_size_bytes: 256
+        max_retries: 5
+        retry_budget_seconds: 30
+        grace_period_seconds: 30
+      - name: LOW
+        ordinal: 2
+        scan_duty_cycle_percent: 5
+        adv_interval_ms: 1000
+        conn_interval_min_ms: 30
+        conn_interval_max_ms: 60
+        max_concurrent: 2
+        chunk_size_bytes: 128
+        max_retries: 3
+        retry_budget_seconds: 15
+        grace_period_seconds: 45
+
+  - name: TransferState
+    package: ch.trancee.meshlink.model
+    description: "State that a transfer session can be in."
+    values:
+      - name: IN_PROGRESS
+        ordinal: 0
+        terminal: false
+      - name: WAITING_FOR_ROUTE
+        ordinal: 1
+        terminal: false
+      - name: RETRYING
+        ordinal: 2
+        terminal: false
+      - name: COMPLETED
+        ordinal: 3
+        terminal: true
+      - name: FAILED
+        ordinal: 4
+        terminal: true
+      - name: TIMED_OUT
+        ordinal: 5
+        terminal: true
+
+  - name: PeerConnectionState
+    package: ch.trancee.meshlink
+    description: "Public peer connection states exposed to host apps."
+    values:
+      - name: CONNECTED
+        ordinal: 0
+      - name: DISCONNECTED
+        ordinal: 1
+
+  - name: VerificationLevel
+    package: ch.trancee.meshlink.model
+    description: "Verification level achieved during handshake."
+    values:
+      - name: FULL
+        ordinal: 0
+        description: "Full 64-byte public key verified against routing table"
+      - name: TOFU_PIN
+        ordinal: 1
+        description: "TOFU-first-contact: key pinned on first successful handshake"
+      - name: NX_VERIFIED
+        ordinal: 2
+        description: "NX fallback: key verified via payload but not pre-known"
+      - name: NONE
+        ordinal: 3
+        description: "No verification — handshake failed or was rejected"

@@ -1,0 +1,288 @@
+# MeshLink Data Model Definitions
+# Machine-readable reference for all data classes in the codebase.
+# Source of truth: meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/
+# SPEC-ANCHOR: data-model
+
+data_models:
+  - name: PeerIdentity
+    package: ch.trancee.meshlink.model
+    type: value_class
+    description: "Stable 16-byte peer identifier. Generated ONCE at install/first launch, stored permanently. NOT derived from public key — remains stable across key rotations."
+    fields:
+      - name: lo
+        type: ULong
+        description: "Lower 8 bytes of the 16-byte identity"
+      - name: hi
+        type: ULong
+        description: "Upper 8 bytes of the 16-byte identity"
+      - name: hex
+        type: String
+        description: "Hex-encoded representation for diagnostics and display"
+    constants:
+      - name: ZERO
+        value: "0UL to 0UL"
+        description: "The zero identity (all bytes zero) — for initialization and comparison"
+    companion_functions:
+      - name: generate
+        return_type: PeerIdentity
+        description: "Generates a cryptographically random 16-byte peer identity"
+      - name: fromBytes
+        params:
+          - name: bytes
+            type: ByteArray
+        return_type: PeerIdentity
+        description: "Creates a PeerIdentity from a 16-byte ByteArray"
+    functions:
+      - name: toByteArray
+        return_type: ByteArray
+        description: "Converts this identity to a 16-byte ByteArray"
+
+  - name: SeqNo
+    package: ch.trancee.meshlink.model
+    type: value_class
+    description: "Unsigned 32-bit sequence number with safe wrap-around comparison. RFC 8966 §3.7 requires signed interpretation for seqno comparison."
+    fields:
+      - name: raw
+        type: UInt
+        description: "Raw sequence number value"
+    constants:
+      - name: ZERO
+        value: "SeqNo(0u)"
+        description: "Sequence number zero"
+    functions:
+      - name: isNewerThan
+        params:
+          - name: other
+            type: SeqNo
+        return_type: Boolean
+        description: "Returns true if this seqno is newer than other, handling 32-bit wrap-around. Uses signed comparison: (this - other).toInt() > 0"
+      - name: isOlderThan
+        params:
+          - name: other
+            type: SeqNo
+        return_type: Boolean
+        description: "Returns true if this seqno is older than other. Symmetric to isNewerThan per RFC 8966 §3.7"
+      - name: minus
+        params:
+          - name: other
+            type: SeqNo
+        return_type: Int
+        description: "Signed difference for modular arithmetic comparison. (this - other) interpreted as signed 32-bit integer"
+      - name: increment
+        return_type: SeqNo
+        description: "Increments this seqno by 1, wrapping at 2^32. Used on cold start of mesh participation (MeshLink.start())"
+
+  - name: Scoreboard
+    package: ch.trancee.meshlink.model
+    type: class
+    description: "Immutable bitfield for selective acknowledgment of received chunks. Bit N = 1 means chunk N is received (standard SACK convention). Length is ceil(totalChunks / 8) bytes derived from totalChunks. Immutable — markReceived and markMissing return a new Scoreboard instance."
+    fields:
+      - name: totalChunks
+        type: UInt
+        description: "Total number of chunks in this transfer"
+    functions:
+      - name: markReceived
+        params:
+          - name: index
+            type: Int
+        return_type: Scoreboard
+        description: "Marks chunk index as received. Returns a new Scoreboard."
+      - name: markMissing
+        params:
+          - name: index
+            type: Int
+        return_type: Scoreboard
+        description: "Marks chunk index as missing. Returns a new Scoreboard."
+      - name: isReceived
+        params:
+          - name: index
+            type: Int
+        return_type: Boolean
+        description: "Returns true if chunk index has been received."
+      - name: isMissing
+        params:
+          - name: index
+            type: Int
+        return_type: Boolean
+        description: "Returns true if chunk index has not yet been received."
+      - name: missingChunks
+        return_type: List<Int>
+        description: "Returns the list of chunk indices that have not yet been received."
+      - name: receivedCount
+        return_type: Int
+        description: "Returns the count of chunks that have been received."
+      - name: missingCount
+        return_type: Int
+        description: "Returns the count of chunks that have not yet been received."
+      - name: toByteArray
+        return_type: ByteArray
+        description: "Returns the raw bitfield as a ByteArray."
+
+  - name: MutableScoreboard
+    package: ch.trancee.meshlink.model
+    type: class
+    description: "High-performance mutable accumulator for chunk receipt tracking. Use in hot paths (e.g. receiving a burst of ACKs) where allocating a new immutable Scoreboard per update would cause excessive GC pressure. Call toImmutable to obtain a thread-safe snapshot for the transfer state."
+    fields:
+      - name: totalChunks
+        type: UInt
+        description: "Total number of chunks in this transfer"
+    functions:
+      - name: markReceived
+        params:
+          - name: index
+            type: Int
+        return_type: Unit
+        description: "Marks chunk index as received in-place."
+      - name: markMissing
+        params:
+          - name: index
+            type: Int
+        return_type: Unit
+        description: "Marks chunk index as missing in-place."
+      - name: isReceived
+        params:
+          - name: index
+            type: Int
+        return_type: Boolean
+        description: "Returns true if chunk index has been received."
+      - name: receivedCount
+        return_type: Int
+        description: "Returns the count of received chunks."
+      - name: missingCount
+        return_type: Int
+        description: "Returns the count of missing chunks."
+      - name: toImmutable
+        return_type: Scoreboard
+        description: "Converts this mutable scoreboard to an immutable snapshot."
+
+  - name: RouteEntry
+    package: ch.trancee.meshlink.model
+    type: data_class
+    description: "Route entry in the routing table. Managed by RouteCoordinator; updates via RouteDigest."
+    fields:
+      - name: destination
+        type: PeerIdentity
+        description: "Final destination peer in the mesh"
+      - name: nextHop
+        type: "PeerIdentity?"
+        description: "Immediate next hop toward the destination (null = unreachable)"
+      - name: source
+        type: PeerIdentity
+        description: "The peer from whom this route was learned (for loop detection)"
+      - name: metric
+        type: UInt
+        description: "Route metric (RSSI + flags, see LinkMetric)"
+      - name: seqNo
+        type: SeqNo
+        description: "Destination-self-reported sequence number, wrapped for safe comparison"
+      - name: identityKey
+        type: "IdentityKey?"
+        description: "Destination's public key, learned via route updates (may be null on cold start)"
+      - name: expiresAt
+        type: Instant
+        description: "Expiration instant for this route entry"
+
+  - name: TransferSession
+    package: ch.trancee.meshlink.model
+    type: data_class
+    description: "Drives chunked transfer with selective ACK and cut-through relay support. Chunk size is selected by the local PowerTier at session start and bounded by the peer's advertised MTU. Scoreboard uses a dynamic bitfield whose length is derived from totalChunks — bit N = 1 means chunk N is received (standard SACK)."
+    fields:
+      - name: sessionId
+        type: SessionId
+        description: "Unique 64-bit token identifying this transfer session"
+      - name: destination
+        type: PeerIdentity
+        description: "Final destination peer for this transfer"
+      - name: priority
+        type: Priority
+        description: "QoS priority inherited from the originating RoutingMessage"
+      - name: state
+        type: TransferState
+        description: "Current lifecycle state of this transfer"
+      - name: chunkSize
+        type: Int
+        description: "Selected chunk size in bytes (bounded by peer MTU)"
+      - name: totalChunks
+        type: UInt
+        description: "Total number of chunks in this transfer"
+      - name: scoreboard
+        type: Scoreboard
+        description: "Tracks which chunks have been received via SACK bitfield"
+      - name: totalBytes
+        type: Long
+        description: "Total payload size in bytes"
+      - name: bytesReceived
+        type: Long
+        description: "Bytes received so far"
+      - name: startedAt
+        type: Instant
+        description: "When this transfer session was started"
+      - name: expiresAt
+        type: "Instant?"
+        description: "Deadline for WAITING_FOR_ROUTE state; null when in-progress or retrying"
+      - name: retryCount
+        type: Int
+        description: "Number of retransmit attempts made so far"
+      - name: failureReason
+        type: "TransferFailureReason?"
+        description: "Why this session reached a terminal failure state"
+
+  - name: SessionId
+    package: ch.trancee.meshlink.model
+    type: value_class
+    description: "Unique 64-bit token identifying a transfer session."
+    fields:
+      - name: value
+        type: ULong
+        description: "Raw 64-bit session ID value"
+
+  - name: TransferFailureReason
+    package: ch.trancee.meshlink.model
+    type: sealed_interface
+    description: "Why a transfer session reached a terminal failure state. Distinguishes trust failures from generic unrecoverable failures."
+    subtypes:
+      - name: Unrecoverable
+        type: data_class
+        fields:
+          - name: message
+            type: String
+        description: "Generic error, cancel, retry budget exhausted, or non-trust transfer failure"
+      - name: TrustFailure
+        type: data_class
+        fields:
+          - name: peerIdentity
+            type: PeerIdentity
+        description: "Trust-related failure (e.g. identity mismatch, revoked peer)"
+
+  - name: LinkMetric
+    package: ch.trancee.meshlink.model
+    type: class
+    description: "Encapsulates the metric bit layout: low byte = RSSI normalized (0-255), high bits = flags (supportsCoC, fastInterval, highPowerTier). Composite serialized form: (flags shl 8) or rssiNormalized."
+    fields:
+      - name: rssiNormalized
+        type: UByte
+        description: "RSSI normalized to 0-255 (low byte)"
+      - name: supportsCoc
+        type: Boolean
+        description: "Bit 8: L2CAP CoC supported"
+      - name: fastInterval
+        type: Boolean
+        description: "Bit 9: Fast connection interval"
+      - name: highPowerTier
+        type: Boolean
+        description: "Bit 10: High power tier"
+      - name: composite
+        type: UInt
+        description: "Serialized form: (flags shl 8) or rssiNormalized"
+
+  - name: IdentityKey
+    package: ch.trancee.meshlink.model
+    type: class
+    description: "Crypto key with type tag for routing layer (enables E2E IX handshake)."
+    fields:
+      - name: keyType
+        type: KeyType
+        description: "ED25519 or X25519"
+      - name: keyBytes
+        type: ByteArray
+        description: "Raw key bytes (32 bytes for both Ed25519 and X25519)"

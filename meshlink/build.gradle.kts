@@ -1,4 +1,27 @@
+import org.gradle.api.GradleException
 import org.jetbrains.kotlin.konan.target.HostManager
+
+// Validate YAML specs at configuration time - use root project's specs directory
+val specsDir = project.rootProject.file("specs")
+val requiredFiles =
+    listOf(
+        "enums.yaml",
+        "data_models.yaml",
+        "state_machines.yaml",
+        "diagnostic_events.yaml",
+        "settings.yaml",
+        "wire_frames.yaml",
+        "cross_ref_index.yaml",
+    )
+
+for (name in requiredFiles) {
+    val file = project.rootProject.file("specs/$name")
+    if (!file.exists()) {
+        throw GradleException("Missing specs/$name")
+    }
+}
+
+println("✓ All YAML spec files present")
 
 // :meshlink is the single artifact this repository ships. Per
 // CONSTITUTION.md's Technical Constraints, only this module: is validated for 100%

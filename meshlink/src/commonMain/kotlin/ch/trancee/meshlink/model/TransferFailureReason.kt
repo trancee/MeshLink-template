@@ -1,6 +1,10 @@
 package ch.trancee.meshlink.model
 
-/** Why a transfer session reached a terminal failure state. */
+/**
+ * Why a transfer session reached a terminal failure state.
+ *
+ * SPEC-ANCHOR: transfer-failure-reason-model
+ */
 public sealed interface TransferFailureReason {
     /** The failure is permanent and cannot be recovered from without external intervention. */
     public data class Unrecoverable(val message: String) : TransferFailureReason

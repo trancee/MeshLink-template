@@ -2,7 +2,11 @@ package ch.trancee.meshlink.model
 
 import kotlin.time.Instant
 
-/** Route entry in the routing table. Managed by RouteCoordinator; updates via RouteDigest. */
+/**
+ * Route entry in the routing table. Managed by RouteCoordinator; updates via RouteDigest.
+ *
+ * SPEC-ANCHOR: route-entry-model
+ */
 public data class RouteEntry(
     /** Final destination peer in the mesh. */
     public val destination: PeerIdentity,

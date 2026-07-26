@@ -1,0 +1,189 @@
+# MeshLink Configuration Model
+# Machine-readable reference for all configuration settings.
+# Source of truth: SPEC.md §14 and meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PowerTierSettings.kt
+# SPEC-ANCHOR: setting-model
+
+settings:
+  MeshLinkSettings:
+    package: ch.trancee.meshlink
+    description: "MeshLink configuration DSL. Single source of truth for all tunable parameters."
+    fields:
+      - name: powerTier
+        type: PowerTier
+        default: "MEDIUM"
+        description: "Performance vs battery trade-off tier"
+      - name: regulatoryRegion
+        type: RegulatoryRegion
+        default: "DEFAULT"
+        description: "Regulatory region controlling BLE radio policy clamping"
+      - name: keyRotation
+        type: KeyRotationSettings
+        default: "KeyRotationSettings()"
+        description: "Key rotation configuration"
+      - name: transfer
+        type: TransferSettings
+        default: "TransferSettings()"
+        description: "Transfer layer configuration"
+      - name: routing
+        type: RoutingSettings
+        default: "RoutingSettings()"
+        description: "Routing layer configuration"
+      - name: security
+        type: SecuritySettings
+        default: "SecuritySettings()"
+        description: "Security layer configuration"
+      - name: diagnostics
+        type: DiagnosticsSettings
+        default: "DiagnosticsSettings()"
+        description: "Diagnostics configuration"
+
+  KeyRotationSettings:
+    package: ch.trancee.meshlink
+    description: "Key rotation configuration."
+    fields:
+      - name: interval
+        type: Duration
+        default: "Duration.days(3)"
+        description: "How often to automatically rotate identity keys"
+      - name: rotationGracePeriod
+        type: Duration
+        default: "Duration.hours(1)"
+        description: "Grace period for the OLD key after a PLANNED rotation (periodic or manual). During this window, both old and new keys are accepted for in-flight sessions."
+      - name: compromiseGracePeriod
+        type: Duration
+        default: "Duration.ZERO"
+        description: "Grace period for the OLD key after a SECURITY-EVENT rotation (suspected compromise). Set to ZERO for immediate revocation — old key is rejected instantly. Non-zero values allow brief overlap for safety but weaken the security response."
+
+  TransferSettings:
+    package: ch.trancee.meshlink
+    description: "Transfer layer configuration."
+    fields:
+      - name: maxRetries
+        type: Int
+        default: 5
+        description: "Maximum retransmit attempts per chunk"
+      - name: chunkSize
+        type: Int
+        default: 256
+        description: "Default chunk size in bytes (overridden by power tier at session start)"
+      - name: maxConcurrentSessionsPerPeer
+        type: Int
+        default: 3
+        description: "Maximum concurrent transfer sessions per peer"
+      - name: scoreboardEncoding
+        type: ScoreboardEncoding
+        default: "DYNAMIC"
+        description: "Scoreboard bitfield encoding strategy"
+      - name: maxChunksPerSession
+        type: UInt
+        default: "1024u"
+        description: "Used when scoreboardEncoding = FIXED to pre-allocate bitfield"
+
+  RoutingSettings:
+    package: ch.trancee.meshlink
+    description: "Routing layer configuration."
+    fields:
+      - name: routeUpdateMinInterval
+        type: Duration
+        default: "Duration.seconds(1)"
+        description: "Minimum interval between route updates to the same peer. Prevents update storms during link flapping."
+      - name: routeUpdateMaxInterval
+        type: Duration
+        default: "Duration.seconds(30)"
+        description: "Maximum interval between route updates to the same peer when no changes occur. Acts as a keep-alive for route freshness."
+      - name: routeUpdateChangeThreshold
+        type: Int
+        default: 3
+        description: "Minimum RSSI change (in decibels) required to trigger a route update. Smaller values = more responsive routing but more control traffic. Larger values = quieter control plane but slower reaction to link quality changes. Default 3 dB (roughly 'noticeable but not noise')."
+      - name: fullTableSyncInterval
+        type: Duration
+        default: "Duration.minutes(5)"
+        description: "Interval for sending full route table to all peers (periodic full sync). Ensures eventual consistency even if differential updates are lost."
+      - name: routeEntryExpiry
+        type: Duration
+        default: "Duration.minutes(15)"
+        description: "Time after which a route entry expires if not refreshed. Must be > fullTableSyncInterval to avoid premature expiry. Default 15 minutes."
+      - name: feasibilityConditionEnabled
+        type: Boolean
+        default: true
+        description: "Whether to enforce the Babel feasibility condition (loop avoidance). Should always be true in production; false only for testing."
+      - name: maxRouteEntries
+        type: Int
+        default: 256
+        description: "Maximum number of route entries to maintain in the routing table. When exceeded, least-recently-updated entries are evicted. Default 256 (suitable for typical personal mesh networks of 10-20 peers)."
+
+  SecuritySettings:
+    package: ch.trancee.meshlink
+    description: "Security layer configuration."
+    fields:
+      - name: fallbackMaxAttemptsPerMinute
+        type: Int
+        default: 3
+        description: "Maximum fallback handshake attempts allowed per minute per destination. Exceeding this limit causes new attempts to be rejected until the window resets. Default 3 (matches the spec mitigation for DoS via unauthenticated handshakes)."
+      - name: fallbackTimeout
+        type: Duration
+        default: "Duration.seconds(10)"
+        description: "Timeout for fallback handshake (stricter than IX). Fallback has no responder authentication, so a tighter bound limits exposure. Default 10 seconds."
+      - name: requireSignatureOnRouteUpdates
+        type: Boolean
+        default: true
+        description: "Whether ROUTE_UPDATE frames must carry an end-to-end signature from the originating peer (covering the destination's public key). Prevents a malicious relay from substituting the destination's key (MITM on handshake). Should always be true in production; false only for testing."
+      - name: defaultHandshakePattern
+        type: HandshakePattern
+        default: "IX"
+        description: "Default handshake pattern when destination key is known. IX = one-way authenticated (origin knows dest key). NX = fallback (key unknown). Default: IX."
+
+  DiagnosticsSettings:
+    package: ch.trancee.meshlink
+    description: "Diagnostics configuration."
+    fields:
+      - name: emitToLog
+        type: Boolean
+        default: true
+        description: "Whether to emit diagnostic events to logcat/system log"
+      - name: eventBufferSize
+        type: Int
+        default: 1000
+        description: "Size of the in-memory event buffer for callback consumers"
+
+  meshLinkSettings:
+    package: ch.trancee.meshlink
+    description: "MeshLink configuration DSL builder function. Usage: val settings = meshLinkSettings { powerTier = PowerTier.HIGH; keyRotation { interval = Duration.days(1) } }"
+    returns: MeshLinkSettings
+
+power_tier_parameter_mapping:
+  HIGH:
+    scan_duty_cycle_percent: 20
+    adv_interval_ms: 100
+    conn_interval_min_ms: 7.5
+    conn_interval_max_ms: 15
+    max_concurrent: 8
+    chunk_size_bytes: 512
+    max_retries: 10
+    retry_budget_seconds: 60
+    grace_period_seconds: 15
+  MEDIUM:
+    scan_duty_cycle_percent: 10
+    adv_interval_ms: 500
+    conn_interval_min_ms: 15
+    conn_interval_max_ms: 30
+    max_concurrent: 4
+    chunk_size_bytes: 256
+    max_retries: 5
+    retry_budget_seconds: 30
+    grace_period_seconds: 30
+  LOW:
+    scan_duty_cycle_percent: 5
+    adv_interval_ms: 1000
+    conn_interval_min_ms: 30
+    conn_interval_max_ms: 60
+    max_concurrent: 2
+    chunk_size_bytes: 128
+    max_retries: 3
+    retry_budget_seconds: 15
+    grace_period_seconds: 45
+
+eu_clamping:
+  adv_interval_floor_ms: 300
+  scan_duty_cycle_ceiling_percent: 70
+  description: "When RegulatoryRegion = EU, advertisement interval values below 300ms are clamped to 300ms, and scan duty cycle values above 70% are clamped to 70%."

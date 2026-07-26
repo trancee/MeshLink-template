@@ -1,23 +1,28 @@
 package ch.trancee.meshlink.model
 
-/** Power tier governing BLE radio operation parameters. */
+/**
+ * Power tier governing BLE radio operation parameters.
+ *
+ * SPEC-ANCHOR: power-tier-settings
+ */
 public enum class PowerTier {
     HIGH,
     MEDIUM,
     LOW;
 
-    /** Returns the configuration parameters for this power tier. */
-    public val config: PowerTierConfig
+    /** Returns the settings for this power tier. */
+    public val settings: PowerTierSettings
         get() =
             when (this) {
-                HIGH -> HIGH_CONFIG
-                MEDIUM -> MEDIUM_CONFIG
-                LOW -> LOW_CONFIG
+                HIGH -> HIGH_SETTINGS
+                MEDIUM -> MEDIUM_SETTINGS
+                LOW -> LOW_SETTINGS
             }
 
     public companion object {
-        public val HIGH_CONFIG: PowerTierConfig =
-            PowerTierConfig(
+        /** Settings for HIGH power tier. */
+        public val HIGH_SETTINGS: PowerTierSettings =
+            PowerTierSettings(
                 scanDutyCyclePercent = 20,
                 advertisementIntervalMs = 100,
                 // 7.5ms = minimum valid BLE connection interval (6 × 1.25ms);
@@ -30,8 +35,9 @@ public enum class PowerTier {
                 gracePeriodSeconds = 15,
             )
 
-        public val MEDIUM_CONFIG: PowerTierConfig =
-            PowerTierConfig(
+        /** Settings for MEDIUM power tier. */
+        public val MEDIUM_SETTINGS: PowerTierSettings =
+            PowerTierSettings(
                 scanDutyCyclePercent = 10,
                 advertisementIntervalMs = 500,
                 connectionIntervalMs = 15.0,
@@ -42,8 +48,9 @@ public enum class PowerTier {
                 gracePeriodSeconds = 30,
             )
 
-        public val LOW_CONFIG: PowerTierConfig =
-            PowerTierConfig(
+        /** Settings for LOW power tier. */
+        public val LOW_SETTINGS: PowerTierSettings =
+            PowerTierSettings(
                 scanDutyCyclePercent = 5,
                 advertisementIntervalMs = 1000,
                 connectionIntervalMs = 30.0,
@@ -56,8 +63,8 @@ public enum class PowerTier {
     }
 }
 
-/** Configuration parameters for a [PowerTier]. */
-public data class PowerTierConfig(
+/** Settings parameters for a [PowerTier]. */
+public data class PowerTierSettings(
     /** Scan duty cycle as a percentage of the BLE connection interval. */
     public val scanDutyCyclePercent: Int,
     /** Minimum advertisement interval in milliseconds. */

@@ -8,7 +8,11 @@ public object RoutingPolicy {
     /** Maximum hop count a message can traverse before being dropped. */
     public const val MaxHops: Int = 32
 
-    /** TTL derived from message priority — governs how long a message stays routable. */
+    /**
+     * TTL derived from message priority — governs how long a message stays routable.
+     *
+     * SPEC-ANCHOR: ttl-by-priority
+     */
     public fun ttlFor(priority: Priority): Duration =
         when (priority) {
             Priority.HIGH -> 10.minutes

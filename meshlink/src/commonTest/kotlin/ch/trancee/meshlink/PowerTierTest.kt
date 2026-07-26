@@ -7,10 +7,10 @@ import kotlin.test.assertNotNull
 
 class PowerTierTest {
     @Test
-    fun `config values`() {
-        assertEquals(20, PowerTier.HIGH.config.scanDutyCyclePercent)
-        assertEquals(10, PowerTier.MEDIUM.config.scanDutyCyclePercent)
-        assertEquals(5, PowerTier.LOW.config.scanDutyCyclePercent)
+    fun `settings values`() {
+        assertEquals(20, PowerTier.HIGH.settings.scanDutyCyclePercent)
+        assertEquals(10, PowerTier.MEDIUM.settings.scanDutyCyclePercent)
+        assertEquals(5, PowerTier.LOW.settings.scanDutyCyclePercent)
     }
 
     @Test
@@ -19,43 +19,43 @@ class PowerTierTest {
     }
 
     @Test
-    fun `HIGH config has all expected values`() {
-        val config = PowerTier.HIGH.config
-        assertEquals(20, config.scanDutyCyclePercent)
-        assertEquals(100, config.advertisementIntervalMs)
-        assertEquals(7.5, config.connectionIntervalMs)
-        assertEquals(8, config.concurrentConnections)
-        assertEquals(512, config.chunkSize)
-        assertEquals(10, config.maxRetries)
-        assertEquals(60, config.retryBudgetSeconds)
-        assertEquals(15, config.gracePeriodSeconds)
+    fun `HIGH settings has all expected values`() {
+        val settings = PowerTier.HIGH.settings
+        assertEquals(20, settings.scanDutyCyclePercent)
+        assertEquals(100, settings.advertisementIntervalMs)
+        assertEquals(7.5, settings.connectionIntervalMs)
+        assertEquals(8, settings.concurrentConnections)
+        assertEquals(512, settings.chunkSize)
+        assertEquals(10, settings.maxRetries)
+        assertEquals(60, settings.retryBudgetSeconds)
+        assertEquals(15, settings.gracePeriodSeconds)
     }
 
     @Test
-    fun `LOW config has all expected values`() {
-        val config = PowerTier.LOW.config
-        assertEquals(5, config.scanDutyCyclePercent)
-        assertEquals(1000, config.advertisementIntervalMs)
-        assertEquals(30.0, config.connectionIntervalMs)
-        assertEquals(2, config.concurrentConnections)
-        assertEquals(128, config.chunkSize)
-        assertEquals(3, config.maxRetries)
-        assertEquals(15, config.retryBudgetSeconds)
-        assertEquals(45, config.gracePeriodSeconds)
+    fun `LOW settings has all expected values`() {
+        val settings = PowerTier.LOW.settings
+        assertEquals(5, settings.scanDutyCyclePercent)
+        assertEquals(1000, settings.advertisementIntervalMs)
+        assertEquals(30.0, settings.connectionIntervalMs)
+        assertEquals(2, settings.concurrentConnections)
+        assertEquals(128, settings.chunkSize)
+        assertEquals(3, settings.maxRetries)
+        assertEquals(15, settings.retryBudgetSeconds)
+        assertEquals(45, settings.gracePeriodSeconds)
     }
 
     @Test
-    fun `HIGH_CONFIG scanDutyCyclePercent`() {
-        assertEquals(20, PowerTier.HIGH_CONFIG.scanDutyCyclePercent)
+    fun `HIGH_SETTINGS scanDutyCyclePercent`() {
+        assertEquals(20, PowerTier.HIGH_SETTINGS.scanDutyCyclePercent)
     }
 
     @Test
-    fun `MEDIUM_CONFIG scanDutyCyclePercent`() {
-        assertEquals(10, PowerTier.MEDIUM_CONFIG.scanDutyCyclePercent)
+    fun `MEDIUM_SETTINGS scanDutyCyclePercent`() {
+        assertEquals(10, PowerTier.MEDIUM_SETTINGS.scanDutyCyclePercent)
     }
 
     @Test
-    fun `LOW_CONFIG scanDutyCyclePercent`() {
-        assertEquals(5, PowerTier.LOW_CONFIG.scanDutyCyclePercent)
+    fun `LOW_SETTINGS scanDutyCyclePercent`() {
+        assertEquals(5, PowerTier.LOW_SETTINGS.scanDutyCyclePercent)
     }
 }

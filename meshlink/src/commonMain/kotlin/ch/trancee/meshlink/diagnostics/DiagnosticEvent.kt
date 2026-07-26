@@ -16,13 +16,18 @@ import ch.trancee.meshlink.model.SessionId
 import ch.trancee.meshlink.model.TransferFailureReason
 import ch.trancee.meshlink.model.TransferState
 import ch.trancee.meshlink.model.TransportFallbackReason
+import ch.trancee.meshlink.model.VerificationLevel
 import kotlin.time.Clock
 import kotlin.time.Instant
 
 /**
  * Unified diagnostic event schema for MeshLink. All layers (routing, transport, transfer, power,
- * crypto) emit these events. Consumed by [DiagnosticsConfig.eventCallback] and logged when
- * [DiagnosticsConfig.emitToLog] is true.
+ * crypto) emit these events.
+ *
+ * Consumers receive events via the `eventCallback` in `MeshLinkSettings.diagnostics` (see SPEC.md
+ * §14) and may log them when `emitToLog` is true.
+ *
+ * SPEC-ANCHOR: diagnostic-event
  */
 public sealed interface DiagnosticEvent {
 
@@ -64,7 +69,7 @@ public sealed interface DiagnosticEvent {
         public val sessionId: SessionId,
         public val pattern: HandshakePattern,
         public val fallbackUsed: Boolean,
-        public val fullPublicKeyVerified: Boolean,
+        public val verificationLevel: VerificationLevel,
         public val rateLimitAttempts: Int,
         public val nonceReplayDetected: Boolean,
         public val timestamp: Instant = Clock.System.now(),

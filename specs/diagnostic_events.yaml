@@ -1,0 +1,242 @@
+# MeshLink Diagnostic Event Definitions
+# Machine-readable reference for all diagnostic events.
+# Source of truth: meshlink/src/commonMain/kotlin/ch/trancee/meshlink/diagnostics/DiagnosticEvent.kt
+# SPEC-ANCHOR: diagnostic-event
+
+diagnostic_events:
+  - name: RouteDecryptFailureEvent
+    category: route
+    description: "A routed frame failed to decrypt at the link layer."
+    fields:
+      - name: peerIdentity
+        type: PeerIdentity
+        description: "Peer from whom the frame was received"
+      - name: frameType
+        type: FrameType
+        description: "Type of frame that failed decryption"
+      - name: failureReason
+        type: DecryptFailureReason
+        description: "Specific reason for decryption failure"
+      - name: timestamp
+        type: Instant
+        description: "When the event occurred"
+        default: "Clock.System.now()"
+
+  - name: TransportFallbackEvent
+    category: transport
+    description: "Data plane fell back from L2CAP CoC to GATT."
+    fields:
+      - name: peerIdentity
+        type: PeerIdentity
+        description: "Peer for whom fallback occurred"
+      - name: reason
+        type: TransportFallbackReason
+        description: "Machine-observable reason for fallback"
+      - name: timestamp
+        type: Instant
+        default: "Clock.System.now()"
+
+  - name: TransferDataPlaneBearerEvent
+    category: transfer
+    description: "Data plane bearer selected for a transfer session."
+    fields:
+      - name: sessionId
+        type: SessionId
+        description: "Transfer session identifier"
+      - name: bearer
+        type: DataPlaneBearer
+        description: "GATT or L2CAP bearer in use"
+      - name: timestamp
+        type: Instant
+        default: "Clock.System.now()"
+
+  - name: PowerTierEffectiveEvent
+    category: power
+    description: "Effective power tier parameters after regulatory clamping."
+    fields:
+      - name: requestedTier
+        type: PowerTier
+        description: "Tier requested by host app"
+      - name: effectiveTier
+        type: PowerTier
+        description: "Tier actually in effect after EU clamping"
+      - name: regulatoryRegion
+        type: RegulatoryRegion
+        description: "Regulatory region in effect"
+      - name: scanDutyCyclePercent
+        type: Int
+        description: "Effective scan duty cycle percentage"
+      - name: advertisementIntervalMs
+        type: Int
+        description: "Effective advertisement interval in milliseconds"
+      - name: connectionIntervalMs
+        type: Double
+        description: "Effective connection interval in milliseconds"
+      - name: timestamp
+        type: Instant
+        default: "Clock.System.now()"
+
+  - name: HandshakeEvent
+    category: handshake
+    description: "End-to-end or link-layer handshake completed or failed."
+    fields:
+      - name: sessionId
+        type: SessionId
+        description: "Handshake session identifier"
+      - name: pattern
+        type: HandshakePattern
+        description: "Noise pattern used (XX, IK, IX, NX)"
+      - name: fallbackUsed
+        type: Boolean
+        description: "True when NX fallback handshake pattern is used instead of IX; set when destination's public key is unknown"
+      - name: verificationLevel
+        type: VerificationLevel
+        description: "Verification level achieved: FULL, TOFU_PIN, NX_VERIFIED, NONE"
+      - name: rateLimitAttempts
+        type: Int
+        description: "Number of fallback attempts in current rate-limit window"
+      - name: nonceReplayDetected
+        type: Boolean
+        description: "True if nonce replay was detected during handshake"
+      - name: timestamp
+        type: Instant
+        default: "Clock.System.now()"
+
+  - name: KeyRotationEvent
+    category: key_rotation
+    description: "Key rotation announcement processed by a peer."
+    fields:
+      - name: peerIdentity
+        type: PeerIdentity
+        description: "Peer that announced key rotation"
+      - name: oldKeyVerified
+        type: Boolean
+        description: "Whether the old key's signature verified correctly"
+      - name: sequenceNumberReset
+        type: Boolean
+        description: "True when the neighbor accepted the new key and reset its seqno to 1"
+      - name: propagationDeadlineMet
+        type: Boolean
+        description: "True when the key rotation announcement reached all direct neighbors within the deadline"
+      - name: reason
+        type: KeyRotationReason
+        description: "PERIODIC, MANUAL, or SECURITY_EVENT"
+      - name: timestamp
+        type: Instant
+        default: "Clock.System.now()"
+
+  - name: NoiseSessionTransitionEvent
+    category: noise
+    description: "Noise session state transition."
+    fields:
+      - name: peerIdentity
+        type: PeerIdentity
+        description: "Peer for this Noise session"
+      - name: layer
+        type: NoiseLayer
+        description: "HOP_BY_HOP or END_TO_END"
+      - name: fromState
+        type: NoiseSessionState
+        description: "Previous session state"
+      - name: toState
+        type: NoiseSessionState
+        description: "New session state"
+      - name: role
+        type: NoiseRole
+        description: "INITIATOR or RESPONDER"
+      - name: handshakePattern
+        type: HandshakePattern
+        description: "Pattern used for this handshake"
+      - name: failureReason
+        type: "NoiseFailureReason?"
+        description: "Failure reason if transition is to FAILED; null otherwise"
+      - name: timestamp
+        type: Instant
+        default: "Clock.System.now()"
+
+  - name: RouteDigestMismatchEvent
+    category: route
+    description: "Route table digest mismatch triggered a full resync."
+    fields:
+      - name: peerIdentity
+        type: PeerIdentity
+        description: "Peer from whom mismatched digest was received"
+      - name: localDigest
+        type: UInt
+        description: "Local route table FNV-1a 32-bit hash"
+      - name: remoteDigest
+        type: UInt
+        description: "Remote peer's advertised route table hash"
+      - name: timestamp
+        type: Instant
+        default: "Clock.System.now()"
+
+  - name: TransferSessionTransitionEvent
+    category: transfer
+    description: "Transfer session state transition. Includes priority inherited from originating RoutingMessage for QoS monitoring and resource allocation decisions."
+    fields:
+      - name: sessionId
+        type: SessionId
+        description: "Transfer session identifier"
+      - name: peerIdentity
+        type: PeerIdentity
+        description: "Destination peer for this transfer"
+      - name: fromState
+        type: TransferState
+        description: "Previous transfer state"
+      - name: toState
+        type: TransferState
+        description: "New transfer state"
+      - name: bytesTransferred
+        type: Long
+        description: "Bytes transferred so far in this session"
+      - name: totalBytes
+        type: Long
+        description: "Total payload size in bytes"
+      - name: timestamp
+        type: Instant
+        default: "Clock.System.now()"
+
+  - name: TransferFailureEvent
+    category: transfer
+    description: "Transfer session reached a terminal failure state."
+    fields:
+      - name: sessionId
+        type: SessionId
+        description: "Transfer session identifier"
+      - name: peerIdentity
+        type: PeerIdentity
+        description: "Destination peer for this transfer"
+      - name: reason
+        type: TransferFailureReason
+        description: "Unrecoverable (generic) or TrustFailure (identity mismatch/revocation)"
+      - name: timestamp
+        type: Instant
+        default: "Clock.System.now()"
+
+delivery_outcomes:
+  description: "Explicit, enumerated delivery/diagnostic outcomes surfaced to host apps. Maps from TransferState and TransferFailureReason."
+  outcomes:
+    - name: success
+      description: "Transfer completed successfully"
+      source_state: COMPLETED
+    - name: in-progress
+      description: "Transfer actively in progress"
+      source_state: IN_PROGRESS
+    - name: retrying
+      description: "Actively retransmitting missing chunks"
+      source_state: RETRYING
+    - name: route-waiting
+      description: "Route lost, waiting for route recovery"
+      source_state: WAITING_FOR_ROUTE
+    - name: timeout
+      description: "Retry budget or grace period exhausted"
+      source_state: TIMED_OUT
+    - name: unrecoverable-failure
+      description: "Generic failure, cancel, or retry budget exhausted"
+      source_state: FAILED
+      failure_reason: Unrecoverable
+    - name: trust-failure
+      description: "Trust-related failure (identity mismatch, revoked peer)"
+      source_state: FAILED
+      failure_reason: TrustFailure

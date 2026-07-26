@@ -1,43 +1,42 @@
 # Power Tier Behavior Specification
 
-## Status: Proposed
+**Status:** Locked — 2026-07-20
+
+See [SPEC.md §10](../../../SPEC.md#10-power-management) for complete parameter tables and [specs/settings.yaml](../../../specs/settings.yaml) for machine-readable config.
 
 ## Context
 
-MeshLink requires power-aware operation to prevent battery drain during extended mesh participation. The current spec says "discrete power tiers governing scan duty cycle, advertisement interval, connection interval, concurrent-connection budget, and transfer chunk size" but doesn't define what those tiers are or their quantified behavior.
+MeshLink requires power-aware operation: discrete power tiers governing scan duty cycle, advertisement interval, connection interval, concurrent connections, and transfer chunk size.
 
 ## Decision: Three-Tier Model with Fixed Grace Periods
 
 ### PowerTier Enum
 
 ```kotlin
-enum class PowerTier {
-    HIGH,    // Performance prioritized
-    MEDIUM,  // Balanced (default)
-    LOW      // Battery conserved
-}
+enum class PowerTier { HIGH, MEDIUM, LOW }
 ```
 
-### Tier Parameters with Rationale
+### Tier Parameters
 
-| Parameter | HIGH | MEDIUM | LOW |
-|-----------|------|--------|-----|
-| Scan duty cycle | 20% | 10% | 5% |
-| Advertisement interval | 100ms | 500ms | 1000ms |
-| Connection interval min | 7.5ms | 15ms | 30ms |
-| Connection interval max | 15ms | 30ms | 60ms |
-| Concurrent connections | 8 | 4 | 2 |
-| Transfer chunk size | 512 bytes | 256 bytes | 128 bytes |
+**Complete parameter tables in [SPEC.md §10.4](../../../SPEC.md#104-tier-driven-parameters) and [specs/enums.yaml](../../../specs/enums.yaml).**
 
-**Rationale for values:**
+| Tier | Scan Duty | Adv Interval | Conn Interval | Concurrent | Chunk Size | Max Retries | Retry Budget | Grace Period |
+|------|-----------|--------------|---------------|------------|------------|-------------|--------------|--------------|
+| HIGH | 20% | 100ms | 7.5–15ms | 8 | 512B | 10 | 60s | 15s |
+| MEDIUM | 10% | 500ms | 15–30ms | 4 | 256B | 5 | 30s | 30s |
+| LOW | 5% | 1000ms | 30–60ms | 2 | 128B | 3 | 15s | 45s |
 
-- **Scan duty cycle:** Based on BLE advertising power consumption studies
-- **Connection intervals:** 7.5ms is lowest supported on most Android; 15ms is iOS sweet spot
-- **Chunk size:** Larger chunks reduce overhead; smaller chunks reduce memory/battery
+**Rationale:**
 
-### Grace Period Design
+- Scan duty cycle: Based on BLE power consumption studies showing linear relationship with current draw
+- Advertisement interval: Shorter intervals improve discovery latency but increase power consumption
+- Connection interval: Quantized in 1.25ms units; 7.5ms (=6 units) is the Android BLE stack floor; 15ms is the iOS sweet spot for throughput/power balance
+- Chunk sizes: Sized to fit within BLE MTU (23–251 bytes) after accounting for L2CAP/GATT headers (4 bytes), security overhead (nonce+tag=16 bytes for ChaCha20-Poly1305), and protocol framing
+- Max retries & retry budget: Tuned to balance reliability against resource exhaustion and battery drain
 
-Fixed grace period per power tier:
+### Grace Period
+
+Fixed grace period per power tier. After the grace period expires without reconnection, the peer transitions to GONE and ephemeral state (presence, routes, pending transfers) is cleaned up. Pinned trust state persists.
 
 | Tier | Grace Period |
 |------|-------------|
@@ -45,84 +44,55 @@ Fixed grace period per power tier:
 | MEDIUM (default) | 30 seconds |
 | LOW | 45 seconds |
 
-After the grace period expires without reconnection, the peer transitions to GONE and ephemeral state (presence, routes, pending transfers) is cleaned up. Pinned trust state persists.
+**Future work:** Adaptive grace period based on peer stability is tracked separately.
+
+### Regulatory Clamping (EU)
+
+When `RegulatoryRegion = EU` (see [SPEC.md §10.2](../../../SPEC.md#102-regulatory-region)):
+
+- Advertisement interval floor: 300ms (values below clamped to 300ms)
+- Scan duty cycle ceiling: 70% (values above clamped to 70%)
+
+Clamping happens in shared policy code, not platform-specific wrappers.
 
 ### Platform Integration
 
-#### Android Implementation
+#### Android
 
-Power tier integrates with Android PowerManager:
+Power tier maps to Android `ScanSettings`:
 
-```kotlin
-suspend fun PowerTier.toAndroidScanSettings(): ScanSettings {
-  return when(this) {
-    HIGH -> ScanSettings.Builder()
-      .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-      .setReportDelay(0L)
-      .build()
-    MEDIUM -> ScanSettings.Builder()
-      .setScanMode(ScanSettings.SCAN_MODE_OPPORTUNISTIC)
-      .build()
-    LOW -> ScanSettings.Builder()
-      .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
-      .build()
-  }
-}
-```
+- HIGH → `SCAN_MODE_LOW_LATENCY`
+- MEDIUM → `SCAN_MODE_OPPORTUNISTIC`
+- LOW → `SCAN_MODE_LOW_POWER`
 
-#### iOS Implementation
+#### iOS
 
-Power tier integrates with CoreBluetooth background modes:
-
-```swift
-func applyPowerTier(_ tier: PowerTier) {
-  switch tier {
-  case .HIGH:
-    self.scanOption = CBCentralManagerScanOptionAllowDuplicatesKey
-  case .LOW:
-    // iOS doesn't have granular scan modes
-    // Use background preservation instead
-    self.delegate = self // Allow background scanning
-  default:
-    break
-  }
-}
-```
-
-**iOS Limitation:** iOS scan modes are less granular than Android. The `LOW` tier on iOS uses background preservation rather than scan duty cycle.
+iOS scan modes are less granular than Android. The LOW tier uses background preservation rather than scan duty cycle.
 
 ### Diagnostics Contract
 
-Per active peer, expose in telemetry:
+`PowerTierEffectiveEvent` emits observed effective parameters after regulatory clamping:
 
 ```yaml
 power:
-  tier: "medium"
-  scan_duty_cycle_observed: 0.12 # actual measured
-  advertisement_interval_ms: 500
-  connection_interval_ms: [15, 25]
-  coc_fallback_count: 3
-  grace_period_seconds: 32
-}
+  requestedTier: "medium"
+  effectiveTier: "medium"
+  regulatoryRegion: "DEFAULT"
+  scanDutyCyclePercent: 10
+  advertisementIntervalMs: 500
+  connectionIntervalMs: 15.0
 ```
 
-### Testing Requirements
+### Testing
 
 - `PowerTierTest`: verify each tier produces correct platform settings
 - `BatteryConsumptionBenchmark`: verify LOW tier consumes ≤1% battery/hour
 - `CrossPlatformComparisonTest`: verify similar behavior on Android/iOS
 
-### Trade-offs
-
-| Trade-off | Analysis |
-|-----------|----------|
-| Android vs iOS power control | iOS has fewer knobs; use background modes |
-| Granular tiers vs simplicity | 3 tiers balance flexibility with reduced complexity |
-| No automatic tier switching | App controls tier; no hidden behavior |
-
 ## Related
 
-- `CONSTITUTION.md` §IV Performance Requirements
-- `docs/explanation/peer-lifecycle.md`
-- `docs/decisions/transport/gatt-l2cap-transport-selection.md`
-- `.agents/skills/optimize-ble-throughput/references/mobile-platforms.md`
+- [CONSTITUTION.md §IV Performance Requirements](../../../CONSTITUTION.md#iv-performance-requirements)
+- [SPEC.md §10 Power Management](../../../SPEC.md#10-power-management)
+- [peer-lifecycle.md](../../explanation/peer-lifecycle.md)
+- [gatt-l2cap-transport-selection.md](../transport/gatt-l2cap-transport-selection.md)
+- [optimize-ble-throughput skill references](../../../.agents/skills/optimize-ble-throughput/references/mobile-platforms.md)

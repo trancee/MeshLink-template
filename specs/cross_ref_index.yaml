@@ -1,0 +1,251 @@
+# MeshLink Documentation Cross-Reference Index
+# Machine-readable mapping between SPEC.md sections, ADRs, and code locations.
+# Enables AI agents to trace requirements → decisions → implementation.
+# SPEC-ANCHOR: cross-ref-index
+
+cross_references:
+  - spec_id: "vision-pillars"
+    spec_section: "SPEC.md#1-vision--product-pillars"
+    adrs: []
+    code_files: []
+    description: "Product vision and six pillars (TOFU trust, two-layer encryption, proactive routing, reliable transfer, power-aware, cross-platform parity)"
+
+  - spec_id: "architecture"
+    spec_section: "SPEC.md#2-architecture-overview"
+    adrs:
+      - "docs/explanation/module-structure.md"
+    code_files: []
+    description: "Module structure, source set organization, wire protocol reference standards"
+
+  - spec_id: "data-model"
+    spec_section: "SPEC.md#3-core-data-models"
+    adrs:
+      - "docs/decisions/model/data-model.md"
+    code_files:
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PeerIdentity.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/SeqNo.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Scoreboard.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/RouteEntry.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferSession.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TypeModel.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/LinkMetric.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/IdentityKey.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferFailureReason.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/SessionId.kt"
+    specs:
+      - "specs/data_models.yaml"
+      - "specs/enums.yaml"
+    description: "Core data models: PeerIdentity, SeqNo, Scoreboard, RouteEntry, TransferSession, enums"
+
+  - spec_id: "discovery-identity"
+    spec_section: "SPEC.md#4-discovery--identity"
+    adrs:
+      - "docs/explanation/privacy-pseudonyms.md"
+    code_files: []
+    specs:
+      - "specs/wire_frames.yaml"
+    description: "Advertisement format, privacy trade-offs, PeerFingerprint as discovery hint"
+
+  - spec_id: "trust-model-tofu"
+    spec_section: "SPEC.md#5-trust-model-tofu"
+    adrs:
+      - "docs/decisions/crypto/crypto-design.md"
+    code_files: []
+    specs:
+      - "specs/enums.yaml"
+      - "specs/state_machines.yaml"
+    description: "TOFU trust flow, Noise patterns (XX/IK for link, IX for E2E, NX fallback), key rotation, E2E handshake routing, session state machine"
+
+  - spec_id: "transport-layer"
+    spec_section: "SPEC.md#6-transport-layer"
+    adrs:
+      - "docs/decisions/transport/gatt-l2cap-transport-selection.md"
+    code_files: []
+    description: "Bearer selection (GATT control plane, L2CAP CoC data plane), negotiation sequence, fallback reasons"
+
+  - spec_id: "security-layer"
+    spec_section: "SPEC.md#7-security-layer"
+    adrs:
+      - "docs/decisions/crypto/crypto-design.md"
+      - "docs/decisions/crypto/vector-policy.md"
+      - "docs/decisions/crypto/android-crypto-fallback-proof.md"
+    code_files: []
+    specs:
+      - "specs/enums.yaml"
+      - "specs/state_machines.yaml"
+    description: "Crypto primitives (validated against Wycheproof), Noise handshake patterns (XX/IK/IX/NX), session state machine, NX fallback, key rotation, E2E routing, fail-closed rules, Android constraints"
+
+  - spec_id: "routing-layer"
+    spec_section: "SPEC.md#8-routing-layer"
+    adrs:
+      - "docs/decisions/routing/routing-design.md"
+      - "docs/explanation/understanding-babel-routing.md"
+      - "docs/explanation/cut-through-relay.md"
+    code_files:
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/RouteEntry.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/RoutingPolicy.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/LinkMetric.kt"
+    specs:
+      - "specs/state_machines.yaml"
+      - "specs/enums.yaml"
+    description: "Babel-style distance-vector, destination-sourced seqno, Hello/IHU removal, digest-triggered resync, always-encrypted metadata, link quality metric, loop detection, TTL by priority"
+
+  - spec_id: "transfer-layer"
+    spec_section: "SPEC.md#9-transfer-layer"
+    adrs:
+      - "docs/decisions/wire/wire-format-spec.md"
+      - "docs/explanation/cut-through-relay.md"
+    code_files:
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferSession.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Scoreboard.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferFailureReason.kt"
+    specs:
+      - "specs/data_models.yaml"
+      - "specs/state_machines.yaml"
+      - "specs/wire_frames.yaml"
+    description: "Transfer session, selective ACK (dynamic bitfield), cut-through relay, TransferAck wire format"
+
+  - spec_id: "power-management"
+    spec_section: "SPEC.md#10-power-management"
+    adrs:
+      - "docs/decisions/power/power-tier-behavior.md"
+      - "docs/explanation/regulatory-compliance.md"
+    code_files:
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PowerTierSettings.kt"
+    specs:
+      - "specs/enums.yaml"
+      - "specs/settings.yaml"
+    description: "Three power tiers (HIGH/MEDIUM/LOW), regulatory region (EU clamping), grace periods, tier-driven parameters"
+
+  - spec_id: "diagnostics-events"
+    spec_section: "SPEC.md#11-diagnostics--events"
+    adrs: []
+    code_files:
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/diagnostics/DiagnosticEvent.kt"
+    specs:
+      - "specs/diagnostic_events.yaml"
+      - "specs/enums.yaml"
+    description: "Peer events, connection states, internal PeerLifecycleState, diagnostic event hierarchy, error model"
+
+  - spec_id: "build-quality"
+    spec_section: "SPEC.md#12-build--quality-constraints"
+    adrs: []
+    code_files:
+      - "meshlink/build.gradle.kts"
+    description: "Performance budgets (CI-enforced), code quality rules, platform minimums"
+
+  - spec_id: "testing-verification"
+    spec_section: "SPEC.md#13-testing--verification"
+    adrs: []
+    code_files: []
+    description: "Test suite structure (unit/host/device/proof), iOS proof testing, handshake testing, NX fallback testing, key rotation testing, virtual mesh harness, wire compatibility testing, acceptance criteria per layer"
+
+  - spec_id: "configuration-model"
+    spec_section: "SPEC.md#14-configuration-model"
+    adrs:
+      - "docs/decisions/model/data-model.md"
+    code_files:
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLink.kt"
+    specs:
+      - "specs/settings.yaml"
+    description: "Configuration DSL (MeshLinkSettings, KeyRotationSettings, TransferSettings, RoutingSettings, SecuritySettings, DiagnosticsSettings)"
+
+  - spec_id: "future-work"
+    spec_section: "SPEC.md#15-future-work"
+    adrs:
+      - "docs/decisions/crypto/pq-hybrid-candidate-matrix.md"
+    description: "PQ-hybrid key establishment, Noise IK for E2E layer, throughput-based link metrics, payload compression"
+
+adrs_by_area:
+  crypto:
+    - "docs/decisions/crypto/crypto-design.md"
+    - "docs/decisions/crypto/vector-policy.md"
+    - "docs/decisions/crypto/android-crypto-fallback-proof.md"
+    - "docs/decisions/crypto/pq-hybrid-candidate-matrix.md"
+  routing:
+    - "docs/decisions/routing/routing-design.md"
+    - "docs/explanation/understanding-babel-routing.md"
+    - "docs/explanation/cut-through-relay.md"
+  transport:
+    - "docs/decisions/transport/gatt-l2cap-transport-selection.md"
+  wire:
+    - "docs/decisions/wire/wire-format-spec.md"
+  power:
+    - "docs/decisions/power/power-tier-behavior.md"
+  model:
+    - "docs/decisions/model/data-model.md"
+
+spec_anchors_in_code:
+  - "peer-identity-model" # PeerIdentity.kt
+  - "seqno-model" # SeqNo.kt
+  - "scoreboard-model" # Scoreboard.kt
+  - "route-entry-model" # RouteEntry.kt
+  - "transfer-session-model" # TransferSession.kt
+  - "ttl-by-priority" # RoutingPolicy.kt
+  - "type-model" # TypeModel.kt
+  - "diagnostic-event" # DiagnosticEvent.kt
+  - "power-tier-config" # PowerTierConfig.kt
+  - "session-id-model" # SessionId.kt
+  - "transfer-failure-reason-model" # TransferFailureReason.kt
+  - "link-metric-model" # LinkMetric.kt
+  - "identity-key-model" # IdentityKey.kt
+  - "diagnostic-event" # diagnostic_events.yaml
+  - "type-model" # enums.yaml
+  - "state-machine" # state_machines.yaml
+  - "setting-model" # settings.yaml
+  - "wire-frame" # wire_frames.yaml
+  - "cross-ref-index" # cross_ref_index.yaml
+
+implementation_status:
+  implemented:
+    - "PeerIdentity"
+    - "SeqNo"
+    - "Scoreboard / MutableScoreboard"
+    - "RouteEntry"
+    - "TransferSession / TransferState / TransferFailureReason"
+    - "SessionId"
+    - "LinkMetric"
+    - "IdentityKey"
+    - "All enums in TypeModel.kt"
+    - "DiagnosticEvent sealed hierarchy"
+    - "PowerTierConfig"
+    - "RoutingPolicy (TTL by priority)"
+  not_implemented:
+    - "MeshLink public API (MeshLink.kt is stub)"
+    - "RouteCoordinator"
+    - "RouteDigestTracker"
+    - "RouteAdvertisementPlanner"
+    - "TransferCoordinator"
+    - "Noise handshake implementations (XX, IK, IX, NX)"
+    - "CryptoProvider (X25519, Ed25519, ChaCha20-Poly1305, HKDF, HMAC)"
+    - "BLE transport layer (GATT/L2CAP)"
+    - "KeyRotationAnnouncement handling"
+    - "TrustStore"
+    - "PeerStateCoordinator"
+    - "MeshLinkSettings DSL integration"
+    - "Virtual mesh harness"
+    - "Wire codec (FlatBuffers-compatible)"
+
+test_files_by_layer:
+  data_model:
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/PeerIdentityTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/SeqNoTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/ScoreboardTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/RouteEntryTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/IdentityKeyTest.kt"
+  enums:
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/EnumCoverageTest.kt"
+  routing:
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/RoutingPolicyTest.kt"
+  transfer:
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/SessionTest.kt"
+  power:
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/PowerTierTest.kt"
+  diagnostics:
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/DiagnosticEventTest.kt"
+  failure_reason:
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/TransferFailureReasonTest.kt"
+  version:
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/MeshLinkVersionTest.kt"
+  smoke:
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/MeshLinkTest.kt"

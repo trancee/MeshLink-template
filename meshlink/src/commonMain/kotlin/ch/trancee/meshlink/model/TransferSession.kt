@@ -26,6 +26,8 @@ public enum class TransferState {
  *
  * The [scoreboard] uses a dynamic bitfield whose length is derived from [totalChunks] — bit N = 1
  * means chunk N is received (standard SACK).
+ *
+ * SPEC-ANCHOR: transfer-session-model
  */
 public data class TransferSession(
     /** Unique 64-bit token identifying this transfer session. */

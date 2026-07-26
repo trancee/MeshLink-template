@@ -7,6 +7,8 @@ package ch.trancee.meshlink.model
  *
  * This class is immutable — [markReceived] and [markMissing] return a new [Scoreboard] instance
  * rather than mutating the original, ensuring thread-safe reads without synchronization overhead.
+ *
+ * SPEC-ANCHOR: scoreboard-model
  */
 public class Scoreboard
 private constructor(public val totalChunks: UInt, private val bytes: ByteArray) {

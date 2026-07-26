@@ -1,0 +1,215 @@
+# MeshLink Wire Frame Definitions
+# Machine-readable reference for all wire frame types and their field layouts.
+# Source of truth: SPEC.md §3.5, meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TypeModel.kt (FrameType enum)
+# SPEC-ANCHOR: wire-frame
+
+wire_frames:
+  - name: MESH_ENVELOPE
+    frame_type: 0
+    description: "Routed E2E handshake or payload"
+    encryption: "Link-layer AEAD per hop"
+    fields:
+      - name: destination
+        type: PeerIdentity
+        size_bytes: 16
+        description: "Final destination peer identity"
+      - name: payload
+        type: ByteArray
+        description: "E2E encrypted payload (Noise IX/IK/XX handshake message or application data)"
+      - name: hopLimit
+        type: UByte
+        description: "TTL for mesh routing (decremented at each hop)"
+
+  - name: ROUTE_UPDATE
+    frame_type: 1
+    description: "Route announcement with metric + seqno + destination public key"
+    encryption: "Always AEAD-encrypted (Noise link-layer session)"
+    fields:
+      - name: destination
+        type: PeerIdentity
+        size_bytes: 16
+        description: "Destination peer identity"
+      - name: nextHop
+        type: "PeerIdentity?"
+        size_bytes: "16 or 0 (null = self-origin)"
+        description: "Next hop toward destination (null for self-origin announcements where destination == sender)"
+      - name: source
+        type: PeerIdentity
+        size_bytes: 16
+        description: "Peer from whom this route was learned (for loop detection)"
+      - name: metric
+        type: UInt
+        size_bytes: 4
+        description: "Composite metric (RSSI normalized 0-255 in low byte, flags in high bits: supportsCoC bit 8, fastInterval bit 9, highPowerTier bit 10)"
+      - name: seqNo
+        type: UInt
+        size_bytes: 4
+        description: "Destination-self-reported sequence number (32-bit unsigned, signed comparison per RFC 8966 §3.7)"
+      - name: identityKey
+        type: "IdentityKey?"
+        description: "Destination's public key (Ed25519 || X25519 concatenated), enables E2E IX handshake"
+
+  - name: ROUTE_WITHDRAWAL
+    frame_type: 2
+    description: "Route retraction"
+    encryption: "Always AEAD-encrypted (Noise link-layer session)"
+    fields:
+      - name: destination
+        type: PeerIdentity
+        size_bytes: 16
+        description: "Destination peer identity being withdrawn"
+      - name: source
+        type: PeerIdentity
+        size_bytes: 16
+        description: "Peer from whom this route was learned"
+      - name: seqNo
+        type: UInt
+        size_bytes: 4
+        description: "Sequence number of withdrawn route"
+
+  - name: ROUTE_DIGEST
+    frame_type: 3
+    description: "FNV-1a hash of route table (32-bit)"
+    encryption: "Plaintext (digest only)"
+    fields:
+      - name: digest
+        type: UInt
+        size_bytes: 4
+        description: "32-bit FNV-1a hash of local route table"
+      - name: peerIdentity
+        type: PeerIdentity
+        size_bytes: 16
+        description: "Identity of peer sending this digest"
+
+  - name: TRANSFER_CHUNK
+    frame_type: 4
+    description: "Payload chunk with offset + length"
+    encryption: "Link-layer AEAD per hop"
+    fields:
+      - name: sessionId
+        type: ULong
+        size_bytes: 8
+        description: "Transfer session identifier"
+      - name: chunkIndex
+        type: UInt
+        size_bytes: 4
+        description: "Zero-based chunk index"
+      - name: offset
+        type: UInt
+        size_bytes: 4
+        description: "Byte offset within total payload"
+      - name: length
+        type: UInt
+        size_bytes: 4
+        description: "Chunk length in bytes"
+      - name: payload
+        type: ByteArray
+        description: "Chunk data (up to chunkSize bytes)"
+      - name: isLast
+        type: Boolean
+        description: "True if this is the final chunk"
+
+  - name: TRANSFER_ACK
+    frame_type: 5
+    description: "Dynamic bitfield SACK (Selective Acknowledgment)"
+    encryption: "Link-layer AEAD per hop"
+    fields:
+      - name: sessionId
+        type: ULong
+        size_bytes: 8
+        description: "Transfer session identifier"
+      - name: bitfield
+        type: ByteArray
+        description: "Dynamic bitfield: length = ceil(totalChunks / 8) bytes. Bit N = 1 means chunk N received (standard SACK convention). Receiver knows totalChunks from TransferSession."
+
+  - name: TRANSFER_CANCEL
+    frame_type: 6
+    description: "Session termination"
+    encryption: "Link-layer AEAD per hop"
+    fields:
+      - name: sessionId
+        type: ULong
+        size_bytes: 8
+        description: "Transfer session identifier"
+      - name: reason
+        type: TransferFailureReason
+        description: "Unrecoverable or TrustFailure"
+
+  - name: KEY_ROTATION_ANNOUNCEMENT
+    frame_type: 7
+    description: "Signed key rotation announcement"
+    encryption: "Plaintext (signature verifiable)"
+    fields:
+      - name: identityKey
+        type: IdentityKey
+        description: "NEW public key (Ed25519 || X25519 concatenated, 64 bytes)"
+      - name: seqNo
+        type: UInt
+        size_bytes: 4
+        description: "Always 1 — new identity starts with seqno 1"
+      - name: signature
+        type: ByteArray
+        size_bytes: 64
+        description: "Ed25519 signature with OLD private key over (identityKey || seqNo || reason)"
+      - name: reason
+        type: KeyRotationReason
+        description: "PERIODIC, MANUAL, or SECURITY_EVENT"
+
+discovery_advertisement:
+  description: "Single BLE advertisement packet carrying discovery information"
+  fields:
+    - name: fixed_uuid
+      type: ByteArray
+      size_bytes: 4
+      value: "4d455348"
+      description: "Fixed UUID 'MESH' in ASCII"
+    - name: protocol_version
+      type: UInt
+      bits: 3
+      description: "Protocol version"
+    - name: platform
+      type: UInt
+      bits: 2
+      description: "Platform identifier (0=Android, 1=iOS, 2=Desktop, 3=Reserved)"
+    - name: power_tier
+      type: UInt
+      bits: 3
+      description: "Current power mode (0=HIGH, 1=MEDIUM, 2=LOW, 3-7=Reserved)"
+    - name: mesh_hash
+      type: UInt
+      bits: 16
+      description: "Application isolation filter (derived from appId)"
+    - name: l2cap_psm_hint
+      type: UByte
+      size_bytes: 1
+      description: "Non-zero if L2CAP CoC supported; PSM value for direct connection"
+    - name: peer_fingerprint
+      type: ByteArray
+      size_bytes: 12
+      description: "SHA-256(Ed25519Pub || X25519Pub) truncated to 96 bits. Ed25519 first (identity anchor), X25519 second (DH key). Discovery hint only — never used for authentication."
+
+frame_type_enum:
+  # Matches FrameType enum in TypeModel.kt
+  - name: MESH_ENVELOPE
+    value: 0
+  - name: ROUTE_UPDATE
+    value: 1
+  - name: ROUTE_WITHDRAWAL
+    value: 2
+  - name: ROUTE_DIGEST
+    value: 3
+  - name: TRANSFER_CHUNK
+    value: 4
+  - name: TRANSFER_ACK
+    value: 5
+  - name: TRANSFER_CANCEL
+    value: 6
+  - name: KEY_ROTATION_ANNOUNCEMENT
+    value: 7
+
+notes:
+  - "Hello and IHU frame types were removed per destination-sourced seqno design (RFC 8966 §3.4 permits skipping Hello-based discovery when neighbor discovery is performed by means outside Babel — BLE GATT/L2CAP connect/disconnect provides liveness)."
+  - "SeqNoRequest frame type remains reserved (deferred) but not implemented."
+  - "All routing metadata (ROUTE_UPDATE, ROUTE_WITHDRAWAL) is AEAD-encrypted — no plaintext routing metadata transmitted."
+  - "KEY_ROTATION_ANNOUNCEMENT is plaintext but signed with old key for verification."
+  - "Dynamic bitfield in TRANSFER_ACK: length derived from totalChunks in TransferSession, no extra length field needed."

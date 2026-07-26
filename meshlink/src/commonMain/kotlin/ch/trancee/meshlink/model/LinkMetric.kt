@@ -1,6 +1,10 @@
 package ch.trancee.meshlink.model
 
-/** Link quality metric for routing decisions. */
+/**
+ * Link quality metric for routing decisions.
+ *
+ * SPEC-ANCHOR: link-metric-model
+ */
 public data class LinkMetric(
     /** RSSI normalized to 0-255 scale (0 = unusable, 255 = excellent). */
     public val rssiNormalized: UInt,
