@@ -23,7 +23,7 @@ Discovery → GATT connection → Noise_XX_25519_ChaChaPoly_SHA256 handshake →
 - Route updates propagate hop-by-hop: each relay re-advertises the destination's public key in its own route updates
 - This enables E2E IX handshake where the origin knows the destination's static key before connecting
 - NX fallback (`Noise_NX`) is used only when the destination's public key is not yet in the routing table (cold start, partition recovery)
-- `KEY_ROTATION_ANNOUNCEMENT` updates the public key when a peer rotates its keys
+- `KEY_ROTATION` updates the public key when a peer rotates its keys
 
 ## 5.4 Revocation
 

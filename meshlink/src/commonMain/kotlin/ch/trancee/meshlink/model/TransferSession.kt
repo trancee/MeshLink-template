@@ -21,7 +21,7 @@ public enum class TransferState {
 /**
  * Drives chunked transfer with selective ACK and cut-through relay support.
  *
- * The [chunkSize] is selected by the local [PowerTier] at session start and bounded by the peer's
+ * The [chunkSize] is selected by the local [PowerMode] at session start and bounded by the peer's
  * advertised MTU.
  *
  * The [scoreboard] uses a dynamic bitfield whose length is derived from [totalChunks] — bit N = 1

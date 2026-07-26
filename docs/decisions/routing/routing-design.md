@@ -132,7 +132,7 @@ Hello/IHU frames are removed because BLE connection state provides liveness (see
 Composite `UInt32` where:
 
 - **Low byte (8 bits):** RSSI normalized 0-255 (0 = unusable, 255 = excellent)
-- **High bits (24 bits):** Flags for CoC support, interval, power tier
+- **High bits (24 bits):** Flags for CoC support, interval, power mode
 
 Normalization:
 

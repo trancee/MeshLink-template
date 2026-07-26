@@ -15,7 +15,7 @@ This directory contains the split reference specification. The root `SPEC.md` no
 | Security Layer | [07-security.md](07-security.md) | §7 |
 | Routing Layer | [08-routing.md](08-routing.md) | §8 |
 | Transfer Layer | [09-transfer.md](09-transfer.md) | §9 |
-| Power Management | [10-power.md](10-power.md) | §10 |
+| Power Management | [10-power-management.md](10-power-management.md) | §10 |
 | Diagnostics & Events | [11-diagnostics.md](11-diagnostics.md) | §11 |
 | Build & Quality Constraints | [12-build-quality.md](12-build-quality.md) | §12 |
 | Testing & Verification | [13-testing.md](13-testing.md) | §13 |

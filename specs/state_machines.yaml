@@ -128,7 +128,7 @@ state_machines:
         event: "BLE reconnects"
         to: CONNECTED
       - from: DISCONNECTED
-        event: "Grace period expires (tier-dependent: HIGH=15s, MEDIUM=30s, LOW=45s)"
+        event: "Grace period expires (mode-dependent: HIGH=15s, MEDIUM=30s, LOW=45s)"
         to: GONE
 
   - name: TrustState

@@ -24,7 +24,7 @@ stateDiagram-v2
     [*] --> Connected: peer discovered
     Connected --> Disconnected: link lost
     Disconnected --> Connected: BLE reconnects
-    Disconnected --> Gone: grace period expires (15s–45s depending on power tier)
+    Disconnected --> Gone: grace period expires (15s–45s depending on power mode)
     Gone --> [*]
 
     note right of Disconnected
@@ -63,7 +63,7 @@ stateDiagram-v2
 ## How the grace period works
 
 When a peer disconnects unexpectedly, MeshLink starts a fixed grace timer
-whose duration depends on the power tier (HIGH=15s, MEDIUM=30s, LOW=45s).
+whose duration depends on the power mode (HIGH=15s, MEDIUM=30s, LOW=45s).
 If the peer reconnects before the timer expires, it moves back to CONNECTED.
 If the timer fires without reconnection, the peer moves to GONE and
 eviction of ephemeral state begins.

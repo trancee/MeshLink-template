@@ -1,4 +1,4 @@
-# Power Tier Behavior Specification
+# Power Mode Behavior Specification
 
 **Status:** Locked — 2026-07-20
 
@@ -6,21 +6,21 @@ See [SPEC.md §10](../../../SPEC.md#10-power-management) for complete parameter 
 
 ## Context
 
-MeshLink requires power-aware operation: discrete power tiers governing scan duty cycle, advertisement interval, connection interval, concurrent connections, and transfer chunk size.
+MeshLink requires power-aware operation: discrete power modes governing scan duty cycle, advertisement interval, connection interval, concurrent connections, and transfer chunk size.
 
-## Decision: Three-Tier Model with Fixed Grace Periods
+## Decision: Three-Mode Model with Fixed Grace Periods
 
-### PowerTier Enum
+### PowerMode Enum
 
 ```kotlin
-enum class PowerTier { HIGH, MEDIUM, LOW }
+enum class PowerMode { HIGH, MEDIUM, LOW }
 ```
 
-### Tier Parameters
+### Mode Parameters
 
-**Complete parameter tables in [SPEC.md §10.4](../../../SPEC.md#104-tier-driven-parameters) and [specs/enums.yaml](../../../specs/enums.yaml).**
+**Complete parameter tables in [SPEC.md §10.4](../../../SPEC.md#104-mode-driven-parameters) and [specs/enums.yaml](../../../specs/enums.yaml).**
 
-| Tier | Scan Duty | Adv Interval | Conn Interval | Concurrent | Chunk Size | Max Retries | Retry Budget | Grace Period |
+| Mode | Scan Duty | Adv Interval | Conn Interval | Concurrent | Chunk Size | Max Retries | Retry Budget | Grace Period |
 |------|-----------|--------------|---------------|------------|------------|-------------|--------------|--------------|
 | HIGH | 20% | 100ms | 7.5–15ms | 8 | 512B | 10 | 60s | 15s |
 | MEDIUM | 10% | 500ms | 15–30ms | 4 | 256B | 5 | 30s | 30s |
@@ -36,9 +36,9 @@ enum class PowerTier { HIGH, MEDIUM, LOW }
 
 ### Grace Period
 
-Fixed grace period per power tier. After the grace period expires without reconnection, the peer transitions to GONE and ephemeral state (presence, routes, pending transfers) is cleaned up. Pinned trust state persists.
+Fixed grace period per power mode. After the grace period expires without reconnection, the peer transitions to GONE and ephemeral state (presence, routes, pending transfers) is cleaned up. Pinned trust state persists.
 
-| Tier | Grace Period |
+| Mode | Grace Period |
 |------|-------------|
 | HIGH | 15 seconds |
 | MEDIUM (default) | 30 seconds |
@@ -59,7 +59,7 @@ Clamping happens in shared policy code, not platform-specific wrappers.
 
 #### Android
 
-Power tier maps to Android `ScanSettings`:
+Power mode maps to Android `ScanSettings`:
 
 - HIGH → `SCAN_MODE_LOW_LATENCY`
 - MEDIUM → `SCAN_MODE_OPPORTUNISTIC`
@@ -67,16 +67,16 @@ Power tier maps to Android `ScanSettings`:
 
 #### iOS
 
-iOS scan modes are less granular than Android. The LOW tier uses background preservation rather than scan duty cycle.
+iOS scan modes are less granular than Android. The LOW mode uses background preservation rather than scan duty cycle.
 
 ### Diagnostics Contract
 
-`PowerTierEffectiveEvent` emits observed effective parameters after regulatory clamping:
+`PowerModeEffectiveEvent` emits observed effective parameters after regulatory clamping:
 
 ```yaml
 power:
-  requestedTier: "medium"
-  effectiveTier: "medium"
+  requestedMode: "medium"
+  effectiveMode: "medium"
   regulatoryRegion: "DEFAULT"
   scanDutyCyclePercent: 10
   advertisementIntervalMs: 500
@@ -85,8 +85,8 @@ power:
 
 ### Testing
 
-- `PowerTierTest`: verify each tier produces correct platform settings
-- `BatteryConsumptionBenchmark`: verify LOW tier consumes ≤1% battery/hour
+- `PowerModeTest`: verify each mode produces correct platform settings
+- `BatteryConsumptionBenchmark`: verify LOW mode consumes ≤1% battery/hour
 - `CrossPlatformComparisonTest`: verify similar behavior on Android/iOS
 
 ## Related

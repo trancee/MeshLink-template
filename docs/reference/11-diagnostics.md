@@ -32,7 +32,7 @@ PeerLifecycleState {
   connectionState: PeerConnectionState
   expiresAt: Instant?        // Non-null while grace window is active; null when GONE
   rssi: Int?                 // For metric calculation
-  supportsCoc: Boolean       // L2CAP CoC capability
+  supportsL2CAP: Boolean       // L2CAP CoC capability
   connectionInterval: Int    // ms
   handshakeAt: Instant?      // For timeout calculations
 }
@@ -49,7 +49,7 @@ All diagnostic events are defined in `meshlink/src/commonMain/kotlin/ch/trancee/
 | `route.*` | `peerIdentity`, `frameType`, `failureReason` | `RouteDecryptFailureEvent` |
 | `transport.*` | `peerIdentity`, `reason` | `TransportFallbackEvent` |
 | `transfer.*` | `sessionId`, `bearer` | `TransferDataPlaneBearerEvent` |
-| `power.*` | `requestedTier`, `effectiveTier`, `regulatoryRegion`, `scanDutyCyclePercent`, `advertisementIntervalMs`, `connectionIntervalMs` | `PowerTierEffectiveEvent` |
+| `power.*` | `requestedMode`, `effectiveMode`, `regulatoryRegion`, `scanDutyCyclePercent`, `advertisementIntervalMs`, `connectionIntervalMs` | `PowerModeEffectiveEvent` |
 | `handshake.*` | `sessionId`, `pattern`, `fallbackUsed`, `verificationLevel`, `rateLimitAttempts`, `nonceReplayDetected` | `HandshakeEvent` |
 | `key_rotation.*` | `peerIdentity`, `oldKeyVerified`, `sequenceNumberReset`, `propagationDeadlineMet`, `reason` | `KeyRotationEvent` |
 | `route.*` | `peerIdentity`, `localDigest`, `remoteDigest` | `RouteDigestMismatchEvent` |

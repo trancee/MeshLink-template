@@ -10,7 +10,7 @@ import ch.trancee.meshlink.model.NoiseLayer
 import ch.trancee.meshlink.model.NoiseRole
 import ch.trancee.meshlink.model.NoiseSessionState
 import ch.trancee.meshlink.model.PeerIdentity
-import ch.trancee.meshlink.model.PowerTier
+import ch.trancee.meshlink.model.PowerMode
 import ch.trancee.meshlink.model.RegulatoryRegion
 import ch.trancee.meshlink.model.SessionId
 import ch.trancee.meshlink.model.TransferFailureReason
@@ -53,10 +53,10 @@ public sealed interface DiagnosticEvent {
         public val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent
 
-    /** Effective power tier parameters after regulatory clamping. */
-    public data class PowerTierEffectiveEvent(
-        public val requestedTier: PowerTier,
-        public val effectiveTier: PowerTier,
+    /** Effective power mode parameters after regulatory clamping. */
+    public data class PowerModeEffectiveEvent(
+        public val requestedMode: PowerMode,
+        public val effectiveMode: PowerMode,
         public val regulatoryRegion: RegulatoryRegion,
         public val scanDutyCyclePercent: Int,
         public val advertisementIntervalMs: Int,

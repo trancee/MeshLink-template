@@ -11,7 +11,7 @@ Single BLE advertisement packet containing:
 | Fixed UUID | 4 bytes | `4d455348` ("MESH") |
 | Protocol version | 3 bits | |
 | Platform | 2 bits | |
-| Power tier | 3 bits | Current power mode |
+| Power mode | 3 bits | Current power mode |
 | Mesh hash | 16 bits | Application isolation filter |
 | L2CAP PSM hint | 8 bits | Non-zero if CoC supported |
 | PeerFingerprint | 12 bytes | SHA-256 truncated, discovery hint only |

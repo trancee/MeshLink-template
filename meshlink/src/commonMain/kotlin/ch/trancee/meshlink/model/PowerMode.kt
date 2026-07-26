@@ -1,17 +1,17 @@
 package ch.trancee.meshlink.model
 
 /**
- * Power tier governing BLE radio operation parameters.
+ * Power mode governing BLE radio operation parameters.
  *
- * SPEC-ANCHOR: power-tier-settings
+ * SPEC-ANCHOR: power-mode-settings
  */
-public enum class PowerTier {
+public enum class PowerMode {
     HIGH,
     MEDIUM,
     LOW;
 
-    /** Returns the settings for this power tier. */
-    public val settings: PowerTierSettings
+    /** Returns the settings for this power mode. */
+    public val settings: PowerModeSettings
         get() =
             when (this) {
                 HIGH -> HIGH_SETTINGS
@@ -20,9 +20,9 @@ public enum class PowerTier {
             }
 
     public companion object {
-        /** Settings for HIGH power tier. */
-        public val HIGH_SETTINGS: PowerTierSettings =
-            PowerTierSettings(
+        /** Settings for HIGH power mode. */
+        public val HIGH_SETTINGS: PowerModeSettings =
+            PowerModeSettings(
                 scanDutyCyclePercent = 20,
                 advertisementIntervalMs = 100,
                 // 7.5ms = minimum valid BLE connection interval (6 × 1.25ms);
@@ -35,9 +35,9 @@ public enum class PowerTier {
                 gracePeriodSeconds = 15,
             )
 
-        /** Settings for MEDIUM power tier. */
-        public val MEDIUM_SETTINGS: PowerTierSettings =
-            PowerTierSettings(
+        /** Settings for MEDIUM power mode. */
+        public val MEDIUM_SETTINGS: PowerModeSettings =
+            PowerModeSettings(
                 scanDutyCyclePercent = 10,
                 advertisementIntervalMs = 500,
                 connectionIntervalMs = 15.0,
@@ -48,9 +48,9 @@ public enum class PowerTier {
                 gracePeriodSeconds = 30,
             )
 
-        /** Settings for LOW power tier. */
-        public val LOW_SETTINGS: PowerTierSettings =
-            PowerTierSettings(
+        /** Settings for LOW power mode. */
+        public val LOW_SETTINGS: PowerModeSettings =
+            PowerModeSettings(
                 scanDutyCyclePercent = 5,
                 advertisementIntervalMs = 1000,
                 connectionIntervalMs = 30.0,
@@ -63,15 +63,15 @@ public enum class PowerTier {
     }
 }
 
-/** Settings parameters for a [PowerTier]. */
-public data class PowerTierSettings(
+/** Settings parameters for a [PowerMode]. */
+public data class PowerModeSettings(
     /** Scan duty cycle as a percentage of the BLE connection interval. */
     public val scanDutyCyclePercent: Int,
     /** Minimum advertisement interval in milliseconds. */
     public val advertisementIntervalMs: Int,
     /** Connection interval in milliseconds. */
     public val connectionIntervalMs: Double,
-    /** Maximum number of concurrent BLE connections this tier supports. */
+    /** Maximum number of concurrent BLE connections this mode supports. */
     public val concurrentConnections: Int,
     /** Transfer chunk size in bytes, bounded by peer MTU. */
     public val chunkSize: Int,

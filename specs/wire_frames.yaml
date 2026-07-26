@@ -40,7 +40,7 @@ wire_frames:
       - name: metric
         type: UInt
         size_bytes: 4
-        description: "Composite metric (RSSI normalized 0-255 in low byte, flags in high bits: supportsCoC bit 8, fastInterval bit 9, highPowerTier bit 10)"
+        description: "Composite metric (RSSI normalized 0-255 in low byte, flags in high bits: supportsL2CAP bit 8, fastInterval bit 9, highPowerMode bit 10)"
       - name: seqNo
         type: UInt
         size_bytes: 4
@@ -109,7 +109,7 @@ wire_frames:
         type: Boolean
         description: "True if this is the final chunk"
 
-  - name: TRANSFER_ACK
+  - name: TRANSFER_ACKNOWLEDGMENT
     frame_type: 5
     description: "Dynamic bitfield SACK (Selective Acknowledgment)"
     encryption: "Link-layer AEAD per hop"
@@ -135,7 +135,7 @@ wire_frames:
         type: TransferFailureReason
         description: "Unrecoverable or TrustFailure"
 
-  - name: KEY_ROTATION_ANNOUNCEMENT
+  - name: KEY_ROTATION
     frame_type: 7
     description: "Signed key rotation announcement"
     encryption: "Plaintext (signature verifiable)"
@@ -171,7 +171,7 @@ discovery_advertisement:
       type: UInt
       bits: 2
       description: "Platform identifier (0=Android, 1=iOS, 2=Desktop, 3=Reserved)"
-    - name: power_tier
+    - name: power_mode
       type: UInt
       bits: 3
       description: "Current power mode (0=HIGH, 1=MEDIUM, 2=LOW, 3-7=Reserved)"
@@ -200,16 +200,16 @@ frame_type_enum:
     value: 3
   - name: TRANSFER_CHUNK
     value: 4
-  - name: TRANSFER_ACK
+  - name: TRANSFER_ACKNOWLEDGMENT
     value: 5
   - name: TRANSFER_CANCEL
     value: 6
-  - name: KEY_ROTATION_ANNOUNCEMENT
+  - name: KEY_ROTATION
     value: 7
 
 notes:
   - "Hello and IHU frame types were removed per destination-sourced seqno design (RFC 8966 §3.4 permits skipping Hello-based discovery when neighbor discovery is performed by means outside Babel — BLE GATT/L2CAP connect/disconnect provides liveness)."
   - "SeqNoRequest frame type remains reserved (deferred) but not implemented."
   - "All routing metadata (ROUTE_UPDATE, ROUTE_WITHDRAWAL) is AEAD-encrypted — no plaintext routing metadata transmitted."
-  - "KEY_ROTATION_ANNOUNCEMENT is plaintext but signed with old key for verification."
-  - "Dynamic bitfield in TRANSFER_ACK: length derived from totalChunks in TransferSession, no extra length field needed."
+  - "KEY_ROTATION is plaintext but signed with old key for verification."
+  - "Dynamic bitfield in TRANSFER_ACKNOWLEDGMENT: length derived from totalChunks in TransferSession, no extra length field needed."

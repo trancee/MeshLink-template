@@ -1,26 +1,26 @@
 package ch.trancee.meshlink
 
-import ch.trancee.meshlink.model.PowerTier
+import ch.trancee.meshlink.model.PowerMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-class PowerTierTest {
+class PowerModeTest {
     @Test
     fun `settings values`() {
-        assertEquals(20, PowerTier.HIGH.settings.scanDutyCyclePercent)
-        assertEquals(10, PowerTier.MEDIUM.settings.scanDutyCyclePercent)
-        assertEquals(5, PowerTier.LOW.settings.scanDutyCyclePercent)
+        assertEquals(20, PowerMode.HIGH.settings.scanDutyCyclePercent)
+        assertEquals(10, PowerMode.MEDIUM.settings.scanDutyCyclePercent)
+        assertEquals(5, PowerMode.LOW.settings.scanDutyCyclePercent)
     }
 
     @Test
     fun `all entries have non-null name`() {
-        PowerTier.entries.forEach { assertNotNull(it.name) }
+        PowerMode.entries.forEach { assertNotNull(it.name) }
     }
 
     @Test
     fun `HIGH settings has all expected values`() {
-        val settings = PowerTier.HIGH.settings
+        val settings = PowerMode.HIGH.settings
         assertEquals(20, settings.scanDutyCyclePercent)
         assertEquals(100, settings.advertisementIntervalMs)
         assertEquals(7.5, settings.connectionIntervalMs)
@@ -33,7 +33,7 @@ class PowerTierTest {
 
     @Test
     fun `LOW settings has all expected values`() {
-        val settings = PowerTier.LOW.settings
+        val settings = PowerMode.LOW.settings
         assertEquals(5, settings.scanDutyCyclePercent)
         assertEquals(1000, settings.advertisementIntervalMs)
         assertEquals(30.0, settings.connectionIntervalMs)
@@ -46,16 +46,16 @@ class PowerTierTest {
 
     @Test
     fun `HIGH_SETTINGS scanDutyCyclePercent`() {
-        assertEquals(20, PowerTier.HIGH_SETTINGS.scanDutyCyclePercent)
+        assertEquals(20, PowerMode.HIGH_SETTINGS.scanDutyCyclePercent)
     }
 
     @Test
     fun `MEDIUM_SETTINGS scanDutyCyclePercent`() {
-        assertEquals(10, PowerTier.MEDIUM_SETTINGS.scanDutyCyclePercent)
+        assertEquals(10, PowerMode.MEDIUM_SETTINGS.scanDutyCyclePercent)
     }
 
     @Test
     fun `LOW_SETTINGS scanDutyCyclePercent`() {
-        assertEquals(5, PowerTier.LOW_SETTINGS.scanDutyCyclePercent)
+        assertEquals(5, PowerMode.LOW_SETTINGS.scanDutyCyclePercent)
     }
 }

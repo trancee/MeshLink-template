@@ -2,10 +2,10 @@
 
 > Source: [SPEC.md §10](../../SPEC.md#10-power-management)
 
-## 10.1 Power Tiers
+## 10.1 Power Modes
 
 ```text
-enum class PowerTier {
+enum class PowerMode {
   HIGH,     // Performance prioritized (20% scan, 100ms adv, 7.5ms conn, 8 concurrent, 512B chunks)
   MEDIUM,   // Balanced (10% scan, 500ms adv, 15ms conn, 4 concurrent, 256B chunks) - DEFAULT
   LOW       // Battery conserved (5% scan, 1000ms adv, 30ms conn, 2 concurrent, 128B chunks)
@@ -26,13 +26,13 @@ When region = EU:
 - Advertisement interval floor: 300ms (below spec values clamped)
 - Scan duty cycle ceiling: 70%
 
-[Decision: docs/decisions/power/power-tier-behavior.md, docs/explanation/regulatory-compliance.md]
+[Decision: docs/decisions/power/power-mode-behavior.md, docs/explanation/regulatory-compliance.md]
 
 ## 10.3 Grace Period
 
-Fixed grace period per power tier:
+Fixed grace period per power mode:
 
-| Tier | Grace Period |
+| Mode | Grace Period |
 |------|-------------|
 | HIGH | 15 seconds |
 | MEDIUM (default) | 30 seconds |
@@ -42,11 +42,11 @@ After the grace period expires without reconnection, the peer transitions to GON
 
 **Future work:** An adaptive grace period that adjusts based on peer stability (disconnect history) and session uptime is tracked in a separate design note and can be introduced as a future enhancement.
 
-[Decision: docs/decisions/power/power-tier-behavior.md]
+[Decision: docs/decisions/power/power-mode-behavior.md]
 
-## 10.4 Tier-Driven Parameters
+## 10.4 Mode-Driven Parameters
 
-| Tier | Scan Duty Cycle | Adv Interval | Conn Interval | Concurrent | Chunk Size | Max Retries | Retry Budget |
+| Mode | Scan Duty Cycle | Adv Interval | Conn Interval | Concurrent | Chunk Size | Max Retries | Retry Budget |
 |------|-----------------|--------------|---------------|------------|------------|-------------|--------------|
 | HIGH | 20% | 100ms | 7.5-15ms | 8 | 512B | 10 | 60s |
 | MEDIUM | 10% | 500ms | 15-30ms | 4 | 256B | 5 | 30s |

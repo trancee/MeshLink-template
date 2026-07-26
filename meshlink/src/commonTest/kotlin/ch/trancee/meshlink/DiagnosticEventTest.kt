@@ -11,7 +11,7 @@ import ch.trancee.meshlink.model.NoiseLayer
 import ch.trancee.meshlink.model.NoiseRole
 import ch.trancee.meshlink.model.NoiseSessionState
 import ch.trancee.meshlink.model.PeerIdentity
-import ch.trancee.meshlink.model.PowerTier
+import ch.trancee.meshlink.model.PowerMode
 import ch.trancee.meshlink.model.RegulatoryRegion
 import ch.trancee.meshlink.model.SessionId
 import ch.trancee.meshlink.model.TransferFailureReason
@@ -62,18 +62,18 @@ class DiagnosticEventTest {
     }
 
     @Test
-    fun `DiagnosticEvent PowerTierEffectiveEvent`() {
+    fun `DiagnosticEvent PowerModeEffectiveEvent`() {
         val event =
-            DiagnosticEvent.PowerTierEffectiveEvent(
-                requestedTier = PowerTier.HIGH,
-                effectiveTier = PowerTier.MEDIUM,
+            DiagnosticEvent.PowerModeEffectiveEvent(
+                requestedMode = PowerMode.HIGH,
+                effectiveMode = PowerMode.MEDIUM,
                 regulatoryRegion = RegulatoryRegion.EU,
                 scanDutyCyclePercent = 10,
                 advertisementIntervalMs = 500,
                 connectionIntervalMs = 15.0,
             )
-        assertEquals(PowerTier.HIGH, event.requestedTier)
-        assertEquals(PowerTier.MEDIUM, event.effectiveTier)
+        assertEquals(PowerMode.HIGH, event.requestedMode)
+        assertEquals(PowerMode.MEDIUM, event.effectiveMode)
         assertEquals(RegulatoryRegion.EU, event.regulatoryRegion)
         assertNotNull(event.timestamp)
     }

@@ -83,11 +83,11 @@ Transition logic lives in `TransferCoordinator.kt`. Scoreboard completeness chec
 
 ## Configuration Model
 
-### PowerTier maps to concrete BLE parameters
+### PowerMode maps to concrete BLE parameters
 
-**Full table in [SPEC.md §10.4](../../../SPEC.md#104-tier-driven-parameters) and [specs/settings.yaml](../../../specs/settings.yaml#power_tier_parameter_mapping).**
+**Full table in [SPEC.md §10.4](../../../SPEC.md#104-mode-driven-parameters) and [specs/settings.yaml](../../../specs/settings.yaml#power_mode_parameter_mapping).**
 
-Defaults in `MeshLinkSettings` match MEDIUM tier. EU region clamps adv interval floor to 300ms.
+Defaults in `MeshLinkSettings` match MEDIUM mode. EU region clamps adv interval floor to 300ms.
 
 ### RegulatoryRegion adds explicit clamping
 
@@ -106,7 +106,7 @@ Machine-readable reference: [specs/diagnostic_events.yaml](../../../specs/diagno
 | route | `RouteDecryptFailureEvent`, `RouteDigestMismatchEvent` |
 | transport | `TransportFallbackEvent` |
 | transfer | `TransferDataPlaneBearerEvent`, `TransferSessionTransitionEvent`, `TransferFailureEvent` |
-| power | `PowerTierEffectiveEvent` |
+| power | `PowerModeEffectiveEvent` |
 | handshake | `HandshakeEvent` |
 | key_rotation | `KeyRotationEvent` |
 | noise | `NoiseSessionTransitionEvent` |
@@ -121,7 +121,7 @@ Events are machine-observable: consumed by `eventCallback` in settings or logged
 | PeerIdentity/Fingerprint | `PeerIdentityTest` | Generation, truncation |
 | Scoreboard | `ScoreboardTest` | Bitfield operations |
 | RouteEntry | `RouteEntryTest` | Seqno/metric handling |
-| PowerTier | `PowerTierTest` | Parameter mapping |
+| PowerMode | `PowerModeTest` | Parameter mapping |
 | RoutingPolicy | `RoutingPolicyTest` | Settings validation |
 | TransferFailureReason | `TransferFailureReasonTest` | Sealed type coverage |
 
@@ -131,7 +131,7 @@ All types require 100% line/branch coverage in `:meshlink`.
 
 - [SPEC.md Core Models](../../../SPEC.md#3-core-data-models)
 - [Routing Design](../routing/routing-design.md)
-- [Power Tier Behavior](../power/power-tier-behavior.md)
+- [Power Mode Behavior](../power/power-mode-behavior.md)
 - [Crypto Design](../crypto/crypto-design.md)
 - [specs/enums.yaml](../../../specs/enums.yaml)
 - [specs/data_models.yaml](../../../specs/data_models.yaml)

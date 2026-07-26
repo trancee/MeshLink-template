@@ -14,7 +14,7 @@
 2. **Two-layer encryption** — Hop-by-hop link encryption (relays can forward without reading) layered under end-to-end encryption (origin/destination only)
 3. **Proactive multi-hop routing** — Distance-vector-style routing control plane maintaining live route tables; host app never selects intermediate hops manually
 4. **Reliable large-payload transfer** — Chunked transfer with selective acknowledgment (SACK), retransmission, and reassembly over small-frame BLE radio
-5. **Power-aware operation** — Discrete power tiers governing scan duty cycle, advertisement interval, connection interval, concurrent connections, and transfer chunk size
+5. **Power-aware operation** — Discrete power modes governing scan duty cycle, advertisement interval, connection interval, concurrent connections, and transfer chunk size
 6. **Deterministic cross-platform parity** — Identical lifecycle states, sealed error hierarchies, and diagnostic codes across Android and iOS
 
 ## 1.3 Non-Functional Requirements

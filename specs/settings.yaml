@@ -1,6 +1,6 @@
 # MeshLink Configuration Model
 # Machine-readable reference for all configuration settings.
-# Source of truth: SPEC.md §14 and meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PowerTierSettings.kt
+# Source of truth: SPEC.md §14 and meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PowerMode.kt
 # SPEC-ANCHOR: setting-model
 
 settings:
@@ -8,10 +8,10 @@ settings:
     package: ch.trancee.meshlink
     description: "MeshLink configuration DSL. Single source of truth for all tunable parameters."
     fields:
-      - name: powerTier
-        type: PowerTier
+      - name: powerMode
+        type: PowerMode
         default: "MEDIUM"
-        description: "Performance vs battery trade-off tier"
+        description: "Performance vs battery trade-off mode"
       - name: regulatoryRegion
         type: RegulatoryRegion
         default: "DEFAULT"
@@ -65,7 +65,7 @@ settings:
       - name: chunkSize
         type: Int
         default: 256
-        description: "Default chunk size in bytes (overridden by power tier at session start)"
+        description: "Default chunk size in bytes (overridden by power mode at session start)"
       - name: maxConcurrentSessionsPerPeer
         type: Int
         default: 3
@@ -148,10 +148,10 @@ settings:
 
   meshLinkSettings:
     package: ch.trancee.meshlink
-    description: "MeshLink configuration DSL builder function. Usage: val settings = meshLinkSettings { powerTier = PowerTier.HIGH; keyRotation { interval = Duration.days(1) } }"
+    description: "MeshLink configuration DSL builder function. Usage: val settings = meshLinkSettings { powerMode = PowerMode.HIGH; keyRotation { interval = Duration.days(1) } }"
     returns: MeshLinkSettings
 
-power_tier_parameter_mapping:
+power_mode_parameter_mapping:
   HIGH:
     scan_duty_cycle_percent: 20
     adv_interval_ms: 100

@@ -50,16 +50,16 @@ diagnostic_events:
         type: Instant
         default: "Clock.System.now()"
 
-  - name: PowerTierEffectiveEvent
+  - name: PowerModeEffectiveEvent
     category: power
-    description: "Effective power tier parameters after regulatory clamping."
+    description: "Effective power mode parameters after regulatory clamping."
     fields:
-      - name: requestedTier
-        type: PowerTier
-        description: "Tier requested by host app"
-      - name: effectiveTier
-        type: PowerTier
-        description: "Tier actually in effect after EU clamping"
+      - name: requestedMode
+        type: PowerMode
+        description: "Mode requested by host app"
+      - name: effectiveMode
+        type: PowerMode
+        description: "Mode actually in effect after EU clamping"
       - name: regulatoryRegion
         type: RegulatoryRegion
         description: "Regulatory region in effect"

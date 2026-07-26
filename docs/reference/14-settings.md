@@ -10,7 +10,7 @@
  * Single source of truth for all tunable parameters.
  */
 data class MeshLinkSettings(
-  val powerTier: PowerTier = PowerTier.MEDIUM,
+  val powerMode: PowerMode = PowerMode.MEDIUM,
   val regulatoryRegion: RegulatoryRegion = RegulatoryRegion.DEFAULT,
   val keyRotation: KeyRotationSettings = KeyRotationSettings(),
   val transfer: TransferSettings = TransferSettings(),
@@ -42,7 +42,7 @@ data class KeyRotationSettings(
 
 data class TransferSettings(
   val maxRetries: Int = 5,
-  val chunkSize: Int = 256, // Default; overridden by power tier
+  val chunkSize: Int = 256, // Default; overridden by power mode
   val maxConcurrentSessionsPerPeer: Int = 3,
   val scoreboardEncoding: ScoreboardEncoding = ScoreboardEncoding.DYNAMIC,
   // ScoreboardEncoding.FIXED requires maxChunksPerSession to pre-allocate bitfield
@@ -143,7 +143,7 @@ data class DiagnosticsSettings(
  * Usage:
  * ```kotlin
  * val settings = meshLinkSettings {
- *   powerTier = PowerTier.HIGH
+ *   powerMode = PowerMode.HIGH
  *   keyRotation { interval = Duration.days(1) }
  * }
  * ```
@@ -159,7 +159,7 @@ fun meshLinkSettings(block: MeshLinkSettings.() -> Unit): MeshLinkSettings {
 
 ```kotlin
 val settings = meshLinkSettings {
-  powerTier = PowerTier.HIGH
+  powerMode = PowerMode.HIGH
   regulatoryRegion = RegulatoryRegion.EU
   keyRotation = KeyRotationSettings(
     interval = Duration.days(1),

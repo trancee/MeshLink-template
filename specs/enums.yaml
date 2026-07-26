@@ -81,13 +81,13 @@ enums:
       - name: TRANSFER_CHUNK
         ordinal: 4
         encryption: "Link-layer AEAD per hop"
-      - name: TRANSFER_ACK
+      - name: TRANSFER_ACKNOWLEDGMENT
         ordinal: 5
         encryption: "Link-layer AEAD per hop"
       - name: TRANSFER_CANCEL
         ordinal: 6
         encryption: "Link-layer AEAD per hop"
-      - name: KEY_ROTATION_ANNOUNCEMENT
+      - name: KEY_ROTATION
         ordinal: 7
         encryption: "Plaintext (signature verifiable)"
 
@@ -197,9 +197,9 @@ enums:
       - name: INTERNAL_ERROR
         ordinal: 8
 
-  - name: PowerTier
+  - name: PowerMode
     package: ch.trancee.meshlink.model
-    description: "Power tier governing scan duty cycle, advertisement interval, connection interval, concurrent connections, and transfer chunk size."
+    description: "Power mode governing scan duty cycle, advertisement interval, connection interval, concurrent connections, and transfer chunk size."
     values:
       - name: HIGH
         ordinal: 0

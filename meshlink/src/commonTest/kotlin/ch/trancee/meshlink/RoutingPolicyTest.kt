@@ -25,9 +25,9 @@ class RoutingPolicyTest {
         val metric =
             LinkMetric(
                 rssiNormalized = 100u,
-                supportsCoc = true,
+                supportsL2CAP = true,
                 fastInterval = false,
-                highPowerTier = true,
+                highPowerMode = true,
             )
         // flags bits 8-10 shl 8 = (256 | 0 | 1024) shl 8 = 327680, or rssiNormalized 100 = 327780
         assertEquals(327780u, metric.composite)

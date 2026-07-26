@@ -185,7 +185,7 @@ data_models:
   - name: TransferSession
     package: ch.trancee.meshlink.model
     type: data_class
-    description: "Drives chunked transfer with selective ACK and cut-through relay support. Chunk size is selected by the local PowerTier at session start and bounded by the peer's advertised MTU. Scoreboard uses a dynamic bitfield whose length is derived from totalChunks — bit N = 1 means chunk N is received (standard SACK)."
+    description: "Drives chunked transfer with selective ACK and cut-through relay support. Chunk size is selected by the local PowerMode at session start and bounded by the peer's advertised MTU. Scoreboard uses a dynamic bitfield whose length is derived from totalChunks — bit N = 1 means chunk N is received (standard SACK)."
     fields:
       - name: sessionId
         type: SessionId
@@ -257,20 +257,20 @@ data_models:
   - name: LinkMetric
     package: ch.trancee.meshlink.model
     type: class
-    description: "Encapsulates the metric bit layout: low byte = RSSI normalized (0-255), high bits = flags (supportsCoC, fastInterval, highPowerTier). Composite serialized form: (flags shl 8) or rssiNormalized."
+    description: "Encapsulates the metric bit layout: low byte = RSSI normalized (0-255), high bits = flags (supportsL2CAP, fastInterval, highPowerMode). Composite serialized form: (flags shl 8) or rssiNormalized."
     fields:
       - name: rssiNormalized
         type: UByte
         description: "RSSI normalized to 0-255 (low byte)"
-      - name: supportsCoc
+      - name: supportsL2CAP
         type: Boolean
         description: "Bit 8: L2CAP CoC supported"
       - name: fastInterval
         type: Boolean
         description: "Bit 9: Fast connection interval"
-      - name: highPowerTier
+      - name: highPowerMode
         type: Boolean
-        description: "Bit 10: High power tier"
+        description: "Bit 10: High power mode"
       - name: composite
         type: UInt
         description: "Serialized form: (flags shl 8) or rssiNormalized"

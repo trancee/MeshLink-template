@@ -6,7 +6,7 @@
 
 The `TransferSession` model is defined in [§3.4](03-data-models.md#34-message-header-model). Key fields:
 
-- `chunkSize`: Selected by local power tier, bounded by peer MTU
+- `chunkSize`: Selected by local power mode, bounded by peer MTU
 - `scoreboard`: Dynamic bitfield (`ByteArray`) of length `ceil(totalChunks / 8)` bytes; bit N = 1 means chunk N received
 - `totalBytes`/`bytesReceived`: Progress tracking in bytes (not chunks)
 

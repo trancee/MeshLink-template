@@ -56,17 +56,17 @@ value class SeqNo(private val value: UInt) {
 
 [Decision: RFC 8966 wrap-around comparison requirement]
 
-### PowerTier Enum
+### PowerMode Enum
 
 ```text
-enum class PowerTier { HIGH, MEDIUM, LOW }
+enum class PowerMode { HIGH, MEDIUM, LOW }
 ```
 
 - `HIGH` — Performance prioritized (20% scan, 100ms adv, 7.5ms conn, 8 concurrent, 512B chunks)
 - `MEDIUM` — Balanced (default) (10% scan, 500ms adv, 15ms conn, 4 concurrent, 256B chunks)
 - `LOW` — Battery conserved (5% scan, 1000ms adv, 30ms conn, 2 concurrent, 128B chunks)
 
-[Decision: docs/decisions/power/power-tier-behavior.md]
+[Decision: docs/decisions/power/power-mode-behavior.md]
 
 ```text
 enum class Priority { HIGH, NORMAL, LOW }
@@ -103,7 +103,7 @@ enum class Priority { HIGH, NORMAL, LOW }
 // Wire frame types
 enum class FrameType {
     MESH_ENVELOPE, ROUTE_UPDATE, ROUTE_WITHDRAWAL, ROUTE_DIGEST,
-    TRANSFER_CHUNK, TRANSFER_ACK, TRANSFER_CANCEL, KEY_ROTATION_ANNOUNCEMENT
+    TRANSFER_CHUNK, TRANSFER_ACKNOWLEDGMENT, TRANSFER_CANCEL, KEY_ROTATION
 }
 
 // Transport fallback reasons (machine observable)
@@ -173,14 +173,14 @@ RouteEntry {
 ```text
 LinkMetric {
   rssiNormalized: UInt (0-255)      // Low byte
-  supportsCoc: Boolean               // Bit 8
+  supportsL2CAP: Boolean               // Bit 8
   fastInterval: Boolean              // Bit 9
-  highPowerTier: Boolean             // Bit 10
+  highPowerMode: Boolean             // Bit 10
   composite: UInt                   // Serialized form: (flags shl 8) or rssiNormalized
 }
 ```
 
-**Metric structure:** Low byte = RSSI normalized (0-255), high bits = flags (supportsCoC, fastInterval, highPowerTier), enabling path selection preferring better links. [Decision: ../../decisions/routing/routing-design.md]
+**Metric structure:** Low byte = RSSI normalized (0-255), high bits = flags (supportsL2CAP, fastInterval, highPowerMode), enabling path selection preferring better links. [Decision: ../../decisions/routing/routing-design.md]
 
 ## 3.4 Message Header Model
 
@@ -205,13 +205,13 @@ TransferSession {
   priority: Priority  // Transfer priority for QoS-like behavior
   state: TransferState (IN_PROGRESS, WAITING_FOR_ROUTE, RETRYING, COMPLETED, FAILED, TIMED_OUT)
   failureReason: TransferFailureReason? (reason for terminal FAILED state; null otherwise)
-  chunkSize: Int (selected by local power tier, bounded by peer MTU; see §10.4 for power-tier-based values)
+  chunkSize: Int (selected by local power mode, bounded by peer MTU; see §10.4 for power-mode-based values)
   totalChunks: UInt (ceil(totalBytes / chunkSize))
   scoreboard: Scoreboard (dynamic bitfield; bit N = 1 if chunk N received; see §3.4)
   totalBytes: Long
   bytesReceived: Long
   startedAt: Instant
-  expiresAt: Instant? (max time transfer can remain WAITING_FOR_ROUTE before failing; computed as `startedAt + retryBudget`; see §10.4 tier table for per-tier values)
+  expiresAt: Instant? (max time transfer can remain WAITING_FOR_ROUTE before failing; computed as `startedAt + retryBudget`; see §10.4 mode table for per-mode values)
   retryCount: Int
 }
 ```
@@ -279,9 +279,9 @@ Note: `unreachable` is a routing-layer outcome (no route to destination), not a 
 | ROUTE_WITHDRAWAL | Route retraction | Always AEAD-encrypted |
 | ROUTE_DIGEST | FNV-1a hash of route table (32-bit) | Plaintext (digest only) |
 | TRANSFER_CHUNK | Payload chunk with offset + length | Link-layer AEAD per hop |
-| TRANSFER_ACK | Dynamic bitfield SACK | Link-layer AEAD per hop |
+| TRANSFER_ACKNOWLEDGMENT | Dynamic bitfield SACK | Link-layer AEAD per hop |
 | TRANSFER_CANCEL | Session termination | Link-layer AEAD per hop |
-| KEY_ROTATION_ANNOUNCEMENT | Signed key rotation announcement | Plaintext (signature verifiable) |
+| KEY_ROTATION | Signed key rotation announcement | Plaintext (signature verifiable) |
 
 ROUTE_UPDATE and ROUTE_WITHDRAWAL are always AEAD-encrypted using the Noise session key — no plaintext routing metadata is ever transmitted. [Decision: ../decisions/routing/routing-design.md, ../decisions/wire/wire-format-spec.md]
 

@@ -108,14 +108,14 @@ cross_references:
   - spec_id: "power-management"
     spec_section: "SPEC.md#10-power-management"
     adrs:
-      - "docs/decisions/power/power-tier-behavior.md"
+      - "docs/decisions/power/power-mode-behavior.md"
       - "docs/explanation/regulatory-compliance.md"
     code_files:
-      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PowerTierSettings.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PowerMode.kt"
     specs:
       - "specs/enums.yaml"
       - "specs/settings.yaml"
-    description: "Three power tiers (HIGH/MEDIUM/LOW), regulatory region (EU clamping), grace periods, tier-driven parameters"
+    description: "Three power modes (HIGH/MEDIUM/LOW), regulatory region (EU clamping), grace periods, mode-driven parameters"
 
   - spec_id: "diagnostics-events"
     spec_section: "SPEC.md#11-diagnostics--events"
@@ -171,7 +171,7 @@ adrs_by_area:
   wire:
     - "docs/decisions/wire/wire-format-spec.md"
   power:
-    - "docs/decisions/power/power-tier-behavior.md"
+    - "docs/decisions/power/power-mode-behavior.md"
   model:
     - "docs/decisions/model/data-model.md"
 
@@ -184,7 +184,7 @@ spec_anchors_in_code:
   - "ttl-by-priority" # RoutingPolicy.kt
   - "type-model" # TypeModel.kt
   - "diagnostic-event" # DiagnosticEvent.kt
-  - "power-tier-config" # PowerTierConfig.kt
+  - "power-mode-config" # PowerModeConfig.kt
   - "session-id-model" # SessionId.kt
   - "transfer-failure-reason-model" # TransferFailureReason.kt
   - "link-metric-model" # LinkMetric.kt
@@ -208,7 +208,7 @@ implementation_status:
     - "IdentityKey"
     - "All enums in TypeModel.kt"
     - "DiagnosticEvent sealed hierarchy"
-    - "PowerTierConfig"
+    - "PowerModeConfig"
     - "RoutingPolicy (TTL by priority)"
   not_implemented:
     - "MeshLink public API (MeshLink.kt is stub)"
@@ -240,7 +240,7 @@ test_files_by_layer:
   transfer:
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/SessionTest.kt"
   power:
-    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/PowerTierTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/PowerModeTest.kt"
   diagnostics:
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/DiagnosticEventTest.kt"
   failure_reason:

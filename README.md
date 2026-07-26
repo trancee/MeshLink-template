@@ -23,7 +23,7 @@ See [Module Structure](docs/explanation/module-structure.md) for details.
 - **Two-layer encryption** — Hop-by-hop link encryption + end-to-end Noise handshakes
 - **Proactive multi-hop routing** — Distance-vector protocol adapted from RFC 8966 (Babel)
 - **Reliable large-payload transfer** — Selective acknowledgment over small-frame BLE
-- **Power-aware operation** — Discrete tiers governing scan/conn/transfer parameters
+- **Power-aware operation** — Discrete modes governing scan/conn/transfer parameters
 - **Cross-platform parity** — Identical public API and sealed exception hierarchies
 
 ## Development Workflow

@@ -74,5 +74,5 @@ Multi-node scenarios exercised without physical hardware:
 3. **Security Contract**: Wycheproof vectors, fail-closed on all edge cases
 4. **Routing Control**: Convergence under virtual harness, seqno correctness
 5. **Chunked Transfer**: Dynamic bitfield SACK semantics, cut-through relay, retry bounds
-6. **Power Policy**: Tier-to-parameter mapping, EU clamping observable
+6. **Power Policy**: mode-to-parameter mapping, EU clamping observable
 7. **Public API**: Identical Android/iOS surface, lifecycle events

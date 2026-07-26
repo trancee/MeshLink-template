@@ -63,9 +63,9 @@ public enum class FrameType {
     ROUTE_WITHDRAWAL,
     ROUTE_DIGEST,
     TRANSFER_CHUNK,
-    TRANSFER_ACK,
+    TRANSFER_ACKNOWLEDGMENT,
     TRANSFER_CANCEL,
-    KEY_ROTATION_ANNOUNCEMENT,
+    KEY_ROTATION,
 }
 
 // ---------------------------------------------------------------------------

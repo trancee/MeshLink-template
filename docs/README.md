@@ -33,7 +33,7 @@ When SPEC.md and an ADR conflict, the ADR is authoritative for the *decision*, b
 | **Routing: consolidated** | `decisions/routing/routing-design.md` | **Destination self-reports seqno, Hello/IHU removed, digest→full-table, always-encrypted metadata, composite metric (RSSI+flags)** |
 | Transport: GATT/L2CAP | `decisions/transport/gatt-l2cap-transport-selection.md` | GATT=control plane, L2CAP CoC=data plane, fallback rules |
 | Wire: format spec | `decisions/wire/wire-format-spec.md` | Frame type reference table |
-| Power: tier behavior | `decisions/power/power-tier-behavior.md` | 3-tier model, grace periods, EU clamping |
+| Power: mode behavior | `decisions/power/power-mode-behavior.md` | 3-mode model, grace periods, EU clamping |
 | Explanation: module structure | `explanation/module-structure.md` | 4 Gradle modules, why reference/proof are separate |
 | Explanation: peer lifecycle | `explanation/peer-lifecycle.md` | 3-state model (Connected/Disconnected/Gone), grace periods |
 | Explanation: FlatBuffers | `explanation/why-pure-kotlin-flatbuffers.md` | Why pure-Kotlin FlatBuffers codec |
