@@ -41,7 +41,7 @@ Per `specs/wire_frames.yaml`:
 **Receiver reconstructs full PSM (identical on both platforms):**
 
 ```kotlin
-fun reconstructPsM(advertisedByte: UByte): Int = advertisedByte.toInt()  // 0x80–0xFF
+fun advertisedByte.toInt()  // 0x80–0xFF
 ```
 
 ## Android Implementation

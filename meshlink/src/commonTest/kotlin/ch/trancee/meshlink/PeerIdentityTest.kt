@@ -6,10 +6,10 @@ import kotlin.test.assertEquals
 
 class PeerIdentityTest {
     @Test
-    fun `has lo and hi components`() {
+    fun `has lower and upper components`() {
         val id = PeerIdentity.ZERO
-        assertEquals(0UL, id.lo)
-        assertEquals(0UL, id.hi)
+        assertEquals(0UL, id.lower)
+        assertEquals(0UL, id.upper)
     }
 
     @Test

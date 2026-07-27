@@ -66,7 +66,10 @@ kotlin {
         }
     }
 
-    sourceSets { commonTest.dependencies { implementation(kotlin("test")) } }
+    sourceSets {
+        commonMain.dependencies { implementation(libs.skie.configuration.annotations) }
+        commonTest.dependencies { implementation(kotlin("test")) }
+    }
 }
 
 detekt { buildUponDefaultConfig = true }
@@ -74,3 +77,9 @@ detekt { buildUponDefaultConfig = true }
 ktfmt { kotlinLangStyle() }
 
 kover { reports { verify { rule { minBound(100) } } } }
+
+skie {
+    isEnabled.set(true)
+    analytics { disableUpload.set(true) }
+    build { produceDistributableFramework() }
+}

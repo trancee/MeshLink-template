@@ -6,7 +6,7 @@ import kotlin.time.Duration.Companion.minutes
 /** Routing policy constants for message TTL and hop behavior. */
 public object RoutingPolicy {
     /** Maximum hop count a message can traverse before being dropped. */
-    public const val MaxHops: Int = 32
+    public const val MAX_HOPS: Int = 32
 
     /**
      * TTL derived from message priority — governs how long a message stays routable.

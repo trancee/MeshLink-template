@@ -23,7 +23,7 @@ However, Kotlin/JVM does not provide native constant-time byte array operations.
 
 ### Constant-Time Primitives (Pure Kotlin)
 
-All pure-Kotlin implementations MUST use `CryptoMath` — a utility providing constant-time comparison and selection via `constantTimeEquals` and `constantTimeSelect`:
+All pure-Kotlin implementations MUST use `ConstantTime` — a utility providing constant-time comparison and selection via `constantTimeEquals` and `constantTimeSelect`:
 
 ```kotlin
 /**

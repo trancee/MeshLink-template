@@ -88,7 +88,7 @@ class RouteTable {
 | 50-100 peers | 3-5 hops | 15 | 2-3s |
 | 100-256 peers | 4-7 hops | 20 | 3-5s |
 
-**Routing TTL** from `RoutingPolicy.MaxHops = 32` (plenty of headroom).
+**Routing TTL** from `RoutingPolicy.MAX_HOPS = 32` (plenty of headroom).
 
 ## Discovery & Advertisement Overhead
 

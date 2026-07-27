@@ -40,7 +40,7 @@ wire_frames:
       - name: metric
         type: UInt
         size_bytes: 4
-        description: "Composite metric (RSSI normalized 0-255 in low byte, flags in high bits: supportsL2CAP bit 8, fastInterval bit 9, highPowerMode bit 10)"
+        description: "Composite metric (RSSI normalized 0-255 in low byte, flags in high bits: supportsL2CAP bit 8, lowLatency bit 9, highPower bit 10)"
       - name: seqNo
         type: UInt
         size_bytes: 4

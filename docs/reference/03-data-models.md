@@ -174,13 +174,13 @@ RouteEntry {
 LinkMetric {
   rssiNormalized: UInt (0-255)      // Low byte
   supportsL2CAP: Boolean               // Bit 8
-  fastInterval: Boolean              // Bit 9
-  highPowerMode: Boolean             // Bit 10
+  lowLatency: Boolean              // Bit 9
+  highPower: Boolean,              // Bit 10
   composite: UInt                   // Serialized form: (flags shl 8) or rssiNormalized
 }
 ```
 
-**Metric structure:** Low byte = RSSI normalized (0-255), high bits = flags (supportsL2CAP, fastInterval, highPowerMode), enabling path selection preferring better links. [Decision: ../../decisions/routing/routing-design.md]
+**Metric structure:** Low byte = RSSI normalized (0-255), high bits = flags (supportsL2CAP, lowLatency, highPower), enabling path selection preferring better links. [Decision: ../../decisions/routing/routing-design.md]
 
 ## 3.4 Message Header Model
 

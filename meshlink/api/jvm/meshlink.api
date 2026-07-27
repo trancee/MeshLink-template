@@ -1,14 +1,18 @@
 public final class ch/trancee/meshlink/DiagnosticsSettings {
-	public fun <init> (ZI)V
-	public final fun component1 ()Z
-	public final fun component2 ()I
-	public final fun copy (ZI)Lch/trancee/meshlink/DiagnosticsSettings;
-	public static synthetic fun copy$default (Lch/trancee/meshlink/DiagnosticsSettings;ZIILjava/lang/Object;)Lch/trancee/meshlink/DiagnosticsSettings;
+	public fun <init> (I)V
+	public final fun component1 ()I
+	public final fun copy (I)Lch/trancee/meshlink/DiagnosticsSettings;
+	public static synthetic fun copy$default (Lch/trancee/meshlink/DiagnosticsSettings;IILjava/lang/Object;)Lch/trancee/meshlink/DiagnosticsSettings;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getEmitToLog ()Z
 	public final fun getEventBufferSize ()I
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class ch/trancee/meshlink/DiagnosticsSettingsBuilder {
+	public fun <init> ()V
+	public final fun getEventBufferSize ()I
+	public final fun setEventBufferSize (I)V
 }
 
 public final class ch/trancee/meshlink/KeyRotationSettings {
@@ -26,24 +30,40 @@ public final class ch/trancee/meshlink/KeyRotationSettings {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class ch/trancee/meshlink/KeyRotationSettingsBuilder {
+	public fun <init> ()V
+	public final fun getCompromiseGracePeriod-UwyO8pc ()J
+	public final fun getInterval-UwyO8pc ()J
+	public final fun getRotationGracePeriod-UwyO8pc ()J
+	public final fun setCompromiseGracePeriod-LRDsOJo (J)V
+	public final fun setInterval-LRDsOJo (J)V
+	public final fun setRotationGracePeriod-LRDsOJo (J)V
+}
+
 public final class ch/trancee/meshlink/MeshLink {
 	public static final field INSTANCE Lch/trancee/meshlink/MeshLink;
 	public static final field VERSION Ljava/lang/String;
 }
 
 public final class ch/trancee/meshlink/MeshLinkSettings {
-	public fun <init> (Lch/trancee/meshlink/model/PowerMode;Lch/trancee/meshlink/model/RegulatoryRegion;Lch/trancee/meshlink/KeyRotationSettings;Lch/trancee/meshlink/TransferSettings;Lch/trancee/meshlink/RoutingSettings;Lch/trancee/meshlink/SecuritySettings;Lch/trancee/meshlink/DiagnosticsSettings;)V
-	public final fun component1 ()Lch/trancee/meshlink/model/PowerMode;
-	public final fun component2 ()Lch/trancee/meshlink/model/RegulatoryRegion;
-	public final fun component3 ()Lch/trancee/meshlink/KeyRotationSettings;
-	public final fun component4 ()Lch/trancee/meshlink/TransferSettings;
-	public final fun component5 ()Lch/trancee/meshlink/RoutingSettings;
-	public final fun component6 ()Lch/trancee/meshlink/SecuritySettings;
-	public final fun component7 ()Lch/trancee/meshlink/DiagnosticsSettings;
-	public final fun copy (Lch/trancee/meshlink/model/PowerMode;Lch/trancee/meshlink/model/RegulatoryRegion;Lch/trancee/meshlink/KeyRotationSettings;Lch/trancee/meshlink/TransferSettings;Lch/trancee/meshlink/RoutingSettings;Lch/trancee/meshlink/SecuritySettings;Lch/trancee/meshlink/DiagnosticsSettings;)Lch/trancee/meshlink/MeshLinkSettings;
-	public static synthetic fun copy$default (Lch/trancee/meshlink/MeshLinkSettings;Lch/trancee/meshlink/model/PowerMode;Lch/trancee/meshlink/model/RegulatoryRegion;Lch/trancee/meshlink/KeyRotationSettings;Lch/trancee/meshlink/TransferSettings;Lch/trancee/meshlink/RoutingSettings;Lch/trancee/meshlink/SecuritySettings;Lch/trancee/meshlink/DiagnosticsSettings;ILjava/lang/Object;)Lch/trancee/meshlink/MeshLinkSettings;
+	public fun <init> (Ljava/lang/String;Lch/trancee/meshlink/model/PowerMode;Lch/trancee/meshlink/model/RegulatoryRegion;Lch/trancee/meshlink/KeyRotationSettings;Lch/trancee/meshlink/TransferSettings;Lch/trancee/meshlink/RoutingSettings;Lch/trancee/meshlink/SecuritySettings;Lch/trancee/meshlink/DiagnosticsSettings;ZLkotlin/jvm/functions/Function1;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()Lkotlin/jvm/functions/Function1;
+	public final fun component2 ()Lch/trancee/meshlink/model/PowerMode;
+	public final fun component3 ()Lch/trancee/meshlink/model/RegulatoryRegion;
+	public final fun component4 ()Lch/trancee/meshlink/KeyRotationSettings;
+	public final fun component5 ()Lch/trancee/meshlink/TransferSettings;
+	public final fun component6 ()Lch/trancee/meshlink/RoutingSettings;
+	public final fun component7 ()Lch/trancee/meshlink/SecuritySettings;
+	public final fun component8 ()Lch/trancee/meshlink/DiagnosticsSettings;
+	public final fun component9 ()Z
+	public final fun copy (Ljava/lang/String;Lch/trancee/meshlink/model/PowerMode;Lch/trancee/meshlink/model/RegulatoryRegion;Lch/trancee/meshlink/KeyRotationSettings;Lch/trancee/meshlink/TransferSettings;Lch/trancee/meshlink/RoutingSettings;Lch/trancee/meshlink/SecuritySettings;Lch/trancee/meshlink/DiagnosticsSettings;ZLkotlin/jvm/functions/Function1;)Lch/trancee/meshlink/MeshLinkSettings;
+	public static synthetic fun copy$default (Lch/trancee/meshlink/MeshLinkSettings;Ljava/lang/String;Lch/trancee/meshlink/model/PowerMode;Lch/trancee/meshlink/model/RegulatoryRegion;Lch/trancee/meshlink/KeyRotationSettings;Lch/trancee/meshlink/TransferSettings;Lch/trancee/meshlink/RoutingSettings;Lch/trancee/meshlink/SecuritySettings;Lch/trancee/meshlink/DiagnosticsSettings;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lch/trancee/meshlink/MeshLinkSettings;
 	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAppId ()Ljava/lang/String;
 	public final fun getDiagnostics ()Lch/trancee/meshlink/DiagnosticsSettings;
+	public final fun getEmitToLog ()Z
+	public final fun getEventCallback ()Lkotlin/jvm/functions/Function1;
 	public final fun getKeyRotation ()Lch/trancee/meshlink/KeyRotationSettings;
 	public final fun getPowerMode ()Lch/trancee/meshlink/model/PowerMode;
 	public final fun getRegulatoryRegion ()Lch/trancee/meshlink/model/RegulatoryRegion;
@@ -57,8 +77,11 @@ public final class ch/trancee/meshlink/MeshLinkSettings {
 public final class ch/trancee/meshlink/MeshLinkSettingsBuilder {
 	public fun <init> ()V
 	public final fun build ()Lch/trancee/meshlink/MeshLinkSettings;
+	public final fun diagnostics (Lkotlin/jvm/functions/Function1;)V
+	public final fun getAppId ()Ljava/lang/String;
 	public final fun getDiagnosticsBufferSize ()I
-	public final fun getDiagnosticsEmitToLog ()Z
+	public final fun getEmitToLog ()Z
+	public final fun getEventCallback ()Lkotlin/jvm/functions/Function1;
 	public final fun getKeyRotationCompromiseGracePeriod-UwyO8pc ()J
 	public final fun getKeyRotationGracePeriod-UwyO8pc ()J
 	public final fun getKeyRotationInterval-UwyO8pc ()J
@@ -80,8 +103,13 @@ public final class ch/trancee/meshlink/MeshLinkSettingsBuilder {
 	public final fun getTransferMaxConcurrentSessionsPerPeer ()I
 	public final fun getTransferMaxRetries ()I
 	public final fun getTransferScoreboardEncoding ()Lch/trancee/meshlink/model/ScoreboardEncoding;
+	public final fun keyRotation (Lkotlin/jvm/functions/Function1;)V
+	public final fun routing (Lkotlin/jvm/functions/Function1;)V
+	public final fun security (Lkotlin/jvm/functions/Function1;)V
+	public final fun setAppId (Ljava/lang/String;)V
 	public final fun setDiagnosticsBufferSize (I)V
-	public final fun setDiagnosticsEmitToLog (Z)V
+	public final fun setEmitToLog (Z)V
+	public final fun setEventCallback (Lkotlin/jvm/functions/Function1;)V
 	public final fun setKeyRotationCompromiseGracePeriod-LRDsOJo (J)V
 	public final fun setKeyRotationGracePeriod-LRDsOJo (J)V
 	public final fun setKeyRotationInterval-LRDsOJo (J)V
@@ -103,6 +131,11 @@ public final class ch/trancee/meshlink/MeshLinkSettingsBuilder {
 	public final fun setTransferMaxConcurrentSessionsPerPeer (I)V
 	public final fun setTransferMaxRetries (I)V
 	public final fun setTransferScoreboardEncoding (Lch/trancee/meshlink/model/ScoreboardEncoding;)V
+	public final fun transfer (Lkotlin/jvm/functions/Function1;)V
+}
+
+public final class ch/trancee/meshlink/MeshLinkSettingsKt {
+	public static final fun meshLinkSettings (Lkotlin/jvm/functions/Function1;)Lch/trancee/meshlink/MeshLinkSettings;
 }
 
 public final class ch/trancee/meshlink/RoutingSettings {
@@ -128,6 +161,24 @@ public final class ch/trancee/meshlink/RoutingSettings {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class ch/trancee/meshlink/RoutingSettingsBuilder {
+	public fun <init> ()V
+	public final fun getFeasibilityConditionEnabled ()Z
+	public final fun getFullTableSyncInterval-UwyO8pc ()J
+	public final fun getMaxRouteEntries ()I
+	public final fun getRouteEntryExpiry-UwyO8pc ()J
+	public final fun getRouteUpdateChangeThreshold ()I
+	public final fun getRouteUpdateMaxInterval-UwyO8pc ()J
+	public final fun getRouteUpdateMinInterval-UwyO8pc ()J
+	public final fun setFeasibilityConditionEnabled (Z)V
+	public final fun setFullTableSyncInterval-LRDsOJo (J)V
+	public final fun setMaxRouteEntries (I)V
+	public final fun setRouteEntryExpiry-LRDsOJo (J)V
+	public final fun setRouteUpdateChangeThreshold (I)V
+	public final fun setRouteUpdateMaxInterval-LRDsOJo (J)V
+	public final fun setRouteUpdateMinInterval-LRDsOJo (J)V
+}
+
 public final class ch/trancee/meshlink/SecuritySettings {
 	public synthetic fun <init> (IJZLch/trancee/meshlink/model/HandshakePattern;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()I
@@ -143,6 +194,18 @@ public final class ch/trancee/meshlink/SecuritySettings {
 	public final fun getRequireSignatureOnRouteUpdates ()Z
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class ch/trancee/meshlink/SecuritySettingsBuilder {
+	public fun <init> ()V
+	public final fun getDefaultHandshakePattern ()Lch/trancee/meshlink/model/HandshakePattern;
+	public final fun getFallbackMaxAttemptsPerMinute ()I
+	public final fun getFallbackTimeout-UwyO8pc ()J
+	public final fun getRequireSignatureOnRouteUpdates ()Z
+	public final fun setDefaultHandshakePattern (Lch/trancee/meshlink/model/HandshakePattern;)V
+	public final fun setFallbackMaxAttemptsPerMinute (I)V
+	public final fun setFallbackTimeout-LRDsOJo (J)V
+	public final fun setRequireSignatureOnRouteUpdates (Z)V
 }
 
 public final class ch/trancee/meshlink/TransferSettings {
@@ -164,7 +227,25 @@ public final class ch/trancee/meshlink/TransferSettings {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class ch/trancee/meshlink/TransferSettingsBuilder {
+	public fun <init> ()V
+	public final fun getChunkSize ()I
+	public final fun getMaxChunksPerSession-pVg5ArA ()I
+	public final fun getMaxConcurrentSessionsPerPeer ()I
+	public final fun getMaxRetries ()I
+	public final fun getScoreboardEncoding ()Lch/trancee/meshlink/model/ScoreboardEncoding;
+	public final fun setChunkSize (I)V
+	public final fun setMaxChunksPerSession-WZ4Q5Ns (I)V
+	public final fun setMaxConcurrentSessionsPerPeer (I)V
+	public final fun setMaxRetries (I)V
+	public final fun setScoreboardEncoding (Lch/trancee/meshlink/model/ScoreboardEncoding;)V
+}
+
 public abstract interface class ch/trancee/meshlink/diagnostics/DiagnosticEvent {
+	public abstract fun getCategory ()Ljava/lang/String;
+	public abstract fun getPayload ()Ljava/lang/String;
+	public abstract fun getSeverity ()Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public abstract fun getTimestamp ()Lkotlin/time/Instant;
 }
 
 public final class ch/trancee/meshlink/diagnostics/DiagnosticEvent$HandshakeEvent : ch/trancee/meshlink/diagnostics/DiagnosticEvent {
@@ -180,12 +261,15 @@ public final class ch/trancee/meshlink/diagnostics/DiagnosticEvent$HandshakeEven
 	public final fun copy-tTZ-DGQ (JLch/trancee/meshlink/model/HandshakePattern;ZLch/trancee/meshlink/model/VerificationLevel;IZLkotlin/time/Instant;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$HandshakeEvent;
 	public static synthetic fun copy-tTZ-DGQ$default (Lch/trancee/meshlink/diagnostics/DiagnosticEvent$HandshakeEvent;JLch/trancee/meshlink/model/HandshakePattern;ZLch/trancee/meshlink/model/VerificationLevel;IZLkotlin/time/Instant;ILjava/lang/Object;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$HandshakeEvent;
 	public fun equals (Ljava/lang/Object;)Z
+	public fun getCategory ()Ljava/lang/String;
 	public final fun getFallbackUsed ()Z
 	public final fun getNonceReplayDetected ()Z
 	public final fun getPattern ()Lch/trancee/meshlink/model/HandshakePattern;
+	public fun getPayload ()Ljava/lang/String;
 	public final fun getRateLimitAttempts ()I
 	public final fun getSessionId-5T-QegA ()J
-	public final fun getTimestamp ()Lkotlin/time/Instant;
+	public fun getSeverity ()Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public fun getTimestamp ()Lkotlin/time/Instant;
 	public final fun getVerificationLevel ()Lch/trancee/meshlink/model/VerificationLevel;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
@@ -203,12 +287,15 @@ public final class ch/trancee/meshlink/diagnostics/DiagnosticEvent$KeyRotationEv
 	public final fun copy-FUTxMuc (Lkotlin/Pair;ZZZLch/trancee/meshlink/model/KeyRotationReason;Lkotlin/time/Instant;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$KeyRotationEvent;
 	public static synthetic fun copy-FUTxMuc$default (Lch/trancee/meshlink/diagnostics/DiagnosticEvent$KeyRotationEvent;Lkotlin/Pair;ZZZLch/trancee/meshlink/model/KeyRotationReason;Lkotlin/time/Instant;ILjava/lang/Object;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$KeyRotationEvent;
 	public fun equals (Ljava/lang/Object;)Z
+	public fun getCategory ()Ljava/lang/String;
 	public final fun getOldKeyVerified ()Z
+	public fun getPayload ()Ljava/lang/String;
 	public final fun getPeerIdentity-jkpD0pM ()Lkotlin/Pair;
 	public final fun getPropagationDeadlineMet ()Z
 	public final fun getReason ()Lch/trancee/meshlink/model/KeyRotationReason;
 	public final fun getSequenceNumberReset ()Z
-	public final fun getTimestamp ()Lkotlin/time/Instant;
+	public fun getSeverity ()Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public fun getTimestamp ()Lkotlin/time/Instant;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -227,13 +314,16 @@ public final class ch/trancee/meshlink/diagnostics/DiagnosticEvent$NoiseSessionT
 	public final fun copy-ye7Tngc (Lkotlin/Pair;Lch/trancee/meshlink/model/NoiseLayer;Lch/trancee/meshlink/model/NoiseSessionState;Lch/trancee/meshlink/model/NoiseSessionState;Lch/trancee/meshlink/model/NoiseRole;Lch/trancee/meshlink/model/HandshakePattern;Lch/trancee/meshlink/model/NoiseFailureReason;Lkotlin/time/Instant;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$NoiseSessionTransitionEvent;
 	public static synthetic fun copy-ye7Tngc$default (Lch/trancee/meshlink/diagnostics/DiagnosticEvent$NoiseSessionTransitionEvent;Lkotlin/Pair;Lch/trancee/meshlink/model/NoiseLayer;Lch/trancee/meshlink/model/NoiseSessionState;Lch/trancee/meshlink/model/NoiseSessionState;Lch/trancee/meshlink/model/NoiseRole;Lch/trancee/meshlink/model/HandshakePattern;Lch/trancee/meshlink/model/NoiseFailureReason;Lkotlin/time/Instant;ILjava/lang/Object;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$NoiseSessionTransitionEvent;
 	public fun equals (Ljava/lang/Object;)Z
+	public fun getCategory ()Ljava/lang/String;
 	public final fun getFailureReason ()Lch/trancee/meshlink/model/NoiseFailureReason;
 	public final fun getFromState ()Lch/trancee/meshlink/model/NoiseSessionState;
 	public final fun getHandshakePattern ()Lch/trancee/meshlink/model/HandshakePattern;
 	public final fun getLayer ()Lch/trancee/meshlink/model/NoiseLayer;
+	public fun getPayload ()Ljava/lang/String;
 	public final fun getPeerIdentity-jkpD0pM ()Lkotlin/Pair;
 	public final fun getRole ()Lch/trancee/meshlink/model/NoiseRole;
-	public final fun getTimestamp ()Lkotlin/time/Instant;
+	public fun getSeverity ()Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public fun getTimestamp ()Lkotlin/time/Instant;
 	public final fun getToState ()Lch/trancee/meshlink/model/NoiseSessionState;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
@@ -253,12 +343,15 @@ public final class ch/trancee/meshlink/diagnostics/DiagnosticEvent$PowerModeEffe
 	public static synthetic fun copy$default (Lch/trancee/meshlink/diagnostics/DiagnosticEvent$PowerModeEffectiveEvent;Lch/trancee/meshlink/model/PowerMode;Lch/trancee/meshlink/model/PowerMode;Lch/trancee/meshlink/model/RegulatoryRegion;IIDLkotlin/time/Instant;ILjava/lang/Object;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$PowerModeEffectiveEvent;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAdvertisementIntervalMs ()I
+	public fun getCategory ()Ljava/lang/String;
 	public final fun getConnectionIntervalMs ()D
 	public final fun getEffectiveMode ()Lch/trancee/meshlink/model/PowerMode;
+	public fun getPayload ()Ljava/lang/String;
 	public final fun getRegulatoryRegion ()Lch/trancee/meshlink/model/RegulatoryRegion;
 	public final fun getRequestedMode ()Lch/trancee/meshlink/model/PowerMode;
 	public final fun getScanDutyCyclePercent ()I
-	public final fun getTimestamp ()Lkotlin/time/Instant;
+	public fun getSeverity ()Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public fun getTimestamp ()Lkotlin/time/Instant;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -273,10 +366,13 @@ public final class ch/trancee/meshlink/diagnostics/DiagnosticEvent$RouteDecryptF
 	public final fun copy-_YHG8HU (Lkotlin/Pair;Lch/trancee/meshlink/model/FrameType;Lch/trancee/meshlink/model/DecryptFailureReason;Lkotlin/time/Instant;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$RouteDecryptFailureEvent;
 	public static synthetic fun copy-_YHG8HU$default (Lch/trancee/meshlink/diagnostics/DiagnosticEvent$RouteDecryptFailureEvent;Lkotlin/Pair;Lch/trancee/meshlink/model/FrameType;Lch/trancee/meshlink/model/DecryptFailureReason;Lkotlin/time/Instant;ILjava/lang/Object;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$RouteDecryptFailureEvent;
 	public fun equals (Ljava/lang/Object;)Z
+	public fun getCategory ()Ljava/lang/String;
 	public final fun getFailureReason ()Lch/trancee/meshlink/model/DecryptFailureReason;
 	public final fun getFrameType ()Lch/trancee/meshlink/model/FrameType;
+	public fun getPayload ()Ljava/lang/String;
 	public final fun getPeerIdentity-jkpD0pM ()Lkotlin/Pair;
-	public final fun getTimestamp ()Lkotlin/time/Instant;
+	public fun getSeverity ()Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public fun getTimestamp ()Lkotlin/time/Instant;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -291,10 +387,13 @@ public final class ch/trancee/meshlink/diagnostics/DiagnosticEvent$RouteDigestMi
 	public final fun copy-Q4i_qTc (Lkotlin/Pair;IILkotlin/time/Instant;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$RouteDigestMismatchEvent;
 	public static synthetic fun copy-Q4i_qTc$default (Lch/trancee/meshlink/diagnostics/DiagnosticEvent$RouteDigestMismatchEvent;Lkotlin/Pair;IILkotlin/time/Instant;ILjava/lang/Object;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$RouteDigestMismatchEvent;
 	public fun equals (Ljava/lang/Object;)Z
+	public fun getCategory ()Ljava/lang/String;
 	public final fun getLocalDigest-pVg5ArA ()I
+	public fun getPayload ()Ljava/lang/String;
 	public final fun getPeerIdentity-jkpD0pM ()Lkotlin/Pair;
 	public final fun getRemoteDigest-pVg5ArA ()I
-	public final fun getTimestamp ()Lkotlin/time/Instant;
+	public fun getSeverity ()Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public fun getTimestamp ()Lkotlin/time/Instant;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -309,8 +408,11 @@ public final class ch/trancee/meshlink/diagnostics/DiagnosticEvent$TransferDataP
 	public static synthetic fun copy-e7edbrg$default (Lch/trancee/meshlink/diagnostics/DiagnosticEvent$TransferDataPlaneBearerEvent;JLch/trancee/meshlink/model/DataPlaneBearer;Lkotlin/time/Instant;ILjava/lang/Object;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$TransferDataPlaneBearerEvent;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBearer ()Lch/trancee/meshlink/model/DataPlaneBearer;
+	public fun getCategory ()Ljava/lang/String;
+	public fun getPayload ()Ljava/lang/String;
 	public final fun getSessionId-5T-QegA ()J
-	public final fun getTimestamp ()Lkotlin/time/Instant;
+	public fun getSeverity ()Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public fun getTimestamp ()Lkotlin/time/Instant;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -325,10 +427,13 @@ public final class ch/trancee/meshlink/diagnostics/DiagnosticEvent$TransferFailu
 	public final fun copy-8KxqB_0 (JLkotlin/Pair;Lch/trancee/meshlink/model/TransferFailureReason;Lkotlin/time/Instant;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$TransferFailureEvent;
 	public static synthetic fun copy-8KxqB_0$default (Lch/trancee/meshlink/diagnostics/DiagnosticEvent$TransferFailureEvent;JLkotlin/Pair;Lch/trancee/meshlink/model/TransferFailureReason;Lkotlin/time/Instant;ILjava/lang/Object;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$TransferFailureEvent;
 	public fun equals (Ljava/lang/Object;)Z
+	public fun getCategory ()Ljava/lang/String;
+	public fun getPayload ()Ljava/lang/String;
 	public final fun getPeerIdentity-jkpD0pM ()Lkotlin/Pair;
 	public final fun getReason ()Lch/trancee/meshlink/model/TransferFailureReason;
 	public final fun getSessionId-5T-QegA ()J
-	public final fun getTimestamp ()Lkotlin/time/Instant;
+	public fun getSeverity ()Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public fun getTimestamp ()Lkotlin/time/Instant;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -347,10 +452,13 @@ public final class ch/trancee/meshlink/diagnostics/DiagnosticEvent$TransferSessi
 	public static synthetic fun copy-UOMqJ04$default (Lch/trancee/meshlink/diagnostics/DiagnosticEvent$TransferSessionTransitionEvent;JLkotlin/Pair;Lch/trancee/meshlink/model/TransferState;Lch/trancee/meshlink/model/TransferState;JJLkotlin/time/Instant;ILjava/lang/Object;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$TransferSessionTransitionEvent;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBytesTransferred ()J
+	public fun getCategory ()Ljava/lang/String;
 	public final fun getFromState ()Lch/trancee/meshlink/model/TransferState;
+	public fun getPayload ()Ljava/lang/String;
 	public final fun getPeerIdentity-jkpD0pM ()Lkotlin/Pair;
 	public final fun getSessionId-5T-QegA ()J
-	public final fun getTimestamp ()Lkotlin/time/Instant;
+	public fun getSeverity ()Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public fun getTimestamp ()Lkotlin/time/Instant;
 	public final fun getToState ()Lch/trancee/meshlink/model/TransferState;
 	public final fun getTotalBytes ()J
 	public fun hashCode ()I
@@ -366,9 +474,12 @@ public final class ch/trancee/meshlink/diagnostics/DiagnosticEvent$TransportFall
 	public final fun copy-_sTw_TY (Lkotlin/Pair;Lch/trancee/meshlink/model/TransportFallbackReason;Lkotlin/time/Instant;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$TransportFallbackEvent;
 	public static synthetic fun copy-_sTw_TY$default (Lch/trancee/meshlink/diagnostics/DiagnosticEvent$TransportFallbackEvent;Lkotlin/Pair;Lch/trancee/meshlink/model/TransportFallbackReason;Lkotlin/time/Instant;ILjava/lang/Object;)Lch/trancee/meshlink/diagnostics/DiagnosticEvent$TransportFallbackEvent;
 	public fun equals (Ljava/lang/Object;)Z
+	public fun getCategory ()Ljava/lang/String;
+	public fun getPayload ()Ljava/lang/String;
 	public final fun getPeerIdentity-jkpD0pM ()Lkotlin/Pair;
 	public final fun getReason ()Lch/trancee/meshlink/model/TransportFallbackReason;
-	public final fun getTimestamp ()Lkotlin/time/Instant;
+	public fun getSeverity ()Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public fun getTimestamp ()Lkotlin/time/Instant;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -390,6 +501,16 @@ public final class ch/trancee/meshlink/model/DecryptFailureReason : java/lang/En
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lch/trancee/meshlink/model/DecryptFailureReason;
 	public static fun values ()[Lch/trancee/meshlink/model/DecryptFailureReason;
+}
+
+public final class ch/trancee/meshlink/model/DiagnosticSeverity : java/lang/Enum {
+	public static final field DEBUG Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public static final field ERROR Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public static final field INFO Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public static final field WARN Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lch/trancee/meshlink/model/DiagnosticSeverity;
+	public static fun values ()[Lch/trancee/meshlink/model/DiagnosticSeverity;
 }
 
 public final class ch/trancee/meshlink/model/FrameType : java/lang/Enum {
@@ -485,8 +606,8 @@ public final class ch/trancee/meshlink/model/LinkMetric {
 	public static synthetic fun copy-SGjrQA4$default (Lch/trancee/meshlink/model/LinkMetric;IZZZILjava/lang/Object;)Lch/trancee/meshlink/model/LinkMetric;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getComposite-pVg5ArA ()I
-	public final fun getFastInterval ()Z
-	public final fun getHighPowerMode ()Z
+	public final fun getHighPower ()Z
+	public final fun getLowLatency ()Z
 	public final fun getRssiNormalized-pVg5ArA ()I
 	public final fun getSupportsL2CAP ()Z
 	public fun hashCode ()I
@@ -540,6 +661,8 @@ public final class ch/trancee/meshlink/model/NoiseSessionState : java/lang/Enum 
 	public static final field ESTABLISHED Lch/trancee/meshlink/model/NoiseSessionState;
 	public static final field FAILED Lch/trancee/meshlink/model/NoiseSessionState;
 	public static final field HANDSHAKING_IK Lch/trancee/meshlink/model/NoiseSessionState;
+	public static final field HANDSHAKING_IX Lch/trancee/meshlink/model/NoiseSessionState;
+	public static final field HANDSHAKING_NX Lch/trancee/meshlink/model/NoiseSessionState;
 	public static final field HANDSHAKING_XX Lch/trancee/meshlink/model/NoiseSessionState;
 	public static final field REKEYING Lch/trancee/meshlink/model/NoiseSessionState;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
@@ -612,8 +735,8 @@ public final class ch/trancee/meshlink/model/PeerIdentity {
 	public static fun equals-impl (Lkotlin/Pair;Ljava/lang/Object;)Z
 	public static final fun equals-impl0 (Lkotlin/Pair;Lkotlin/Pair;)Z
 	public static final fun getHex-impl (Lkotlin/Pair;)Ljava/lang/String;
-	public static final fun getHi-s-VKNKU (Lkotlin/Pair;)J
-	public static final fun getLo-s-VKNKU (Lkotlin/Pair;)J
+	public static final fun getLower-s-VKNKU (Lkotlin/Pair;)J
+	public static final fun getUpper-s-VKNKU (Lkotlin/Pair;)J
 	public fun hashCode ()I
 	public static fun hashCode-impl (Lkotlin/Pair;)I
 	public static final fun toByteArray-impl (Lkotlin/Pair;)[B
@@ -715,7 +838,7 @@ public final class ch/trancee/meshlink/model/RouteEntry {
 
 public final class ch/trancee/meshlink/model/RoutingPolicy {
 	public static final field INSTANCE Lch/trancee/meshlink/model/RoutingPolicy;
-	public static final field MaxHops I
+	public static final field MAX_HOPS I
 	public final fun ttlFor-5sfh64U (Lch/trancee/meshlink/model/Priority;)J
 }
 
@@ -785,6 +908,19 @@ public final class ch/trancee/meshlink/model/SessionId$Companion {
 	public final fun getZERO-5T-QegA ()J
 }
 
+public final class ch/trancee/meshlink/model/TransferDeliveryOutcome : java/lang/Enum {
+	public static final field IN_PROGRESS Lch/trancee/meshlink/model/TransferDeliveryOutcome;
+	public static final field RETRYING Lch/trancee/meshlink/model/TransferDeliveryOutcome;
+	public static final field ROUTE_WAITING Lch/trancee/meshlink/model/TransferDeliveryOutcome;
+	public static final field SUCCESS Lch/trancee/meshlink/model/TransferDeliveryOutcome;
+	public static final field TIMEOUT Lch/trancee/meshlink/model/TransferDeliveryOutcome;
+	public static final field TRUST_FAILURE Lch/trancee/meshlink/model/TransferDeliveryOutcome;
+	public static final field UNRECOVERABLE_FAILURE Lch/trancee/meshlink/model/TransferDeliveryOutcome;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lch/trancee/meshlink/model/TransferDeliveryOutcome;
+	public static fun values ()[Lch/trancee/meshlink/model/TransferDeliveryOutcome;
+}
+
 public abstract interface class ch/trancee/meshlink/model/TransferFailureReason {
 }
 
@@ -808,6 +944,11 @@ public final class ch/trancee/meshlink/model/TransferFailureReason$Unrecoverable
 	public final fun getMessage ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class ch/trancee/meshlink/model/TransferOutcomeMapper {
+	public static final field INSTANCE Lch/trancee/meshlink/model/TransferOutcomeMapper;
+	public final fun map (Lch/trancee/meshlink/model/TransferState;Lch/trancee/meshlink/model/TransferFailureReason;)Lch/trancee/meshlink/model/TransferDeliveryOutcome;
 }
 
 public final class ch/trancee/meshlink/model/TransferSession {
@@ -867,6 +1008,39 @@ public final class ch/trancee/meshlink/model/TransportFallbackReason : java/lang
 	public static fun values ()[Lch/trancee/meshlink/model/TransportFallbackReason;
 }
 
+public final class ch/trancee/meshlink/model/TrustRecord {
+	public synthetic fun <init> (Lkotlin/Pair;[B[BLkotlin/time/Instant;Lkotlin/time/Instant;Lch/trancee/meshlink/model/TrustState;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Lkotlin/Pair;[B[BLkotlin/time/Instant;Lkotlin/time/Instant;Lch/trancee/meshlink/model/TrustState;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-jkpD0pM ()Lkotlin/Pair;
+	public final fun component2-e3suiAo ()[B
+	public final fun component3-9rkoI00 ()[B
+	public final fun component4 ()Lkotlin/time/Instant;
+	public final fun component5 ()Lkotlin/time/Instant;
+	public final fun component6 ()Lch/trancee/meshlink/model/TrustState;
+	public final fun component7 ()I
+	public final fun copy-FFdf1P8 (Lkotlin/Pair;[B[BLkotlin/time/Instant;Lkotlin/time/Instant;Lch/trancee/meshlink/model/TrustState;I)Lch/trancee/meshlink/model/TrustRecord;
+	public static synthetic fun copy-FFdf1P8$default (Lch/trancee/meshlink/model/TrustRecord;Lkotlin/Pair;[B[BLkotlin/time/Instant;Lkotlin/time/Instant;Lch/trancee/meshlink/model/TrustState;IILjava/lang/Object;)Lch/trancee/meshlink/model/TrustRecord;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getGeneration ()I
+	public final fun getHandshakeKey-9rkoI00 ()[B
+	public final fun getIdentityKey-e3suiAo ()[B
+	public final fun getPeerIdentity-jkpD0pM ()Lkotlin/Pair;
+	public final fun getSeenAt ()Lkotlin/time/Instant;
+	public final fun getState ()Lch/trancee/meshlink/model/TrustState;
+	public final fun getVerifiedAt ()Lkotlin/time/Instant;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class ch/trancee/meshlink/model/TrustState : java/lang/Enum {
+	public static final field INITIATED Lch/trancee/meshlink/model/TrustState;
+	public static final field REVOKED Lch/trancee/meshlink/model/TrustState;
+	public static final field TRUSTED Lch/trancee/meshlink/model/TrustState;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lch/trancee/meshlink/model/TrustState;
+	public static fun values ()[Lch/trancee/meshlink/model/TrustState;
+}
+
 public final class ch/trancee/meshlink/model/VerificationLevel : java/lang/Enum {
 	public static final field FULL Lch/trancee/meshlink/model/VerificationLevel;
 	public static final field NONE Lch/trancee/meshlink/model/VerificationLevel;
@@ -877,13 +1051,35 @@ public final class ch/trancee/meshlink/model/VerificationLevel : java/lang/Enum 
 	public static fun values ()[Lch/trancee/meshlink/model/VerificationLevel;
 }
 
+public final class ch/trancee/meshlink/security/ReplayWindow {
+	public fun <init> ()V
+	public final fun checkNonce (J)Z
+	public final fun getBaseNonce ()J
+	public final fun getWindow-s-VKNKU ()J
+	public final fun reset ()V
+}
+
+public final class ch/trancee/meshlink/util/ConstantTime {
+	public static final field INSTANCE Lch/trancee/meshlink/util/ConstantTime;
+	public final fun constantTimeEquals ([B[B)I
+	public final fun constantTimeEqualsBoolean ([B[B)Z
+	public final fun constantTimeIsZero ([B)Z
+	public final fun constantTimeSelect (I[B[B)[B
+	public final fun constantTimeSwap (I[B[B)Lkotlin/Pair;
+}
+
 public final class ch/trancee/meshlink/util/ConversionKt {
 	public static final fun toBytesBE-VKZWuLQ (J)[B
 	public static final fun toULongBE ([BI)J
 	public static synthetic fun toULongBE$default ([BIILjava/lang/Object;)J
 }
 
-public final class ch/trancee/meshlink/util/CryptoKt {
+public final class ch/trancee/meshlink/util/MeshHash {
+	public static final field INSTANCE Lch/trancee/meshlink/util/MeshHash;
+	public final fun derive-OGnWXxg (Ljava/lang/String;)I
+}
+
+public final class ch/trancee/meshlink/util/SecureRandomKt {
 	public static final fun randomULong ()J
 }
 

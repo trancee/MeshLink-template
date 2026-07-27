@@ -260,7 +260,7 @@ data_models:
   - name: LinkMetric
     package: ch.trancee.meshlink.model
     type: class
-    description: "Encapsulates the metric bit layout: low byte = RSSI normalized (0-255), high bits = flags (supportsL2CAP, fastInterval, highPowerMode). Composite serialized form: (flags shl 8) or rssiNormalized."
+    description: "Encapsulates the metric bit layout: low byte = RSSI normalized (0-255), high bits = flags (supportsL2CAP, lowLatency, highPower). Composite serialized form: (flags shl 8) or rssiNormalized."
     fields:
       - name: rssiNormalized
         type: UByte
@@ -268,10 +268,10 @@ data_models:
       - name: supportsL2CAP
         type: Boolean
         description: "Bit 8: L2CAP CoC supported"
-      - name: fastInterval
+      - name: lowLatency
         type: Boolean
-        description: "Bit 9: Fast connection interval"
-      - name: highPowerMode
+        description: "Bit 9: Low-latency (short) connection interval"
+      - name: highPower
         type: Boolean
         description: "Bit 10: High power mode"
       - name: composite

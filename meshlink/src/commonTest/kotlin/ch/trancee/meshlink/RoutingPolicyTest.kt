@@ -16,8 +16,8 @@ class RoutingPolicyTest {
     }
 
     @Test
-    fun `MaxHops is 32`() {
-        assertEquals(32, RoutingPolicy.MaxHops)
+    fun `MAX_HOPS is 32`() {
+        assertEquals(32, RoutingPolicy.MAX_HOPS)
     }
 
     @Test
@@ -26,8 +26,8 @@ class RoutingPolicyTest {
             LinkMetric(
                 rssiNormalized = 100u,
                 supportsL2CAP = true,
-                fastInterval = false,
-                highPowerMode = true,
+                lowLatency = false,
+                highPower = true,
             )
         // flags bits 8-10 shl 8 = (256 | 0 | 1024) shl 8 = 327680, or rssiNormalized 100 = 327780
         assertEquals(327780u, metric.composite)

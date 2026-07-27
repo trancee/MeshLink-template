@@ -39,12 +39,12 @@ data class StoredPeerIdentity(
 @Serializable
 data class TrustRecord(
     val peerIdentity: PeerIdentity,
-    val ed25519PublicKey: ByteArray,     // 32 bytes
-    val x25519PublicKey: ByteArray,      // 32 bytes
+    val identityKey: ByteArray,     // 32 bytes
+    val handshakeKey: ByteArray,      // 32 bytes
     val seenAt: Instant,                 // First handshake
     var verifiedAt: Instant,             // Last successful verify
     var state: TrustState = TrustState.INITIATED,
-    var rotationIndex: Int = 0,          // Key rotation count
+    var generation: Int = 0,          // Key rotation count
 ) {
     enum class TrustState {
         INITIATED,   // Handshake in progress
@@ -59,9 +59,9 @@ data class TrustRecord(
 ```kotlin
 @Serializable
 data class LocalIdentityKeys(
-    val ed25519PrivateKey: ByteArray,    // 32 bytes (seed)
-    val x25519PrivateKey: ByteArray,     // 32 bytes (seed)
-    val rotationIndex: Int,              // Key version
+    val identityKey: ByteArray,     // 32 bytes (seed)
+    val handshakeKey: ByteArray,     // 32 bytes (seed)
+    val generation: Int,              // Key version
     val createdAt: Instant,
 )
 ```

@@ -125,11 +125,13 @@ public enum class NoiseLayer {
     END_TO_END,
 }
 
-/** Noise link-layer session states. */
+/** Noise session states. Applies to both hop-by-hop (XX/IK) and end-to-end (IX/NX) layers. */
 public enum class NoiseSessionState {
     DISCONNECTED,
     HANDSHAKING_XX,
     HANDSHAKING_IK,
+    HANDSHAKING_IX,
+    HANDSHAKING_NX,
     ESTABLISHED,
     REKEYING,
     FAILED,
@@ -152,4 +154,65 @@ public enum class NoiseFailureReason {
     TRANSPORT_CLOSED,
     MAX_RETRIES_EXCEEDED,
     INTERNAL_ERROR,
+}
+
+// ---------------------------------------------------------------------------
+// Trust & identity types
+// ---------------------------------------------------------------------------
+
+/** Trust record state in the TrustStore. Tracks TOFU pinning lifecycle. */
+public enum class TrustState {
+    /** Handshake in progress, not yet verified. */
+    INITIATED,
+    /** TOFU-pinned identity (first successful handshake). */
+    TRUSTED,
+    /** Explicitly revoked by user/application. */
+    REVOKED,
+}
+
+/** Internal per-peer key rotation status. */
+internal enum class KeyRotationState {
+    /** Key is active and current. */
+    CURRENT,
+    /** Old key retained for grace period after rotation. */
+    GRACE_PERIOD,
+    /** Key fully revoked, no longer accepted. */
+    REVOKED,
+}
+
+/** Internal peer lifecycle tracking type. Not exposed publicly. */
+internal enum class PeerLifecycleState {
+    /** Active BLE link. */
+    CONNECTED,
+    /** BLE link lost, grace period active. */
+    DISCONNECTED,
+    /** Grace period expired, ephemeral state cleaned up. */
+    GONE,
+}
+
+// ---------------------------------------------------------------------------
+// Diagnostic types
+// ---------------------------------------------------------------------------
+
+/** Severity level for diagnostic events. */
+public enum class DiagnosticSeverity {
+    DEBUG,
+    INFO,
+    WARN,
+    ERROR,
+}
+
+// ---------------------------------------------------------------------------
+// Delivery outcome types
+// ---------------------------------------------------------------------------
+
+/** Explicit delivery outcomes surfaced to host apps. Maps from TransferState. */
+public enum class TransferDeliveryOutcome {
+    SUCCESS,
+    IN_PROGRESS,
+    RETRYING,
+    ROUTE_WAITING,
+    TIMEOUT,
+    UNRECOVERABLE_FAILURE,
+    TRUST_FAILURE,
 }
