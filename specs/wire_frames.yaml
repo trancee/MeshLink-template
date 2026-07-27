@@ -47,7 +47,10 @@ wire_frames:
         description: "Destination-self-reported sequence number (32-bit unsigned, signed comparison per RFC 8966 §3.7)"
       - name: identityKey
         type: "IdentityKey?"
-        description: "Destination's public key (Ed25519 || X25519 concatenated), enables E2E IX handshake"
+        description: "Destination's Ed25519 identity key (identity anchor, 32 bytes), enables E2E IX handshake"
+      - name: handshakeKey
+        type: "HandshakeKey?"
+        description: "Destination's X25519 handshake key (DH key, 32 bytes), enables Noise handshake key exchange"
 
   - name: ROUTE_WITHDRAWAL
     frame_type: 2
@@ -142,7 +145,10 @@ wire_frames:
     fields:
       - name: identityKey
         type: IdentityKey
-        description: "NEW public key (Ed25519 || X25519 concatenated, 64 bytes)"
+        description: "NEW Ed25519 signing/identity public key (32 bytes)"
+      - name: handshakeKey
+        type: HandshakeKey
+        description: "NEW X25519 DH handshake public key (32 bytes)"
       - name: seqNo
         type: UInt
         size_bytes: 4
@@ -150,7 +156,7 @@ wire_frames:
       - name: signature
         type: ByteArray
         size_bytes: 64
-        description: "Ed25519 signature with OLD private key over (identityKey || seqNo || reason)"
+        description: "Old Ed25519 private key signs (identityKey || handshakeKey || seqNo || reason)"
       - name: reason
         type: KeyRotationReason
         description: "PERIODIC, MANUAL, or SECURITY_EVENT"
@@ -179,10 +185,10 @@ discovery_advertisement:
       type: UInt
       bits: 16
       description: "Application isolation filter (derived from appId)"
-    - name: l2cap_psm_hint
+    - name: psm
       type: UByte
       size_bytes: 1
-      description: "Non-zero if L2CAP CoC supported; PSM value for direct connection"
+      description: "Assigned L2CAP PSM from dynamic range 0x0080–0x00FF. 0 = L2CAP CoC not supported."
     - name: peer_fingerprint
       type: ByteArray
       size_bytes: 12
@@ -208,8 +214,6 @@ frame_type_enum:
     value: 7
 
 notes:
-  - "Hello and IHU frame types were removed per destination-sourced seqno design (RFC 8966 §3.4 permits skipping Hello-based discovery when neighbor discovery is performed by means outside Babel — BLE GATT/L2CAP connect/disconnect provides liveness)."
-  - "SeqNoRequest frame type remains reserved (deferred) but not implemented."
   - "All routing metadata (ROUTE_UPDATE, ROUTE_WITHDRAWAL) is AEAD-encrypted — no plaintext routing metadata transmitted."
   - "KEY_ROTATION is plaintext but signed with old key for verification."
   - "Dynamic bitfield in TRANSFER_ACKNOWLEDGMENT: length derived from totalChunks in TransferSession, no extra length field needed."

@@ -9,8 +9,8 @@ import kotlin.jvm.JvmInline
  * other).toInt() > 0` which correctly handles wrap at 2^32: if `old = 0xFFFFFFFE` and `new = 1`
  * (wrapped), `1 - 0xFFFFFFFE = 3` (signed) > 0 → newer.
  *
- * See SPEC.md §3.1 and
- * [destination-sourced seqno design](docs/decisions/routing/destination-sourced-seqno-ihu-removal-digest-resync-design.md).
+ * See SPEC.md §8.2 and
+ * [destination-sourced seqno design](docs/decisions/routing/routing-design.md).
  *
  * SPEC-ANCHOR: seqno-model
  */

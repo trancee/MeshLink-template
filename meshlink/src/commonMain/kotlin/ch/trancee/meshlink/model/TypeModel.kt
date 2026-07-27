@@ -106,6 +106,16 @@ public enum class RegulatoryRegion {
 }
 
 // ---------------------------------------------------------------------------
+// Peer lifecycle types
+// ---------------------------------------------------------------------------
+
+/** Public peer connection states exposed to host apps. */
+public enum class PeerConnectionState {
+    CONNECTED,
+    DISCONNECTED,
+}
+
+// ---------------------------------------------------------------------------
 // Noise session state-machine types
 // ---------------------------------------------------------------------------
 

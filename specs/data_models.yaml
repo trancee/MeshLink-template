@@ -177,7 +177,10 @@ data_models:
         description: "Destination-self-reported sequence number, wrapped for safe comparison"
       - name: identityKey
         type: "IdentityKey?"
-        description: "Destination's public key, learned via route updates (may be null on cold start)"
+        description: "Destination's Ed25519 identity key, learned via route updates (may be null on cold start)"
+      - name: handshakeKey
+        type: "HandshakeKey?"
+        description: "Destination's X25519 handshake key, learned via route updates (may be null on cold start)"
       - name: expiresAt
         type: Instant
         description: "Expiration instant for this route entry"
@@ -277,12 +280,56 @@ data_models:
 
   - name: IdentityKey
     package: ch.trancee.meshlink.model
-    type: class
-    description: "Crypto key with type tag for routing layer (enables E2E IX handshake)."
+    type: value_class
+    description: "Ed25519 public key for mesh identity verification and signing. Stored as a 32-byte array, serialized as hex string."
     fields:
-      - name: keyType
-        type: KeyType
-        description: "ED25519 or X25519"
-      - name: keyBytes
+      - name: raw
         type: ByteArray
-        description: "Raw key bytes (32 bytes for both Ed25519 and X25519)"
+        description: "Raw 32-byte Ed25519 key data"
+      - name: hex
+        type: String
+        description: "Hex-encoded representation"
+    companion_functions:
+      - name: fromHex
+        params:
+          - name: hex
+            type: String
+        return_type: IdentityKey
+        description: "Creates an IdentityKey from a 64-char hex string"
+      - name: fromBytes
+        params:
+          - name: bytes
+            type: ByteArray
+        return_type: IdentityKey
+        description: "Creates an IdentityKey from a 32-byte ByteArray"
+      - name: toByteArray
+        return_type: ByteArray
+        description: "Returns the raw key bytes"
+
+  - name: HandshakeKey
+    package: ch.trancee.meshlink.model
+    type: value_class
+    description: "X25519 Diffie-Hellman public key for Noise handshake key exchange. Stored as a 32-byte array, serialized as hex string."
+    fields:
+      - name: raw
+        type: ByteArray
+        description: "Raw 32-byte X25519 key data"
+      - name: hex
+        type: String
+        description: "Hex-encoded representation"
+    companion_functions:
+      - name: fromHex
+        params:
+          - name: hex
+            type: String
+        return_type: HandshakeKey
+        description: "Creates a HandshakeKey from a 64-char hex string"
+      - name: fromBytes
+        params:
+          - name: bytes
+            type: ByteArray
+        return_type: HandshakeKey
+        description: "Creates a HandshakeKey from a 32-byte ByteArray"
+      - name: toByteArray
+        return_type: ByteArray
+        description: "Returns the raw key bytes"

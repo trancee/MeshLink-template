@@ -30,8 +30,6 @@ See [specs/wire_frames.yaml](../../../specs/wire_frames.yaml) for wire format.
 
 **Result:** The "relay reports higher seqno than live direct route" edge case becomes structurally impossible — every neighbor converges on the same self-reported value.
 
-**Out of scope:** `SeqNoRequest`-based starvation recovery (RFC 8966 §3.8.2.1) remains unimplemented. The reconnect-driven bump substituted for it; this design's cold-start self-refresh continues that role.
-
 ---
 
 ## 2. Hello/IHU: Remove, Don't Implement
@@ -173,7 +171,6 @@ See SPEC.md §8.4.1 for loop detection mechanisms.
 | `RouteUpdate` | destination-route announcement | also used for self-origin announcements (`destination == sender`) on connect |
 | `Hello` | dead, encoded/decoded, no-op on receipt | **removed** |
 | `Ihu` | dead, encoded/decoded, no-op on receipt | **removed** |
-| `SeqNoRequest` | dead, encoded/decoded, no-op on receipt | remains dead, explicitly deferred (kept as reserved wire surface) |
 | `RouteDigest` | sent on nearly every advertisement, receive side no-op | receive side triggers a full-table push to the mismatched peer |
 
 ---

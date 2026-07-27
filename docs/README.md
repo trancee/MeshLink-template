@@ -30,7 +30,7 @@ When SPEC.md and an ADR conflict, the ADR is authoritative for the *decision*, b
 | Crypto: vector policy | `decisions/crypto/vector-policy.md` | Wycheproof corpus classification, fail-closed rules |
 | Crypto: Android fallback | `decisions/crypto/android-crypto-fallback-proof.md` | Ed25519 fallback exists, X25519/ChaCha20 need implementation |
 | Crypto: PQ-hybrid | `decisions/crypto/pq-hybrid-candidate-matrix.md` | C2 (conservative + staged extension) recommended |
-| **Routing: consolidated** | `decisions/routing/routing-design.md` | **Destination self-reports seqno, Hello/IHU removed, digest→full-table, always-encrypted metadata, composite metric (RSSI+flags)** |
+| **Routing: consolidated** | `decisions/routing/routing-design.md` | **Destination self-reports seqno, digest→full-table, always-encrypted metadata, composite metric (RSSI+flags)** |
 | Transport: GATT/L2CAP | `decisions/transport/gatt-l2cap-transport-selection.md` | GATT=control plane, L2CAP CoC=data plane, fallback rules |
 | Wire: format spec | `decisions/wire/wire-format-spec.md` | Frame type reference table |
 | Power: mode behavior | `decisions/power/power-mode-behavior.md` | 3-mode model, grace periods, EU clamping |

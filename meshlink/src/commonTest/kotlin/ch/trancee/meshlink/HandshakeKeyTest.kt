@@ -1,43 +1,43 @@
 package ch.trancee.meshlink
 
-import ch.trancee.meshlink.model.IdentityKey
+import ch.trancee.meshlink.model.HandshakeKey
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class IdentityKeyTest {
+class HandshakeKeyTest {
     @Test
     fun `fromBytes and to raw returns same bytes`() {
         val bytes = ByteArray(32) { i -> i.toByte() }
-        val key = IdentityKey.fromBytes(bytes)
+        val key = HandshakeKey.fromBytes(bytes)
         assertEquals(bytes.toList(), key.raw.toList())
     }
 
     @Test
     fun `fromHex roundtrip`() {
         val hex = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-        val key = IdentityKey.fromHex(hex)
+        val key = HandshakeKey.fromHex(hex)
         assertEquals(hex, key.hex)
-    }
-
-    @Test
-    fun `fromHex throws on wrong length`() {
-        val hex = "000102030405060708090a0b0c0d0e0f" // 16 hex chars = 8 bytes
-        try {
-            IdentityKey.fromHex(hex)
-            kotlin.test.fail("Expected IllegalArgumentException")
-        } catch (e: IllegalArgumentException) {
-            assertEquals("IdentityKey must be 64 hex chars (32 bytes)", e.message)
-        }
     }
 
     @Test
     fun `fromBytes throws on wrong size`() {
         val bytes = ByteArray(16) { 0 }
         try {
-            IdentityKey.fromBytes(bytes)
+            HandshakeKey.fromBytes(bytes)
             kotlin.test.fail("Expected IllegalArgumentException")
         } catch (e: IllegalArgumentException) {
-            assertEquals("IdentityKey must be 32 bytes", e.message)
+            assertEquals("HandshakeKey must be exactly 32 bytes", e.message)
+        }
+    }
+
+    @Test
+    fun `fromHex throws on wrong length`() {
+        val hex = "000102030405060708090a0b0c0d0e0f" // 16 hex chars = 8 bytes
+        try {
+            HandshakeKey.fromHex(hex)
+            kotlin.test.fail("Expected IllegalArgumentException")
+        } catch (e: IllegalArgumentException) {
+            assertEquals("HandshakeKey must be 64 hex chars (32 bytes)", e.message)
         }
     }
 }

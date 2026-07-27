@@ -16,7 +16,6 @@ Babel-style distance-vector (RFC 8966) adapted for BLE mesh:
 
 - **Destination-owned**: Each node owns one seqno counter, incremented only on cold start
 - **Self-origin announcements**: After connection, each node sends RouteUpdate about itself
-- **No Hello/IHU frames**: BLE transport already provides liveness signals
 
 [Decision: docs/decisions/routing/routing-design.md]
 

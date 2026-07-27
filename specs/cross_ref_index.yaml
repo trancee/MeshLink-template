@@ -30,6 +30,8 @@ cross_references:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TypeModel.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/LinkMetric.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/IdentityKey.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/HandshakeKey.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PeerEvent.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferFailureReason.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/SessionId.kt"
     specs:
@@ -88,7 +90,7 @@ cross_references:
     specs:
       - "specs/state_machines.yaml"
       - "specs/enums.yaml"
-    description: "Babel-style distance-vector, destination-sourced seqno, Hello/IHU removal, digest-triggered resync, always-encrypted metadata, link quality metric, loop detection, TTL by priority"
+    description: "Babel-style distance-vector, destination-sourced seqno, digest-triggered resync, always-encrypted metadata, link quality metric, loop detection, TTL by priority"
 
   - spec_id: "transfer-layer"
     spec_section: "SPEC.md#9-transfer-layer"
@@ -184,11 +186,15 @@ spec_anchors_in_code:
   - "ttl-by-priority" # RoutingPolicy.kt
   - "type-model" # TypeModel.kt
   - "diagnostic-event" # DiagnosticEvent.kt
-  - "power-mode-config" # PowerModeConfig.kt
+  - "power-mode" # PowerMode.kt
+  - "power-mode-settings" # PowerMode.kt
+  - "handshake-key-model" # HandshakeKey.kt
   - "session-id-model" # SessionId.kt
   - "transfer-failure-reason-model" # TransferFailureReason.kt
   - "link-metric-model" # LinkMetric.kt
   - "identity-key-model" # IdentityKey.kt
+    - "peer-connection-state" # PeerConnectionState (enums.yaml)
+    - "peer-event" # PeerEvent.kt
   - "diagnostic-event" # diagnostic_events.yaml
   - "type-model" # enums.yaml
   - "state-machine" # state_machines.yaml
@@ -206,9 +212,12 @@ implementation_status:
     - "SessionId"
     - "LinkMetric"
     - "IdentityKey"
+    - "PeerConnectionState"
+    - "PeerEvent"
     - "All enums in TypeModel.kt"
     - "DiagnosticEvent sealed hierarchy"
-    - "PowerModeConfig"
+    - "PowerMode"
+    - "HandshakeKey"
     - "RoutingPolicy (TTL by priority)"
   not_implemented:
     - "MeshLink public API (MeshLink.kt is stub)"

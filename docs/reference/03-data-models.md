@@ -284,5 +284,3 @@ Note: `unreachable` is a routing-layer outcome (no route to destination), not a 
 | KEY_ROTATION | Signed key rotation announcement | Plaintext (signature verifiable) |
 
 ROUTE_UPDATE and ROUTE_WITHDRAWAL are always AEAD-encrypted using the Noise session key — no plaintext routing metadata is ever transmitted. [Decision: ../decisions/routing/routing-design.md, ../decisions/wire/wire-format-spec.md]
-
-**Note:** `Hello` and `Ihu` frame types were considered and removed — BLE connection state (GATT/L2CAP connect/disconnect) provides liveness, making periodic Hello/IHU frames redundant. See [Routing Design](../decisions/routing/routing-design.md) for rationale.

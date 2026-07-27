@@ -61,5 +61,4 @@ Per active link/transfer session, expose at minimum:
 ## Related Docs
 
 - [PROJECT.md](../../../PROJECT.md) — Wire & Discovery Design and pillar 4 (chunked transfer)
-- [Routing Design: SeqNo, Hello/IHU Removal, Digest Resync, Metadata Privacy, Link Metric](../routing/routing-design.md)
 - [CONSTITUTION.md](../../../CONSTITUTION.md#iv-performance-requirements) — Performance Requirements

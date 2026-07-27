@@ -8,15 +8,15 @@ This document is the top-level specification index. The detailed reference speci
 |-------|----------|---------------------|
 | Vision & Product Pillars | [01-vision.md](docs/reference/01-vision.md) | — |
 | Architecture Overview | [02-architecture.md](docs/reference/02-architecture.md) | [Module Structure](docs/explanation/module-structure.md) |
-| Core Data Models | [03-data-models.md](docs/reference/03-data-models.md) | [Data Model](docs/decisions/model/data-model.md), [Power Mode](docs/decisions/power/power-mode-behavior.md) |
-| Discovery & Identity | [04-discovery.md](docs/reference/04-discovery.md) | [Data Model](docs/decisions/model/data-model.md) |
+| Core Data Models | [03-data-models.md](docs/reference/03-data-models.md) | [Data Model](docs/decisions/model/data-model.md), [Power Mode](docs/decisions/power/power-mode-behavior.md), [Mesh Size Limits](docs/decisions/model/mesh-size-limits.md), [Persistence Strategy](docs/decisions/storage/persistence-strategy.md) |
+| Discovery & Identity | [04-discovery.md](docs/reference/04-discovery.md) | [Data Model](docs/decisions/model/data-model.md), [Mesh Hash Derivation](docs/decisions/discovery/mesh-hash-derivation.md) |
 | Trust Model (TOFU) | [05-trust-model.md](docs/reference/05-trust-model.md) | [Crypto Design](docs/decisions/crypto/crypto-design.md) |
-| Transport Layer | [06-transport.md](docs/reference/06-transport.md) | [GATT/L2CAP](docs/decisions/transport/gatt-l2cap-transport-selection.md) |
+| Transport Layer | [06-transport.md](docs/reference/06-transport.md) | [GATT/L2CAP](docs/decisions/transport/gatt-l2cap-transport-selection.md), [Android BLE Permissions](docs/decisions/transport/android-ble-permissions.md), [iOS Background BLE](docs/decisions/transport/ios-background-ble.md), [L2CAP PSM Allocation](docs/decisions/transport/l2cap-psm-allocation.md), [GATT Service UUID](docs/decisions/transport/gatt-service-uuid.md), [MTU Negotiation](docs/decisions/transport/mtu-negotiation.md), [Android Foreground Service](docs/decisions/transport/android-foreground-service.md), [Dual-Role Constraints](docs/decisions/transport/dual-role-constraints.md) |
 | Security Layer | [07-security.md](docs/reference/07-security.md) | [Crypto Design](docs/decisions/crypto/crypto-design.md), [Vector Policy](docs/decisions/crypto/vector-policy.md) |
 | Routing Layer | [08-routing.md](docs/reference/08-routing.md) | [Routing Design](docs/decisions/routing/routing-design.md) |
 | Transfer Layer | [09-transfer.md](docs/reference/09-transfer.md) | [Data Model](docs/decisions/model/data-model.md), [Wire Format](docs/decisions/wire/wire-format-spec.md) |
 | Power Management | [10-power-management.md](docs/reference/10-power-management.md) | [Power Mode](docs/decisions/power/power-mode-behavior.md) |
-| Diagnostics & Events | [11-diagnostics.md](docs/reference/11-diagnostics.md) | — |
+| Diagnostics & Events | [11-diagnostics.md](docs/reference/11-diagnostics.md) | [Callback Threading](docs/decisions/diagnostics/callback-threading.md) |
 | Build & Quality | [12-build-quality.md](docs/reference/12-build-quality.md) | — |
 | Testing & Verification | [13-testing.md](docs/reference/13-testing.md) | — |
 | Settings Model | [14-settings.md](docs/reference/14-settings.md) | [Data Model](docs/decisions/model/data-model.md) |

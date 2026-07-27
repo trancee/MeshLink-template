@@ -1,5 +1,6 @@
 package ch.trancee.meshlink
 
+import ch.trancee.meshlink.model.HandshakeKey
 import ch.trancee.meshlink.model.IdentityKey
 import ch.trancee.meshlink.model.PeerIdentity
 import ch.trancee.meshlink.model.RouteEntry
@@ -45,5 +46,60 @@ class RouteEntryTest {
         assertNull(entry.nextHop)
         assertNotNull(entry.identityKey)
         assertEquals(key, entry.identityKey)
+    }
+
+    @Test
+    fun `with null nextHop but valid handshakeKey`() {
+        val hKey =
+            HandshakeKey.fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+        val entry =
+            RouteEntry(
+                destination = PeerIdentity.ZERO,
+                nextHop = null,
+                source = PeerIdentity.ZERO,
+                metric = 0u,
+                seqNo = SeqNo.ZERO,
+                handshakeKey = hKey,
+                expiresAt = Clock.System.now(),
+            )
+        assertNull(entry.nextHop)
+        assertNotNull(entry.handshakeKey)
+        assertEquals(hKey, entry.handshakeKey)
+    }
+
+    @Test
+    fun `with both identityKey and handshakeKey`() {
+        val iKey =
+            IdentityKey.fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+        val hKey =
+            HandshakeKey.fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+        val entry =
+            RouteEntry(
+                destination = PeerIdentity.ZERO,
+                nextHop = PeerIdentity.ZERO,
+                source = PeerIdentity.ZERO,
+                metric = 0u,
+                seqNo = SeqNo.ZERO,
+                identityKey = iKey,
+                handshakeKey = hKey,
+                expiresAt = Clock.System.now(),
+            )
+        assertEquals(iKey, entry.identityKey)
+        assertEquals(hKey, entry.handshakeKey)
+    }
+
+    @Test
+    fun `handshakeKey defaults to null`() {
+        val entry =
+            RouteEntry(
+                destination = PeerIdentity.ZERO,
+                nextHop = null,
+                source = PeerIdentity.ZERO,
+                metric = 0u,
+                seqNo = SeqNo.ZERO,
+                identityKey = null,
+                expiresAt = Clock.System.now(),
+            )
+        assertNull(entry.handshakeKey)
     }
 }
