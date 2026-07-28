@@ -6,12 +6,12 @@ val specsDir = project.rootProject.file("specs")
 val requiredFiles =
     listOf(
         "enums.yaml",
-        "data_models.yaml",
-        "state_machines.yaml",
-        "diagnostic_events.yaml",
+        "data-models.yaml",
+        "state-machines.yaml",
+        "diagnostic-events.yaml",
         "settings.yaml",
-        "wire_frames.yaml",
-        "cross_ref_index.yaml",
+        "wire-frames.yaml",
+        "cross-ref-index.yaml",
     )
 
 for (name in requiredFiles) {

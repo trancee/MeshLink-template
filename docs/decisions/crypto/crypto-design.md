@@ -397,6 +397,4 @@ if (frame.destination == localPeerIdentity) {
 ## Related
 
 - [Routing Design](../routing/routing-design.md)
-- [Transport: GATT/L2CAP](../transport/gatt-l2cap-transport-selection.md)
-- [Vector Policy](vector-policy.md)
-- [Android Crypto Fallback](android-crypto-fallback-proof.md)
+- [Transport: MTU](../transport/mtu-negotiation.md)

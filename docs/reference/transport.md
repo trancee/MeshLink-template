@@ -11,7 +11,7 @@
 
 **Important:** Control plane (handshake, routing, transfer control) MUST work over GATT alone for reliability.
 
-[Decision: docs/decisions/transport/gatt-l2cap-transport-selection.md]
+[Decision: docs/decisions/transport/mtu-negotiation.md]
 
 ## 6.2 Negotiation Sequence
 

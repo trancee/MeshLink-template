@@ -121,4 +121,4 @@ The `meshLinkSettings` function is the entry point for the lambda DSL. As a publ
 
 - [SPEC.md §14](../../../SPEC.md#configuration-model)
 - [Data Model ADR](data-model.md)
-- [Settings Model](../../reference/14-settings.md)
+- [Settings Model](../../reference/settings.md)

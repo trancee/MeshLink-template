@@ -280,6 +280,6 @@ eventCallback = { event ->
 ## Related
 
 - [MeshLinkSettings Spec](../../../specs/settings.yaml)
-- [Diagnostic Events Spec](../../../specs/diagnostic_events.yaml)
+- [Diagnostic Events Spec](../../../specs/diagnostic-events.yaml)
 - [CONSTITUTION.md §IV Performance Requirements](../../../CONSTITUTION.md)
 - [Kotlin Coroutines Skill](../../../.agents/skills/kotlin-coroutines/SKILL.md)

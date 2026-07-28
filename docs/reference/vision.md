@@ -26,6 +26,6 @@
 | Pending state | In-memory only; does not survive process restart |
 | Delivery outcomes | Explicit: success, in-progress, retrying, route-waiting, unreachable, trust-failure, timeout, unrecoverable-failure (maps from `TransferState`: COMPLETED→success, IN_PROGRESS→in-progress, RETRYING→retrying, WAITING_FOR_ROUTE→route-waiting, TIMED_OUT→timeout, FAILED→unrecoverable-failure or trust-failure; `unreachable` is a routing-layer outcome, not a transfer state) |
 | Wire compatibility | Backward-compatible evolution; breaking changes require major version bump + migration |
-| Performance budgets | See [Build & Quality Constraints](12-build-quality.md) |
+| Performance budgets | See [Build & Quality Constraints](build-quality.md) |
 | Runtime dependency | Maximum one Maven artifact at runtime: `kotlinx-coroutines-core`. Crypto primitives are either platform APIs (Android Security Framework, iOS Security framework) or pure-Kotlin fallbacks — this is an implementation distinction, not a runtime dependency. |
 | Test coverage | 100% line/branch coverage for `:meshlink`; `commonMain` + `androidHostTest` + `iosMain`; crypto validated against Wycheproof vectors |

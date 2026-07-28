@@ -3,7 +3,7 @@ package ch.trancee.meshlink.model
 /**
  * Maps [TransferState] to explicit delivery outcomes surfaced to host apps.
  *
- * See SPEC.md §3.4.1 and specs/state_machines.yaml (TransferDeliveryOutcome).
+ * See SPEC.md §3.4.1 and specs/state-machines.yaml (TransferDeliveryOutcome).
  *
  * SPEC-ANCHOR: delivery-outcome
  */

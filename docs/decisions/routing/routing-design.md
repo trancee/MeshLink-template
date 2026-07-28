@@ -13,8 +13,8 @@ Consolidates three separable decisions for MeshLink's Babel-inspired routing:
 Does not redesign trust, identity, transport bearer selection, or the feasibility condition.
 
 See [SPEC.md §8](../../../SPEC.md#8-routing-layer) for complete specification (tables, state machines, parameter values).
-See [specs/state_machines.yaml](../../../specs/state_machines.yaml) for machine-readable state machine.
-See [specs/wire_frames.yaml](../../../specs/wire_frames.yaml) for wire format.
+See [specs/state-machines.yaml](../../../specs/state-machines.yaml) for machine-readable state machine.
+See [specs/wire-frames.yaml](../../../specs/wire-frames.yaml) for wire format.
 
 ---
 
@@ -208,7 +208,7 @@ value class SeqNo(private val value: UInt) {
 
 ## Related Docs
 
-- [GATT as control plane, L2CAP CoC as data plane](../transport/gatt-l2cap-transport-selection.md)
-- [Wire Format Specification](../wire/wire-format-spec.md)
+- [MTU Negotiation](../transport/mtu-negotiation.md)
+- [Wire Format Specification](../../../specs/wire-frames.yaml)
 - [Data Model](../model/data-model.md)
 - [E2E Handshake Pattern](../crypto/crypto-design.md) (IX handshake for E2E)

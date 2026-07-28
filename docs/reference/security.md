@@ -15,7 +15,7 @@ All validated against Wycheproof test vectors:
 | HMAC-SHA256 | RFC 2104 | Wycheproof | 174 vectors (66 valid + 108 invalid) |
 | SHA-256 | RFC 6234 | RFC-style regression corpus | Covered via other primitives' Wycheproof vectors |
 
-[Decision: docs/decisions/crypto/vector-policy.md]
+[Decision: docs/decisions/crypto/crypto-design.md]
 
 ## 7.2 Handshake Patterns
 

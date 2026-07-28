@@ -27,13 +27,17 @@ When SPEC.md and an ADR conflict, the ADR is authoritative for the *decision*, b
 |---|---|---|
 | Data model | `decisions/model/data-model.md` | PeerIdentity stable/random, PeerFingerprint truncated hint, Scoreboard immutable dynamic bitfield |
 | **Crypto: consolidated** | `decisions/crypto/crypto-design.md` | **IX handshake, NX fallback, session state machine, key rotation, E2E routing** |
-| Crypto: vector policy | `decisions/crypto/vector-policy.md` | Wycheproof corpus classification, fail-closed rules |
-| Crypto: Android fallback | `decisions/crypto/android-crypto-fallback-proof.md` | Ed25519 fallback exists, X25519/ChaCha20 need implementation |
+| Crypto: constant-time | `decisions/crypto/constant-time-policy.md` | All crypto ops use constant-time arithmetic |
+| Crypto: replay window | `decisions/crypto/replay-window.md` | Sliding window with bitmap |
 | Crypto: PQ-hybrid | `decisions/crypto/pq-hybrid-candidate-matrix.md` | C2 (conservative + staged extension) recommended |
 | **Routing: consolidated** | `decisions/routing/routing-design.md` | **Destination self-reports seqno, digest→full-table, always-encrypted metadata, composite metric (RSSI+flags)** |
-| Transport: GATT/L2CAP | `decisions/transport/gatt-l2cap-transport-selection.md` | GATT=control plane, L2CAP CoC=data plane, fallback rules |
-| Wire: format spec | `decisions/wire/wire-format-spec.md` | Frame type reference table |
+| Transport: MTU | `decisions/transport/mtu-negotiation.md` | MTU negotiation rules |
 | Power: mode behavior | `decisions/power/power-mode-behavior.md` | 3-mode model, grace periods, EU clamping |
+| Diagnostics: threading | `decisions/diagnostics/callback-threading.md` | Callback dispatch on coroutine dispatcher |
+| Discovery: mesh hash | `decisions/discovery/mesh-hash-derivation.md` | FNV-1a of mesh config |
+| Settings: DSL | `decisions/model/meshlinksettings-dsl.md` | Lambda + imperative builder |
+| Model: mesh size limits | `decisions/model/mesh-size-limits.md` | Max 256 route entries, 8 peers typical |
+| Model: persistence | `decisions/storage/persistence-strategy.md` | Trust state only, no plaintext |
 | Explanation: module structure | `explanation/module-structure.md` | 4 Gradle modules, why reference/proof are separate |
 | Explanation: peer lifecycle | `explanation/peer-lifecycle.md` | 3-state model (Connected/Disconnected/Gone), grace periods |
 | Explanation: FlatBuffers | `explanation/why-pure-kotlin-flatbuffers.md` | Why pure-Kotlin FlatBuffers codec |

@@ -389,7 +389,7 @@ Migrations run automatically via DataStore (Android) / manual (iOS) on app start
 ## Diagnostics
 
 ```yaml
-# specs/diagnostic_events.yaml
+# specs/diagnostic-events.yaml
 - name: PeerIdentityGenerated
   fields:
     - identity: PeerIdentity
@@ -408,6 +408,6 @@ Migrations run automatically via DataStore (Android) / manual (iOS) on app start
 ## Related
 
 - [Data Model ADR](../model/data-model.md)
-- [Trust Model (TOFU)](../../reference/05-trust-model.md)
+- [Trust Model (TOFU)](../../reference/trust-model.md)
 - [Crypto Design](../crypto/crypto-design.md)
 - [Kotlin Multiplatform Skill](../../../.agents/skills/kotlin-multiplatform/SKILL.md)
