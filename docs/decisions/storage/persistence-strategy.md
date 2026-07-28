@@ -27,8 +27,8 @@ Only **minimal state** is persisted:
 @Serializable
 data class StoredPeerIdentity(
     val identity: PeerIdentity,      // 16 bytes
-    val createdAt: Instant,          // Generation timestamp
     val version: Int = 1             // Schema version
+    val createdAt: Instant,          // Generation timestamp
 )
 ```
 
@@ -41,10 +41,10 @@ data class TrustRecord(
     val peerIdentity: PeerIdentity,
     val identityKey: ByteArray,     // 32 bytes
     val handshakeKey: ByteArray,      // 32 bytes
-    val seenAt: Instant,                 // First handshake
-    var verifiedAt: Instant,             // Last successful verify
     var state: TrustState = TrustState.INITIATED,
     var generation: Int = 0,          // Key rotation count
+    val seenAt: Instant,                 // First handshake
+    var verifiedAt: Instant,             // Last successful verify
 ) {
     enum class TrustState {
         INITIATED,   // Handshake in progress

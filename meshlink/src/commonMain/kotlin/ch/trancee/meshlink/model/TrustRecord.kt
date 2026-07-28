@@ -16,8 +16,8 @@ public data class TrustRecord(
     public val peerIdentity: PeerIdentity,
     public val identityKey: IdentityKey,
     public val handshakeKey: HandshakeKey,
-    public val seenAt: Instant,
-    public val verifiedAt: Instant,
     public val state: TrustState = TrustState.INITIATED,
     public val generation: Int = 0,
+    public val seenAt: Instant,
+    public val verifiedAt: Instant,
 )

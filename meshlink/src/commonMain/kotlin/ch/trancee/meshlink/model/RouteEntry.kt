@@ -18,8 +18,6 @@ public data class RouteEntry(
     public val metric: UInt,
     /** Destination-self-reported sequence number, wrapped for safe comparison. */
     public val seqNo: SeqNo,
-    /** Expiration instant for this route entry. */
-    public val expiresAt: Instant,
     /**
      * Destination's Ed25519 identity key (for IX handshake verification), learned via route updates
      * (may be null on cold start).
@@ -30,4 +28,6 @@ public data class RouteEntry(
      * null on cold start).
      */
     public val handshakeKey: HandshakeKey? = null,
+    /** Expiration instant for this route entry. */
+    public val expiresAt: Instant,
 )

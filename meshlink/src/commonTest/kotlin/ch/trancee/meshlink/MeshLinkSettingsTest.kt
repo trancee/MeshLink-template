@@ -135,10 +135,9 @@ class MeshLinkSettingsTest {
         assertNull(received) // callback not invoked during build
         settings.eventCallback?.let {
             it(
-                ch.trancee.meshlink.diagnostics.DiagnosticEvent.RouteDigestMismatchEvent(
+                ch.trancee.meshlink.diagnostics.DiagnosticEvent.TransportFallbackEvent(
                     peerIdentity = ch.trancee.meshlink.model.PeerIdentity.ZERO,
-                    localDigest = 0u,
-                    remoteDigest = 0u,
+                    reason = ch.trancee.meshlink.model.TransportFallbackReason.NO_PSM_ADVERTISED,
                 )
             )
         }

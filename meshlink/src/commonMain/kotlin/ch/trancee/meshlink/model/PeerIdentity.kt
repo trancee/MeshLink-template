@@ -14,18 +14,12 @@ import kotlin.text.HexFormat
  */
 @JvmInline
 public value class PeerIdentity(private val parts: Pair<ULong, ULong>) {
-    /** Lower 8 bytes of the 16-byte identity. */
-    public val lower: ULong
-        get() = parts.first
+    /** Provides string representation for implicit conversion in string templates. */
+    override fun toString(): String = toHexString()
 
-    /** Upper 8 bytes of the 16-byte identity. */
-    public val upper: ULong
-        get() = parts.second
-
-    /** Hex-encoded representation for diagnostics and display. */
-    public val hex: String
-        get() =
-            "${lower.toHexString(HexFormat { number.minLength = 16 })}${upper.toHexString(HexFormat { number.minLength = 16 })}"
+    private fun toHexString(): String =
+        parts.first.toHexString(HexFormat { number.minLength = 16 }) +
+            parts.second.toHexString(HexFormat { number.minLength = 16 })
 
     public companion object {
         /** The zero identity (all bytes zero) — for initialization and comparison. */
@@ -50,8 +44,8 @@ public value class PeerIdentity(private val parts: Pair<ULong, ULong>) {
     /** Converts this identity to a 16-byte [ByteArray]. */
     public fun toByteArray(): ByteArray {
         val result = ByteArray(16)
-        val lowerBytes = lower.toBytesBE()
-        val upperBytes = upper.toBytesBE()
+        val lowerBytes = parts.first.toBytesBE()
+        val upperBytes = parts.second.toBytesBE()
         lowerBytes.copyInto(result, 0, 0, 8)
         upperBytes.copyInto(result, 8, 0, 8)
         return result

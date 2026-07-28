@@ -25,6 +25,10 @@ wire_frames:
     description: "Route announcement with metric + seqno + destination public key"
     encryption: "Always AEAD-encrypted (Noise link-layer session)"
     fields:
+      - name: source
+        type: PeerIdentity
+        size_bytes: 16
+        description: "Peer from whom this route was learned (for loop detection)"
       - name: destination
         type: PeerIdentity
         size_bytes: 16
@@ -33,10 +37,6 @@ wire_frames:
         type: "PeerIdentity?"
         size_bytes: "16 or 0 (null = self-origin)"
         description: "Next hop toward destination (null for self-origin announcements where destination == sender)"
-      - name: source
-        type: PeerIdentity
-        size_bytes: 16
-        description: "Peer from whom this route was learned (for loop detection)"
       - name: metric
         type: UInt
         size_bytes: 4
@@ -57,14 +57,14 @@ wire_frames:
     description: "Route retraction"
     encryption: "Always AEAD-encrypted (Noise link-layer session)"
     fields:
-      - name: destination
-        type: PeerIdentity
-        size_bytes: 16
-        description: "Destination peer identity being withdrawn"
       - name: source
         type: PeerIdentity
         size_bytes: 16
         description: "Peer from whom this route was learned"
+      - name: destination
+        type: PeerIdentity
+        size_bytes: 16
+        description: "Destination peer identity being withdrawn"
       - name: seqNo
         type: UInt
         size_bytes: 4
@@ -75,14 +75,14 @@ wire_frames:
     description: "FNV-1a hash of route table (32-bit)"
     encryption: "Plaintext (digest only)"
     fields:
+      - name: source
+        type: PeerIdentity
+        size_bytes: 16
+        description: "Identity of peer sending this digest"
       - name: digest
         type: UInt
         size_bytes: 4
         description: "32-bit FNV-1a hash of local route table"
-      - name: peerIdentity
-        type: PeerIdentity
-        size_bytes: 16
-        description: "Identity of peer sending this digest"
 
   - name: TRANSFER_CHUNK
     frame_type: 4

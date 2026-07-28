@@ -40,12 +40,13 @@ sealed interface CryptoKey {
 
 ```kotlin
 data class RouteEntry(
+  val source: PeerIdentity,        // peer from whom route was learned (loop detection)
   val destination: PeerIdentity,
   val nextHop: PeerIdentity?,
-  val source: PeerIdentity,        // peer from whom route was learned (loop detection)
-  val seqNo: SeqNo,                // destination-self-reported, wrapped for safe comparison
   val metric: UInt,                // composite via LinkMetric; feasibility computed dynamically
+  val seqNo: SeqNo,                // destination-self-reported, wrapped for safe comparison
   val identityKey: IdentityKey?,   // learned via route updates; enables E2E IX handshake
+  val handshakeKey: HandshakeKey?,  
   val expiresAt: Instant,
 )
 ```

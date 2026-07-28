@@ -9,15 +9,17 @@ data_models:
     type: value_class
     description: "Stable 16-byte peer identifier. Generated ONCE at install/first launch, stored permanently. NOT derived from public key — remains stable across key rotations."
     fields:
-      - name: lo
-        type: ULong
-        description: "Lower 8 bytes of the 16-byte identity"
-      - name: hi
-        type: ULong
-        description: "Upper 8 bytes of the 16-byte identity"
-      - name: hex
-        type: String
-        description: "Hex-encoded representation for diagnostics and display"
+      - name: parts
+        type: "Pair<ULong, ULong>"
+        visibility: private
+        description: "Lower (first) and upper (second) 8 bytes of the 16-byte identity"
+    methods:
+      - name: toString
+        return_type: String
+        description: "32-char hex representation (16 chars per ULong, zero-padded)"
+      - name: toByteArray
+        return_type: ByteArray
+        description: "16-byte big-endian representation"
     constants:
       - name: ZERO
         value: "0UL to 0UL"
@@ -42,9 +44,14 @@ data_models:
     type: value_class
     description: "Unsigned 32-bit sequence number with safe wrap-around comparison. RFC 8966 §3.7 requires signed interpretation for seqno comparison."
     fields:
-      - name: raw
+      - name: value
         type: UInt
+        visibility: private
         description: "Raw sequence number value"
+    methods:
+      - name: toString
+        return_type: String
+        description: "Decimal string representation"
     constants:
       - name: ZERO
         value: "SeqNo(0u)"
@@ -160,15 +167,15 @@ data_models:
     type: data_class
     description: "Route entry in the routing table. Managed by RouteCoordinator; updates via RouteDigest."
     fields:
+      - name: source
+        type: PeerIdentity
+        description: "The peer from whom this route was learned (for loop detection)"
       - name: destination
         type: PeerIdentity
         description: "Final destination peer in the mesh"
       - name: nextHop
         type: "PeerIdentity?"
         description: "Immediate next hop toward the destination (null = unreachable)"
-      - name: source
-        type: PeerIdentity
-        description: "The peer from whom this route was learned (for loop detection)"
       - name: metric
         type: UInt
         description: "Route metric (RSSI + flags, see LinkMetric)"
@@ -237,7 +244,19 @@ data_models:
     fields:
       - name: value
         type: ULong
+        visibility: private
         description: "Raw 64-bit session ID value"
+    methods:
+      - name: toString
+        return_type: String
+        description: "Hex representation of the 64-bit value"
+    companion_functions:
+      - name: fromHex
+        params:
+          - name: hex
+            type: String
+        return_type: SessionId
+        description: "Creates a SessionId from a hex string (max 16 chars)"
 
   - name: TransferFailureReason
     package: ch.trancee.meshlink.model
@@ -283,11 +302,13 @@ data_models:
     type: value_class
     description: "Ed25519 public key for mesh identity verification and signing. Stored as a 32-byte array, serialized as hex string."
     fields:
-      - name: raw
+      - name: bytes
         type: ByteArray
+        visibility: private
         description: "Raw 32-byte Ed25519 key data"
-      - name: hex
-        type: String
+    methods:
+      - name: toString
+        return_type: String
         description: "Hex-encoded representation"
     companion_functions:
       - name: fromHex
@@ -311,11 +332,13 @@ data_models:
     type: value_class
     description: "X25519 Diffie-Hellman public key for Noise handshake key exchange. Stored as a 32-byte array, serialized as hex string."
     fields:
-      - name: raw
+      - name: bytes
         type: ByteArray
+        visibility: private
         description: "Raw 32-byte X25519 key data"
-      - name: hex
-        type: String
+    methods:
+      - name: toString
+        return_type: String
         description: "Hex-encoded representation"
     companion_functions:
       - name: fromHex

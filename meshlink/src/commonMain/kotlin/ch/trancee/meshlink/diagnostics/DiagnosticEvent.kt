@@ -8,7 +8,6 @@ import ch.trancee.meshlink.model.HandshakePattern
 import ch.trancee.meshlink.model.KeyRotationReason
 import ch.trancee.meshlink.model.NoiseFailureReason
 import ch.trancee.meshlink.model.NoiseLayer
-import ch.trancee.meshlink.model.NoiseRole
 import ch.trancee.meshlink.model.NoiseSessionState
 import ch.trancee.meshlink.model.PeerIdentity
 import ch.trancee.meshlink.model.PowerMode
@@ -57,7 +56,7 @@ public sealed interface DiagnosticEvent {
         override val category: String = "route"
         override val severity: DiagnosticSeverity = DiagnosticSeverity.WARN
         override val payload: String =
-            "peerIdentity=${peerIdentity.hex} frameType=$frameType failureReason=$failureReason"
+            "peerIdentity=${peerIdentity} frameType=$frameType failureReason=$failureReason"
     }
 
     /** Data plane fell back from L2CAP CoC to GATT. */
@@ -68,7 +67,7 @@ public sealed interface DiagnosticEvent {
     ) : DiagnosticEvent {
         override val category: String = "transport"
         override val severity: DiagnosticSeverity = DiagnosticSeverity.WARN
-        override val payload: String = "peerIdentity=${peerIdentity.hex} reason=$reason"
+        override val payload: String = "peerIdentity=${peerIdentity} reason=$reason"
     }
 
     /** Data plane bearer selected for a transfer session. */
@@ -79,7 +78,7 @@ public sealed interface DiagnosticEvent {
     ) : DiagnosticEvent {
         override val category: String = "transfer"
         override val severity: DiagnosticSeverity = DiagnosticSeverity.INFO
-        override val payload: String = "sessionId=${sessionId.raw} bearer=$bearer"
+        override val payload: String = "sessionId=${sessionId} bearer=$bearer"
     }
 
     /** Effective power mode parameters after regulatory clamping. */
@@ -115,7 +114,7 @@ public sealed interface DiagnosticEvent {
             if (verificationLevel == VerificationLevel.NONE) DiagnosticSeverity.ERROR
             else DiagnosticSeverity.INFO
         override val payload: String =
-            "sessionId=${sessionId.raw} pattern=$pattern fallbackUsed=$fallbackUsed " +
+            "sessionId=${sessionId} pattern=$pattern fallbackUsed=$fallbackUsed " +
                 "verificationLevel=$verificationLevel rateLimitAttempts=$rateLimitAttempts " +
                 "nonceReplayDetected=$nonceReplayDetected"
     }
@@ -123,30 +122,23 @@ public sealed interface DiagnosticEvent {
     /** Key rotation announcement processed by a peer. */
     public data class KeyRotationEvent(
         public val peerIdentity: PeerIdentity,
-        public val oldKeyVerified: Boolean,
-        public val sequenceNumberReset: Boolean,
-        public val propagationDeadlineMet: Boolean,
         public val reason: KeyRotationReason,
+        public val oldKeyVerified: Boolean,
         override val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
         override val category: String = "key_rotation"
-        override val severity: DiagnosticSeverity =
-            if (oldKeyVerified) DiagnosticSeverity.INFO else DiagnosticSeverity.ERROR
+        override val severity: DiagnosticSeverity = DiagnosticSeverity.INFO
         override val payload: String =
-            "peerIdentity=${peerIdentity.hex} oldKeyVerified=$oldKeyVerified " +
-                "seqNoReset=$sequenceNumberReset propagationDeadlineMet=$propagationDeadlineMet " +
-                "reason=$reason"
+            "peerIdentity=${peerIdentity} reason=$reason oldKeyVerified=$oldKeyVerified"
     }
 
-    /** Noise session state transition. */
-    public data class NoiseSessionTransitionEvent(
-        public val peerIdentity: PeerIdentity,
+    /** Noise session established or failed. */
+    public data class NoiseSessionEvent(
+        public val sessionId: SessionId,
         public val layer: NoiseLayer,
         public val fromState: NoiseSessionState,
         public val toState: NoiseSessionState,
-        public val role: NoiseRole,
-        public val handshakePattern: HandshakePattern,
-        public val failureReason: NoiseFailureReason?,
+        public val reason: NoiseFailureReason?,
         override val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
         override val category: String = "noise"
@@ -154,54 +146,27 @@ public sealed interface DiagnosticEvent {
             if (toState == NoiseSessionState.FAILED) DiagnosticSeverity.ERROR
             else DiagnosticSeverity.INFO
         override val payload: String =
-            "peerIdentity=${peerIdentity.hex} layer=$layer fromState=$fromState " +
-                "toState=$toState role=$role pattern=$handshakePattern failureReason=$failureReason"
+            "sessionId=${sessionId} layer=$layer fromState=$fromState " +
+                "toState=$toState reason=$reason"
     }
 
-    /** Route table digest mismatch triggered a full resync. */
-    public data class RouteDigestMismatchEvent(
-        public val peerIdentity: PeerIdentity,
-        public val localDigest: UInt,
-        public val remoteDigest: UInt,
-        override val timestamp: Instant = Clock.System.now(),
-    ) : DiagnosticEvent {
-        override val category: String = "route"
-        override val severity: DiagnosticSeverity = DiagnosticSeverity.WARN
-        override val payload: String =
-            "peerIdentity=${peerIdentity.hex} localDigest=$localDigest remoteDigest=$remoteDigest"
-    }
-
-    /** Transfer session state transition. */
-    public data class TransferSessionTransitionEvent(
+    /** Transfer session started, progress, or completed. */
+    public data class TransferSessionEvent(
         public val sessionId: SessionId,
         public val peerIdentity: PeerIdentity,
-        public val fromState: TransferState,
-        public val toState: TransferState,
-        public val bytesTransferred: Long,
-        public val totalBytes: Long,
+        public val state: TransferState,
+        public val reason: TransferFailureReason?,
         override val timestamp: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
         override val category: String = "transfer"
         override val severity: DiagnosticSeverity =
-            if (toState.name.contains("FAILED") || toState.name.contains("TIME_OUT"))
-                DiagnosticSeverity.ERROR
-            else DiagnosticSeverity.INFO
+            when (state) {
+                TransferState.COMPLETED -> DiagnosticSeverity.INFO
+                TransferState.FAILED,
+                TransferState.TIMED_OUT -> DiagnosticSeverity.ERROR
+                else -> DiagnosticSeverity.INFO
+            }
         override val payload: String =
-            "sessionId=${sessionId.raw} peerIdentity=${peerIdentity.hex} " +
-                "fromState=$fromState toState=$toState " +
-                "bytesTransferred=$bytesTransferred totalBytes=$totalBytes"
-    }
-
-    /** Transfer session reached a terminal failure state. */
-    public data class TransferFailureEvent(
-        public val sessionId: SessionId,
-        public val peerIdentity: PeerIdentity,
-        public val reason: TransferFailureReason,
-        override val timestamp: Instant = Clock.System.now(),
-    ) : DiagnosticEvent {
-        override val category: String = "transfer"
-        override val severity: DiagnosticSeverity = DiagnosticSeverity.ERROR
-        override val payload: String =
-            "sessionId=${sessionId.raw} peerIdentity=${peerIdentity.hex} reason=$reason"
+            "sessionId=${sessionId} peerIdentity=${peerIdentity} " + "state=$state reason=$reason"
     }
 }

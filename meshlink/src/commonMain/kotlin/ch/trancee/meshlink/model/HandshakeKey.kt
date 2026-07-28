@@ -14,13 +14,8 @@ import kotlin.jvm.JvmInline
  */
 @JvmInline
 public value class HandshakeKey(private val bytes: ByteArray) {
-    /** Raw 32-byte key data. */
-    public val raw: ByteArray
-        get() = bytes
-
-    /** Hex-encoded representation. */
-    public val hex: String
-        get() = bytes.toHexString()
+    /** Provides string representation for implicit conversion in string templates. */
+    override fun toString(): String = bytes.toHexString()
 
     public companion object {
         /** Creates a HandshakeKey from a hex string. */

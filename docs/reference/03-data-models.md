@@ -138,10 +138,12 @@ enum class NoiseFailureReason {
 ```text
 TrustRecord {
   peerIdentity: PeerIdentity
-  publicKey: CryptoKey
+  identityKey: IdentityKey
+  handshakeKey: HandshakeKey
+  state: TrustState (INITIATED, TRUSTED, REVOKED)
+  generation: Int (default 0)
   seenAt: Instant
   verifiedAt: Instant
-  state: TrustState (INITIATED, TRUSTED, REVOKED)
 }
 ```
 
@@ -155,12 +157,13 @@ TrustRecord {
 
 ```text
 RouteEntry {
+  source: PeerIdentity (peer from whom this route was learned; used for loop detection per RFC 8966)
   destination: PeerIdentity
   nextHop: PeerIdentity?
-  source: PeerIdentity (peer from whom this route was learned; used for loop detection per RFC 8966)
   metric: UInt (composite via LinkMetric; see below)
   seqNo: SeqNo (destination-self-reported sequence number, wrapped for safe comparison)
-  publicKey: CryptoKey? (destination's public key, learned via route updates)
+  identityKey: IdentityKey? (destination's Ed25519 identity key, learned via route updates)
+  handshakeKey: HandshakeKey? (destination's X25519 handshake key, learned via route updates)
   expiresAt: Instant
   // isFeasible is computed dynamically via the Babel feasibility condition (RFC 8966 §3.5.1),
   // not stored. The route is feasible if its metric is strictly better than the
