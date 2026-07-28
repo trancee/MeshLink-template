@@ -70,11 +70,13 @@ cross_references:
       - "docs/decisions/crypto/crypto-design.md"
       - "docs/decisions/crypto/constant-time-policy.md"
       - "docs/decisions/crypto/replay-window.md"
+      - "docs/decisions/crypto/key-rotation-propagation.md"
+      - "docs/decisions/crypto/error-hierarchy.md"
     code_files: []
     specs:
       - "specs/enums.yaml"
       - "specs/state-machines.yaml"
-    description: "Crypto primitives (validated against Wycheproof), Noise handshake patterns (XX/IK/IX/NX), session state machine, NX fallback, key rotation, E2E routing, fail-closed rules, Android constraints"
+    description: "Crypto primitives (validated against Wycheproof), Noise handshake patterns (XX/IK/IX/NX), session state machine, NX fallback, key rotation, E2E routing, fail-closed rules, Android constraints, key rotation propagation deadlines, error hierarchy"
 
   - spec_id: "routing-layer"
     spec_section: "SPEC.md#8-routing-layer"
@@ -159,7 +161,9 @@ adrs_by_area:
     - "docs/decisions/crypto/crypto-design.md"
     - "docs/decisions/crypto/constant-time-policy.md"
     - "docs/decisions/crypto/replay-window.md"
+    - "docs/decisions/crypto/key-rotation-propagation.md"
     - "docs/decisions/crypto/pq-hybrid-candidate-matrix.md"
+    - "docs/decisions/crypto/error-hierarchy.md"
   routing:
     - "docs/decisions/routing/routing-design.md"
   transport:
