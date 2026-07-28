@@ -91,5 +91,4 @@ The constitutional requirement is "MUST implement constant-time algorithms." Thi
 - [CONSTITUTION.md §I](../../../CONSTITUTION.md) — Rigorous Code Quality
 - [CONSTITUTION.md Naming Rules](../../../CONSTITUTION.md#i-rigorous-code-quality) — no invented abbreviations
 - [Crypto Design ADR](crypto-design.md) — fail-closed rules
-- [Android Crypto Fallback Proof](android-crypto-fallback-proof.md) — platform-specific validation
 - [Wycheproof integration](../../../.agents/skills/wycheproof/SKILL.md) — test vector validation

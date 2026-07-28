@@ -94,5 +94,5 @@ power:
 - [CONSTITUTION.md §IV Performance Requirements](../../../CONSTITUTION.md#iv-performance-requirements)
 - [SPEC.md §10 Power Management](../../../SPEC.md#10-power-management)
 - [peer-lifecycle.md](../../explanation/peer-lifecycle.md)
-- [gatt-l2cap-transport-selection.md](../transport/gatt-l2cap-transport-selection.md)
+- [MTU Negotiation](../transport/mtu-negotiation.md)
 - [optimize-ble-throughput skill references](../../../.agents/skills/optimize-ble-throughput/references/mobile-platforms.md)

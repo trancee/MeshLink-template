@@ -6,33 +6,33 @@ This document is the top-level specification index. The detailed reference speci
 
 | Layer | Document | Key Decisions (ADRs) |
 |-------|----------|---------------------|
-| Vision & Product Pillars | [01-vision.md](docs/reference/01-vision.md) | — |
-| Architecture Overview | [02-architecture.md](docs/reference/02-architecture.md) | [Module Structure](docs/explanation/module-structure.md) |
-| Core Data Models | [03-data-models.md](docs/reference/03-data-models.md) | [Data Model](docs/decisions/model/data-model.md), [Power Mode](docs/decisions/power/power-mode-behavior.md), [Mesh Size Limits](docs/decisions/model/mesh-size-limits.md), [Persistence Strategy](docs/decisions/storage/persistence-strategy.md) |
-| Discovery & Identity | [04-discovery.md](docs/reference/04-discovery.md) | [Data Model](docs/decisions/model/data-model.md), [Mesh Hash Derivation](docs/decisions/discovery/mesh-hash-derivation.md) |
-| Trust Model (TOFU) | [05-trust-model.md](docs/reference/05-trust-model.md) | [Crypto Design](docs/decisions/crypto/crypto-design.md) |
-| Transport Layer | [06-transport.md](docs/reference/06-transport.md) | [GATT/L2CAP](docs/decisions/transport/gatt-l2cap-transport-selection.md), [Android BLE Permissions](docs/decisions/transport/android-ble-permissions.md), [iOS Background BLE](docs/decisions/transport/ios-background-ble.md), [L2CAP PSM Allocation](docs/decisions/transport/l2cap-psm-allocation.md), [GATT Service UUID](docs/decisions/transport/gatt-service-uuid.md), [MTU Negotiation](docs/decisions/transport/mtu-negotiation.md), [Android Foreground Service](docs/decisions/transport/android-foreground-service.md), [Dual-Role Constraints](docs/decisions/transport/dual-role-constraints.md) |
-| Security Layer | [07-security.md](docs/reference/07-security.md) | [Crypto Design](docs/decisions/crypto/crypto-design.md), [Vector Policy](docs/decisions/crypto/vector-policy.md) |
-| Routing Layer | [08-routing.md](docs/reference/08-routing.md) | [Routing Design](docs/decisions/routing/routing-design.md) |
-| Transfer Layer | [09-transfer.md](docs/reference/09-transfer.md) | [Data Model](docs/decisions/model/data-model.md), [Wire Format](docs/decisions/wire/wire-format-spec.md) |
-| Power Management | [10-power-management.md](docs/reference/10-power-management.md) | [Power Mode](docs/decisions/power/power-mode-behavior.md) |
-| Diagnostics & Events | [11-diagnostics.md](docs/reference/11-diagnostics.md) | [Callback Threading](docs/decisions/diagnostics/callback-threading.md) |
-| Build & Quality | [12-build-quality.md](docs/reference/12-build-quality.md) | — |
-| Testing & Verification | [13-testing.md](docs/reference/13-testing.md) | — |
-| Settings Model | [14-settings.md](docs/reference/14-settings.md) | [Data Model](docs/decisions/model/data-model.md) |
-| Future Work | [15-future-work.md](docs/reference/15-future-work.md) | [PQ-Hybrid](docs/decisions/crypto/pq-hybrid-candidate-matrix.md) |
+| Vision & Product Pillars | [vision.md](docs/reference/vision.md) | — |
+| Architecture Overview | [architecture.md](docs/reference/architecture.md) | [Module Structure](docs/explanation/module-structure.md) |
+| Core Data Models | [specs/data-models.yaml](specs/data-models.yaml) | [Data Model](docs/decisions/model/data-model.md), [Mesh Size Limits](docs/decisions/model/mesh-size-limits.md), [Persistence Strategy](docs/decisions/storage/persistence-strategy.md) |
+| Discovery & Identity | [discovery.md](docs/reference/discovery.md) | [Data Model](docs/decisions/model/data-model.md), [Mesh Hash Derivation](docs/decisions/discovery/mesh-hash-derivation.md) |
+| Trust Model (TOFU) | [trust-model.md](docs/reference/trust-model.md) | [Crypto Design](docs/decisions/crypto/crypto-design.md) |
+| Transport Layer | [transport.md](docs/reference/transport.md) | [MTU Negotiation](docs/decisions/transport/mtu-negotiation.md) |
+| Security Layer | [security.md](docs/reference/security.md) | [Crypto Design](docs/decisions/crypto/crypto-design.md), [Constant-Time](docs/decisions/crypto/constant-time-policy.md), [Replay Window](docs/decisions/crypto/replay-window.md) |
+| Routing Layer | [decisions/routing/routing-design.md](docs/decisions/routing/routing-design.md) | — |
+| Transfer Layer | [transfer.md](docs/reference/transfer.md) | [Data Model](docs/decisions/model/data-model.md) |
+| Power Management | [decisions/power/power-mode-behavior.md](docs/decisions/power/power-mode-behavior.md) | — |
+| Diagnostics & Events | [diagnostics.md](docs/reference/diagnostics.md) | [Callback Threading](docs/decisions/diagnostics/callback-threading.md) |
+| Build & Quality Constraints | [build-quality.md](docs/reference/build-quality.md) | — |
+| Testing & Verification | [testing.md](docs/reference/testing.md) | — |
+| Settings Model | [settings.md](docs/reference/settings.md) | [DSL Design](docs/decisions/model/meshlinksettings-dsl.md) |
+| Future Work | [future-work.md](docs/reference/future-work.md) | [PQ-Hybrid](docs/decisions/crypto/pq-hybrid-candidate-matrix.md) |
 
 ## Machine-Readable Specs
 
 For programmatic access, see `specs/`:
 
 - `enums.yaml` — All public enums with values and metadata
-- `data_models.yaml` — All data class schemas
-- `state_machines.yaml` — State machine definitions
-- `wire_frames.yaml` — Wire format definitions
-- `diagnostic_events.yaml` — Diagnostic event catalog
+- `data-models.yaml` — All data class schemas
+- `state-machines.yaml` — State machine definitions
+- `wire-frames.yaml` — Wire format definitions
+- `diagnostic-events.yaml` — Diagnostic event catalog
 - `settings.yaml` — Configuration DSL schemas
-- `cross_ref_index.yaml` — SPEC ↔ ADR ↔ Code traceability
+- `cross-ref-index.yaml` — SPEC ↔ ADR ↔ Code traceability
 
 ## SPEC.md vs ADRs
 

@@ -140,7 +140,7 @@ enum class EvictionPolicy {
 ## Monitoring & Diagnostics
 
 ```yaml
-# specs/diagnostic_events.yaml
+# specs/diagnostic-events.yaml
 - name: MeshCapacityEvent
   fields:
     - currentPeerCount: Int
@@ -159,7 +159,7 @@ enum class EvictionPolicy {
 
 ## Related
 
-- [Power Management Spec](../../../docs/reference/10-power-management.md)
+- [Power Mode Behavior](../../../docs/decisions/power/power-mode-behavior.md)
 - [Routing Design: Route Table Capacity](../../../docs/decisions/routing/routing-design.md#84-route-table-capacity)
 - [specs/enums.yaml PowerMode.concurrentConnections](../../../specs/enums.yaml)
 - [CONSTITUTION.md §IV Performance Requirements](../../../CONSTITUTION.md)

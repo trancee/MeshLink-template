@@ -164,7 +164,7 @@ data class TransportConfig(
 ## Diagnostics
 
 ```yaml
-# specs/diagnostic_events.yaml
+# specs/diagnostic-events.yaml
 - name: MtuNegotiatedEvent
   fields:
     - peerIdentity: PeerIdentity
@@ -193,8 +193,8 @@ data class TransportConfig(
 
 ## Related
 
-- [GATT as Control Plane, L2CAP CoC as Data Plane](../transport/gatt-l2cap-transport-selection.md)
-- [Power Management Spec](../../../docs/reference/10-power-management.md)
+- [MTU Negotiation](./mtu-negotiation.md)
+- [Power Mode Behavior](../../../docs/decisions/power/power-mode-behavior.md)
 - [specs/enums.yaml PowerMode settings](../../../specs/enums.yaml)
 - [Android BLE Skill](../../../.agents/skills/android-ble/SKILL.md)
 - [Core Bluetooth Skill](../../../.agents/skills/core-bluetooth/SKILL.md)

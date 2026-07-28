@@ -22,4 +22,4 @@ Single BLE advertisement packet containing:
 - **Protected**: Full public keys not advertised, plaintext never in ads, hop/e2e session keys established after discovery
 - **Isolation**: Mesh hash derived from `appId` prevents cross-application discovery
 
-[Decision: docs/explanation/privacy-pseudonyms.md]
+[Decision: specs/wire-frames.yaml]

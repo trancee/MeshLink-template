@@ -79,7 +79,7 @@ data class MeshLinkSettings(
 
 ## Wire Encoding
 
-Per `specs/wire_frames.yaml` discovery advertisement:
+Per `specs/wire-frames.yaml` discovery advertisement:
 
 ```yaml
 mesh_hash: 16 bits (UInt16)
@@ -115,5 +115,5 @@ class MeshHashTest {
 ## Related
 
 - [PROJECT.md §Wire & Discovery Design](../../../PROJECT.md#wire--discovery-design)
-- [specs/wire_frames.yaml](../../../specs/wire_frames.yaml#discovery_advertisement)
-- [Discovery & Identity Spec](../../../docs/reference/04-discovery.md)
+- [specs/wire-frames.yaml](../../../specs/wire-frames.yaml#discovery_advertisement)
+- [Discovery & Identity Spec](../../../docs/reference/discovery.md)

@@ -27,7 +27,7 @@ They validate different things and need different levels of access:
   real Android crypto-provider selection or hardware-backed capability
   differences across SDK tiers — that only happens with a real Android
   runtime. See
-  [android-crypto-fallback-proof.md](../decisions/crypto/android-crypto-fallback-proof.md)
+  [crypto-design.md](../decisions/crypto/crypto-design.md)
   for a concrete example of the kind of runtime-only behavior this module
   exists to catch. It contains `android/` and `ios/` subdirectories for
   platform-specific real-device validation, testing the same proof scenarios

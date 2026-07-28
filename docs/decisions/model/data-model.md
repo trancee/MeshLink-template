@@ -6,8 +6,8 @@ Complete type definitions in [SPEC.md §3](../../../SPEC.md#3-core-data-models).
 Machine-readable references:
 
 - [specs/enums.yaml](../../../specs/enums.yaml) — all enum values
-- [specs/data_models.yaml](../../../specs/data_models.yaml) — all data class schemas
-- [specs/state_machines.yaml](../../../specs/state_machines.yaml) — TransferState, NoiseSessionState, PeerLifecycleState, TrustState
+- [specs/data-models.yaml](../../../specs/data-models.yaml) — all data class schemas
+- [specs/state-machines.yaml](../../../specs/state-machines.yaml) — TransferState, NoiseSessionState, PeerLifecycleState, TrustState
 - [specs/settings.yaml](../../../specs/settings.yaml) — MeshLinkSettings DSL
 
 ## Peer Identity Model
@@ -78,7 +78,7 @@ class Scoreboard(totalChunks: UInt) {
 
 ### TransferState transitions
 
-Complete state machine in [SPEC.md §3.4.1](../../../SPEC.md#341-transfer-session-state-transitions) and [specs/state_machines.yaml](../../../specs/state_machines.yaml#transferstate).
+Complete state machine in [SPEC.md §3.4.1](../../../SPEC.md#341-transfer-session-state-transitions) and [specs/state-machines.yaml](../../../specs/state-machines.yaml#transferstate).
 
 Transition logic lives in `TransferCoordinator.kt`. Scoreboard completeness checked before COMPLETED.
 
@@ -100,7 +100,7 @@ Clamping happens in shared policy code, not platform-specific wrappers.
 ## Diagnostic Events
 
 All events defined in `DiagnosticEvent.kt` as a sealed interface hierarchy.
-Machine-readable reference: [specs/diagnostic_events.yaml](../../../specs/diagnostic_events.yaml).
+Machine-readable reference: [specs/diagnostic-events.yaml](../../../specs/diagnostic-events.yaml).
 
 | Layer | Event Types |
 |-------|-------------|
@@ -135,7 +135,7 @@ All types require 100% line/branch coverage in `:meshlink`.
 - [Power Mode Behavior](../power/power-mode-behavior.md)
 - [Crypto Design](../crypto/crypto-design.md)
 - [specs/enums.yaml](../../../specs/enums.yaml)
-- [specs/data_models.yaml](../../../specs/data_models.yaml)
-- [specs/state_machines.yaml](../../../specs/state_machines.yaml)
+- [specs/data-models.yaml](../../../specs/data-models.yaml)
+- [specs/state-machines.yaml](../../../specs/state-machines.yaml)
 - [specs/settings.yaml](../../../specs/settings.yaml)
-- [specs/diagnostic_events.yaml](../../../specs/diagnostic_events.yaml)
+- [specs/diagnostic-events.yaml](../../../specs/diagnostic-events.yaml)

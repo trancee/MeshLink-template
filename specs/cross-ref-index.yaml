@@ -35,17 +35,16 @@ cross_references:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferFailureReason.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/SessionId.kt"
     specs:
-      - "specs/data_models.yaml"
+      - "specs/data-models.yaml"
       - "specs/enums.yaml"
     description: "Core data models: PeerIdentity, SeqNo, Scoreboard, RouteEntry, TransferSession, enums"
 
   - spec_id: "discovery-identity"
     spec_section: "SPEC.md#4-discovery--identity"
-    adrs:
-      - "docs/explanation/privacy-pseudonyms.md"
+    adrs: []
     code_files: []
     specs:
-      - "specs/wire_frames.yaml"
+      - "specs/wire-frames.yaml"
     description: "Advertisement format, privacy trade-offs, PeerFingerprint as discovery hint"
 
   - spec_id: "trust-model-tofu"
@@ -55,13 +54,13 @@ cross_references:
     code_files: []
     specs:
       - "specs/enums.yaml"
-      - "specs/state_machines.yaml"
+      - "specs/state-machines.yaml"
     description: "TOFU trust flow, Noise patterns (XX/IK for link, IX for E2E, NX fallback), key rotation, E2E handshake routing, session state machine"
 
   - spec_id: "transport-layer"
     spec_section: "SPEC.md#6-transport-layer"
     adrs:
-      - "docs/decisions/transport/gatt-l2cap-transport-selection.md"
+      - "docs/decisions/transport/mtu-negotiation.md"
     code_files: []
     description: "Bearer selection (GATT control plane, L2CAP CoC data plane), negotiation sequence, fallback reasons"
 
@@ -69,49 +68,45 @@ cross_references:
     spec_section: "SPEC.md#7-security-layer"
     adrs:
       - "docs/decisions/crypto/crypto-design.md"
-      - "docs/decisions/crypto/vector-policy.md"
-      - "docs/decisions/crypto/android-crypto-fallback-proof.md"
+      - "docs/decisions/crypto/constant-time-policy.md"
+      - "docs/decisions/crypto/replay-window.md"
     code_files: []
     specs:
       - "specs/enums.yaml"
-      - "specs/state_machines.yaml"
+      - "specs/state-machines.yaml"
     description: "Crypto primitives (validated against Wycheproof), Noise handshake patterns (XX/IK/IX/NX), session state machine, NX fallback, key rotation, E2E routing, fail-closed rules, Android constraints"
 
   - spec_id: "routing-layer"
     spec_section: "SPEC.md#8-routing-layer"
     adrs:
       - "docs/decisions/routing/routing-design.md"
-      - "docs/explanation/understanding-babel-routing.md"
-      - "docs/explanation/cut-through-relay.md"
     code_files:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/RouteEntry.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/RoutingPolicy.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/LinkMetric.kt"
     specs:
-      - "specs/state_machines.yaml"
+      - "specs/state-machines.yaml"
       - "specs/enums.yaml"
     description: "Babel-style distance-vector, destination-sourced seqno, digest-triggered resync, always-encrypted metadata, link quality metric, loop detection, TTL by priority"
 
   - spec_id: "transfer-layer"
     spec_section: "SPEC.md#9-transfer-layer"
     adrs:
-      - "docs/decisions/wire/wire-format-spec.md"
-      - "docs/explanation/cut-through-relay.md"
+      - "docs/decisions/model/data-model.md"
     code_files:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferSession.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Scoreboard.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferFailureReason.kt"
     specs:
-      - "specs/data_models.yaml"
-      - "specs/state_machines.yaml"
-      - "specs/wire_frames.yaml"
+      - "specs/data-models.yaml"
+      - "specs/state-machines.yaml"
+      - "specs/wire-frames.yaml"
     description: "Transfer session, selective ACK (dynamic bitfield), cut-through relay, TransferAck wire format"
 
   - spec_id: "power-management"
     spec_section: "SPEC.md#10-power-management"
     adrs:
       - "docs/decisions/power/power-mode-behavior.md"
-      - "docs/explanation/regulatory-compliance.md"
     code_files:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PowerMode.kt"
     specs:
@@ -121,11 +116,12 @@ cross_references:
 
   - spec_id: "diagnostics-events"
     spec_section: "SPEC.md#11-diagnostics--events"
-    adrs: []
+    adrs:
+      - "docs/decisions/diagnostics/callback-threading.md"
     code_files:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/diagnostics/DiagnosticEvent.kt"
     specs:
-      - "specs/diagnostic_events.yaml"
+      - "specs/diagnostic-events.yaml"
       - "specs/enums.yaml"
     description: "Peer events, connection states, internal PeerLifecycleState, diagnostic event hierarchy, error model"
 
@@ -145,9 +141,9 @@ cross_references:
   - spec_id: "configuration-model"
     spec_section: "SPEC.md#14-configuration-model"
     adrs:
-      - "docs/decisions/model/data-model.md"
+      - "docs/decisions/model/meshlinksettings-dsl.md"
     code_files:
-      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLink.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLinkSettings.kt"
     specs:
       - "specs/settings.yaml"
     description: "Configuration DSL (MeshLinkSettings, KeyRotationSettings, TransferSettings, RoutingSettings, SecuritySettings, DiagnosticsSettings)"
@@ -161,21 +157,25 @@ cross_references:
 adrs_by_area:
   crypto:
     - "docs/decisions/crypto/crypto-design.md"
-    - "docs/decisions/crypto/vector-policy.md"
-    - "docs/decisions/crypto/android-crypto-fallback-proof.md"
+    - "docs/decisions/crypto/constant-time-policy.md"
+    - "docs/decisions/crypto/replay-window.md"
     - "docs/decisions/crypto/pq-hybrid-candidate-matrix.md"
   routing:
     - "docs/decisions/routing/routing-design.md"
-    - "docs/explanation/understanding-babel-routing.md"
-    - "docs/explanation/cut-through-relay.md"
   transport:
-    - "docs/decisions/transport/gatt-l2cap-transport-selection.md"
-  wire:
-    - "docs/decisions/wire/wire-format-spec.md"
-  power:
-    - "docs/decisions/power/power-mode-behavior.md"
+    - "docs/decisions/transport/mtu-negotiation.md"
   model:
     - "docs/decisions/model/data-model.md"
+    - "docs/decisions/model/meshlinksettings-dsl.md"
+    - "docs/decisions/model/mesh-size-limits.md"
+  power:
+    - "docs/decisions/power/power-mode-behavior.md"
+  diagnostics:
+    - "docs/decisions/diagnostics/callback-threading.md"
+  discovery:
+    - "docs/decisions/discovery/mesh-hash-derivation.md"
+  storage:
+    - "docs/decisions/storage/persistence-strategy.md"
 
 spec_anchors_in_code:
   - "peer-identity-model" # PeerIdentity.kt
@@ -187,20 +187,11 @@ spec_anchors_in_code:
   - "type-model" # TypeModel.kt
   - "diagnostic-event" # DiagnosticEvent.kt
   - "power-mode" # PowerMode.kt
-  - "power-mode-settings" # PowerMode.kt
   - "handshake-key-model" # HandshakeKey.kt
   - "session-id-model" # SessionId.kt
   - "transfer-failure-reason-model" # TransferFailureReason.kt
   - "link-metric-model" # LinkMetric.kt
   - "identity-key-model" # IdentityKey.kt
-    - "peer-connection-state" # PeerConnectionState (enums.yaml)
-    - "peer-event" # PeerEvent.kt
-  - "diagnostic-event" # diagnostic_events.yaml
-  - "type-model" # enums.yaml
-  - "state-machine" # state_machines.yaml
-  - "setting-model" # settings.yaml
-  - "wire-frame" # wire_frames.yaml
-  - "cross-ref-index" # cross_ref_index.yaml
 
 implementation_status:
   implemented:

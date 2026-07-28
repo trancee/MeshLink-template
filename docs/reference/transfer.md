@@ -4,7 +4,7 @@
 
 ## 9.1 Transfer Session
 
-The `TransferSession` model is defined in [§3.4](03-data-models.md#34-message-header-model). Key fields:
+The `TransferSession` model is defined in [specs/data-models.yaml](../../specs/data-models.yaml). Key fields:
 
 - `chunkSize`: Selected by local power mode, bounded by peer MTU
 - `scoreboard`: Dynamic bitfield (`ByteArray`) of length `ceil(totalChunks / 8)` bytes; bit N = 1 means chunk N received
@@ -38,4 +38,4 @@ The bitfield length is derived from `totalChunks` in the `TransferSession`, so n
 
 If the `TransferSession` is not found (expired or already completed), the receiver MUST reject the `TransferAck` with `TransferError.SessionNotFound`.
 
-[Decision: docs/decisions/wire/wire-format-spec.md]
+[Decision: ../specs/wire-frames.yaml]
