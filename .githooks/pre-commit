@@ -122,7 +122,7 @@ if [[ "$need_proof" -eq 1 ]]; then
   format_tasks+=(":meshlink-proof:ktfmtFormat")
 fi
 
-gradle_cmd=(./gradlew --console=plain)
+gradle_cmd=(./gradlew --console=plain --configuration-cache --parallel)
 
 if [[ ${#format_tasks[@]} -gt 0 ]]; then
   echo "[pre-commit] Running formatter: ${format_tasks[*]}"

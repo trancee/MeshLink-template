@@ -208,7 +208,7 @@ fi
 echo "[pre-push] Scanning repository history for secrets"
 gitleaks detect --source . --redact -v --config .gitleaks.toml
 
-gradle_cmd=(./gradlew --console=plain)
+gradle_cmd=(./gradlew --console=plain --configuration-cache --parallel)
 
 if [[ "$need_yaml" -eq 1 ]]; then
   if ! command -v yamllint >/dev/null 2>&1; then
