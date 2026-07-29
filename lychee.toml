@@ -6,7 +6,8 @@ exclude_path = [
 ]
 
 exclude = [
-    "^https?://(www\\.)?gsmarena\\.com"
+    "^https?://(www\\.)?gsmarena\\.com",
+    "^https?://(www\\.)?devicespecifications\\.com"
 ]
 
 # Retry transient network failures a few times before failing CI.

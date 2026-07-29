@@ -1,115 +1,79 @@
 # Trust Model (TOFU)
 
-> Source: [SPEC.md §5](../../SPEC.md#5-trust-model-tofu)
+> **Specification**: [SPEC.md §5](../../SPEC.md#trust-model-tofu)  
+> **Machine-readable**: [specs/enums.yaml](../../specs/enums.yaml), [specs/state-machines.yaml](../../specs/state-machines.yaml)  
+> **Design rationale**: [Crypto Design](../decisions/crypto/crypto-design.md)
 
-## 5.1 Handshake Pattern
+## Handshake Patterns
 
-- **Hop-by-hop link layer (first contact):** `Noise_XX_25519_ChaChaPoly_SHA256` - mutual authentication for initial TOFU
-- **Hop-by-hop link layer (post-TOFU reconnect):** `Noise_IK_25519_ChaChaPoly_SHA256` - proactive mutual auth + 0-RTT when both peers hold pinned keys
-- **End-to-end layer**: `Noise_IX_25519_ChaChaPoly_SHA256` - origin knows destination key, destination may not know origin
+| Layer | First Contact | Post-TOFU Reconnect | End-to-End |
+|-------|---------------|---------------------|------------|
+| Pattern | Noise XX | Noise IK | Noise IX |
+| Protocol | `Noise_XX_25519_ChaChaPoly_SHA256` | `Noise_IK_25519_ChaChaPoly_SHA256` | `Noise_IX_25519_ChaChaPoly_SHA256` |
 
-[Decision: docs/decisions/crypto/crypto-design.md]
-
-## 5.2 Trust Flow
+## Trust Flow
 
 ```text
-Discovery → GATT connection → Noise_XX_25519_ChaChaPoly_SHA256 handshake → INITIATED → TOFU pin → TRUSTED → TrustRecord stored
+Discovery → GATT Connection → Noise_XX Handshake → INITIATED
+                                                    ↓
+                                            TOFU Pin (first success)
+                                                    ↓
+                                                    TRUSTED → TrustRecord stored
 ```
 
-## 5.3 Identity Distribution via Route Updates
+## Key Distribution via Route Updates
 
-- Each peer's public key is included in `ROUTE_UPDATE` frames as part of the encrypted payload
-- When a peer connects directly (Noise XX), it learns the neighbor's public key and includes it in route updates about that neighbor
-- Route updates propagate hop-by-hop: each relay re-advertises the destination's public key in its own route updates
-- This enables E2E IX handshake where the origin knows the destination's static key before connecting
-- NX fallback (`Noise_NX`) is used only when the destination's public key is not yet in the routing table (cold start, partition recovery)
-- `KEY_ROTATION` updates the public key when a peer rotates its keys
+- Each peer's public key included in `ROUTE_UPDATE` encrypted payload
+- Direct neighbor (Noise XX) learns neighbor's public key, includes in route updates
+- Route updates propagate hop-by-hop; each relay re-advertises destination's public key
+- Enables E2E IX handshake where origin knows destination's static key
+- NX fallback used only when destination key not in routing table
 
-## 5.4 Revocation
+## NX Fallback (Unknown Destination Key)
 
-- Explicit API action required to reset trust
-- No silent re-trust on identity mismatch
-- Stored trust records persist until revoked
+**Trigger**: Cold start discovery, key rotation lag, network partition
 
-## 5.5 NX Fallback for Unknown Keys
+**Mitigations**:
 
-When destination's public key is unknown, `Noise_NX_25519_ChaChaPoly_SHA256` provides a degraded but functional fallback:
+- Rate limit: 3 attempts/minute/destination
+- Timeout: 10s (vs 30s for IX)
+- Full 64-byte public key (Ed25519 \|\| X25519) in payload — verified byte-for-byte
+- 32-bit nonce replay protection
+- Diagnostic flag: `handshake.fallback_used = true`
 
-**Security Mitigations:**
+## Key Rotation
 
-- Rate limiting: max 3 NX attempts/minute per destination (prevents DoS)
-- Timeout: 10s vs 30s for IX (limits resource window)
-- Full public key verification in payload (validates identity claim)
-- 32-bit nonce in payload (replay protection)
-- Diagnostic flag: `handshake.fallback_used = true` (observability)
+**Triggers**: Periodic timer (3 days default), manual API, security event
 
-**Protocol:** NX_Msg1 includes the full 64-byte concatenated public key (Ed25519 || X25519) + nonce. Destination verifies: `received_ed25519 == expected_ed25519 AND received_x25519 == expected_x25519`. Mismatch or replay = reject.
-
-[Decision: docs/decisions/crypto/crypto-design.md]
-
-## 5.6 Key Rotation Protocol
-
-Key rotation triggered by:
-
-- Periodic timer (default: **3 days**)
-- Manual API: `meshLink.rotateIdentity()`
-- Security event (compromise detection)
-
-**Wire Protocol:**
+**Wire format** (`KEY_ROTATION` frame, plaintext but signed):
 
 ```flatbuffers
 KeyRotationAnnouncement {
-  identityKey: CryptoKey (NEW public key)
-  seqNo: UInt (always 1 - new identity)
-  signature: ByteArray (Ed25519 signature with OLD private key)
-  reason: KeyRotationReason (PERIODIC, MANUAL, SECURITY_EVENT)
+    identityKey: IdentityKey (NEW Ed25519, 32B)
+    handshakeKey: HandshakeKey (NEW X25519, 32B)
+    seqNo: UInt (always 1 — new crypto era)
+    signature: ByteArray (64B, Ed25519 with OLD private key)
+    reason: KeyRotationReason (PERIODIC | MANUAL | SECURITY_EVENT)
 }
 ```
 
-**Neighbor Behavior:**
+**Grace periods**:
 
-1. Verify signature with OLD known key
-2. Accept new key into TrustStore
-3. Seqno resets to 1 (new crypto era)
-4. Old key retained for grace period verification
+- PERIODIC/MANUAL: `rotationGracePeriod` (default 1h) — old key accepted for in-flight sessions
+- SECURITY_EVENT: `compromiseGracePeriod` (default 0) — immediate revocation
 
-**Grace Period:**
+## Revocation
 
-- `PERIODIC` or `MANUAL` rotation: `rotationGracePeriod` (default 1 hour) — both old and new keys accepted for in-flight sessions
-- `SECURITY_EVENT` rotation: `compromiseGracePeriod` (default `ZERO`) — old key rejected immediately
+- Explicit API action required
+- No silent re-trust on identity mismatch
+- Stored trust records persist until revoked
 
-**Key Rotation During Active Transfer:**
+---
 
-- Existing Noise sessions (link-layer and E2E) continue using current traffic keys — rotation does not terminate active sessions
-- New sessions (new connections, new E2E handshakes) use the rotated keys
-- Old identity key retained for the grace period to decrypt any late-arriving handshake messages
-- Transfer layer is identity-key agnostic; it only depends on Noise session keys which remain valid
+## Quick Links
 
-[Decision: docs/decisions/crypto/crypto-design.md]
-
-## 5.7 E2E Handshake Routing Over Mesh
-
-When destination is not a direct neighbor or key is unknown:
-
-```text
-Phase 1: Link Setup (standard Noise_XX_25519_ChaChaPoly_SHA256)
-Origin --(GATT/L2CAP)--> Relay(s)
-
-Phase 2: E2E Handshake Routing
-Origin wraps IX_Msg1 in a RoutingFrame (the wire-level routing frame):
-  RoutingFrame {
-    destination: destination.peerIdentity,   // set from RoutingMessage.destination
-    payload: IX_Msg1_encrypted,               // RoutingMessage serialized + E2E content
-    hopLimit: UByte                         // set by routing layer, not application
-  }
-
-Relay(s) decrypt hop layer → re-encrypt → forward without inspecting E2E payload
-
-Phase 3: Destination responds with IX_Msg2 wrapped for return path
-
-Phase 4: Origin now has E2E traffic keys
-```
-
-**Security:** Relays cannot read E2E content; only link-layer encryption at each hop.
-
-[Decision: docs/decisions/crypto/crypto-design.md]
+- [SPEC.md §5 — Full trust model](../../SPEC.md#trust-model-tofu)
+- [Crypto Design ADR](../decisions/crypto/crypto-design.md)
+- [Key Rotation Propagation ADR](../decisions/crypto/key-rotation-propagation.md)
+- [Enums Spec](../../specs/enums.yaml)
+- [State Machines Spec](../../specs/state-machines.yaml)

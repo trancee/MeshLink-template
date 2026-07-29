@@ -1,85 +1,75 @@
-# Mesh Size Limits & Practical Capacity
+# Mesh Size Limits & Practical Capacity — Rationale
 
 **Status:** Locked — 2026-07-26
 
+> **Full specification** (route table eviction, resource tables, Bluetooth controller limits, mesh diameter, developer guidance, diagnostics) lives in [SPEC.md §8.4, §10, §13.7](../../../SPEC.md). This ADR captures the *why*.
+
+---
+
 ## Decision
 
-**Hard limit:** 256 route entries (enforced by `RouteTable.maxEntries = 256`).
-**Practical limit:** 20-50 peers typical, 50-100 max in dense deployments.
-**Documented expectations** for developers to plan deployments.
+**Hard limit: 256 route entries** (enforced by `RouteTable.maxEntries`).
+**Practical limit: 20-50 peers typical, 50-100 max in dense deployments.**
 
-## Route Table Capacity
+---
 
-```kotlin
-// meshlink/src/commonMain/kotlin/ch/trancee/meshlink/routing/RouteTable.kt
+## Why 256 Route Entries?
 
-class RouteTable {
-    companion object {
-        const val MAX_ENTRIES = 256
-        const val EVICTION_BATCH = 32  // Evict this many when full
-    }
-    
-    private val routes = mutableMapOf<PeerIdentity, RouteEntry>()
-    
-    fun addOrUpdate(entry: RouteEntry): Boolean {
-        if (routes.size >= MAX_ENTRIES && !routes.containsKey(entry.destination)) {
-            evictOldest(EVICTION_BATCH)
-        }
-        routes[entry.destination] = entry
-        return true
-    }
-    
-    private fun evictOldest(count: Int) {
-        routes.entries
-            .sortedBy { it.value.lastUpdated }
-            .take(count)
-            .forEach { routes.remove(it.key) }
-    }
-}
-```
+| Factor | Rationale |
+|--------|-----------|
+| **Power of 2** | Clean memory alignment; easy to reason about |
+| **Typical mesh < 50 peers** | 256 gives 5× headroom for churn/transient entries |
+| **Memory budget** | 256 × ~200B entry = 51 KB — negligible vs 8 MB limit |
+| **Bluetooth controller limit** | Android/iOS typically 7-10 concurrent connections — 256 is purely routing table, not active connections |
+| **Eviction simplicity** | LRU batch eviction (32 entries) is O(1) amortized |
 
-**Eviction policy:** Least-recently-updated (not least-recently-used). Preserves active routes.
+**Not**: 128 (too tight for dense + churn), 512 (no practical benefit, wastes RAM)
 
-## Practical Peer Limits
+---
 
-| Scenario | Typical Peers | Max Observed | Notes |
-|----------|---------------|--------------|-------|
-| Casual (cafe, meetup) | 3-10 | 20 | Low density, intermittent |
-| Conference/Event | 20-50 | 100 | High density, short duration |
-| Dense urban (apartment) | 10-30 | 60 | Walls attenuate, natural partitioning |
+## Why Least-Recently-Updated Eviction?
+
+| Policy | Why Rejected |
+|--------|--------------|
+| Least-Recently-Used | Requires tracking "use" (forwarding) — adds complexity |
+| Lowest-Metric | Would evict weak-but-only links, partitioning mesh |
+| Random | Unpredictable; hard to debug |
+
+**Least-recently-updated** preserves:
+
+- Active routes (refreshed by periodic sync)
+- Direct neighbors (updated on every connect)
+- High-quality paths (metric changes trigger updates)
+
+---
+
+## Practical Peer Limits by Scenario
+
+| Scenario | Typical | Max Observed | Why |
+|----------|---------|--------------|-----|
+| Casual (cafe) | 3-10 | 20 | Low density, intermittent |
+| Conference | 20-50 | 100 | High density, short duration |
+| Dense urban | 10-30 | 60 | Walls attenuate → natural partitioning |
 | Outdoor festival | 50-100 | 150 | Line of sight, high churn |
-| **Hard limit** | — | **256** | Route table full → eviction |
 
-## Resource Consumption per Peer
+**Hard limit 256** is for route table entries only — not concurrent BLE connections (limited by power mode + platform).
 
-| Resource | Per Peer | 50 Peers | 100 Peers | 256 Peers |
-|----------|----------|----------|-----------|-----------|
-| RouteEntry (RAM) | ~200 bytes | 10 KB | 20 KB | 51 KB |
-| Noise Session (link) | ~1 KB | 50 KB | 100 KB | 256 KB |
-| Noise Session (E2E) | ~1 KB | 50 KB | 100 KB | 256 KB |
-| Transfer Buffers | ~chunkSize × 2 | 25 KB | 50 KB | 128 KB |
-| **Total (est.)** | **~2.5 KB** | **~135 KB** | **~270 KB** | **~700 KB** |
+---
 
-**Well under** 8 MB steady-state budget (CONSTITUTION.md §IV).
+## Power Mode vs Bluetooth Controller Limits
 
-## Bluetooth Controller Limits
+| Platform | Max Connections (theoretical) | Practical (MEDIUM mode) |
+|----------|-------------------------------|-------------------------|
+| Android typical | 7-10 | 3-4 |
+| iOS typical | 3-4 central | 3-4 |
+| Android high-end | 15+ | 8-10 |
+| iOS recent | 6-8 | 4-6 |
 
-| Platform | Max Concurrent Connections | Practical Limit |
-|----------|---------------------------|-----------------|
-| Android (typical) | 7-10 | 4-8 (power mode dependent) |
-| iOS (typical) | 3-4 central, 3 peripheral | 3-4 |
-| Android (high-end) | 15+ | 8-10 |
-| iOS (recent) | 6-8 central | 4-6 |
+**Power mode `concurrentConnections`** (HIGH=8, MEDIUM=4, LOW=2) is the *software* limit; platform hardware is the *hard* limit.
 
-**Power mode limits** (from `specs/enums.yaml`):
+---
 
-| Mode | Max Concurrent | Typical Achievable |
-|------|---------------|-------------------|
-| HIGH | 8 | 6-8 |
-| MEDIUM | 4 | 3-4 |
-| LOW | 2 | 2 |
-
-## Mesh Diameter & Hop Count
+## Mesh Diameter & Convergence
 
 | Mesh Size | Typical Diameter | Max Hops (TTL) | Convergence Time |
 |-----------|------------------|----------------|------------------|
@@ -88,16 +78,9 @@ class RouteTable {
 | 50-100 peers | 3-5 hops | 15 | 2-3s |
 | 100-256 peers | 4-7 hops | 20 | 3-5s |
 
-**Routing TTL** from `RoutingPolicy.MAX_HOPS = 32` (plenty of headroom).
+**Routing TTL** = 32 (plenty of headroom).
 
-## Discovery & Advertisement Overhead
-
-| Parameter | Value | Impact |
-|-----------|-------|--------|
-| Advertisement interval (MEDIUM) | 500ms | 2 ads/sec |
-| Scan window (MEDIUM) | 10% duty cycle | ~100ms scan / sec |
-| Discovery latency (avg) | 2-5s | Depends on mode, density |
-| Advertisement size | 20 bytes | Fits in single BLE packet |
+---
 
 ## Memory Budget Compliance
 
@@ -110,56 +93,31 @@ Per CONSTITUTION.md §IV: ≤8 MB heap for 8 peers steady state.
 Total < 8 MB ✓
 ```
 
+---
+
 ## Developer Guidance
 
-```kotlin
-// meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLinkSettings.kt
+Configurable limits in `MeshLinkSettings`:
 
-data class MeshLinkSettings(
-    // ... existing settings ...
-    
-    /** Maximum peers to actively maintain connections to. 
-        Higher = more mesh connectivity, more battery. 
-        Default follows PowerMode.concurrentConnections. */
-    val maxActivePeers: Int = 8,
-    
-    /** Maximum route table entries. Hard limit 256. */
-    val maxRouteEntries: Int = 256,
-    
-    /** Peer eviction policy when limits reached. */
-    val evictionPolicy: EvictionPolicy = EvictionPolicy.LEAST_RECENTLY_UPDATED,
-)
+- `maxActivePeers` — default follows PowerMode.concurrentConnections
+- `maxRouteEntries` — hard limit 256
+- `evictionPolicy` — default LEAST_RECENTLY_UPDATED
 
-enum class EvictionPolicy {
-    LEAST_RECENTLY_UPDATED,  // Default: routes not refreshed longest
-    LEAST_RECENTLY_USED,     // Routes not used for forwarding
-    LOWEST_METRIC,           // Worst link quality first
-}
-```
+---
 
-## Monitoring & Diagnostics
+## Diagnostics Rationale
 
-```yaml
-# specs/diagnostic-events.yaml
-- name: MeshCapacityEvent
-  fields:
-    - currentPeerCount: Int
-    - maxPeerCount: Int
-    - routeTableSize: Int
-    - evictionCount: Int
-    - powerMode: PowerMode
-    - timestamp: Instant
-```
-
-**Alert thresholds:**
+`MeshCapacityEvent` with alert thresholds:
 
 - `routeTableSize > 200` → WARN (approaching limit)
 - `evictionCount > 10/min` → WARN (high churn)
-- `currentPeerCount > maxActivePeers` → INFO (throttling connections)
+- `currentPeerCount > maxActivePeers` → INFO (throttling)
+
+---
 
 ## Related
 
-- [Power Mode Behavior](../../../docs/decisions/power/power-mode-behavior.md)
-- [Routing Design: Route Table Capacity](../../../docs/decisions/routing/routing-design.md#84-route-table-capacity)
-- [specs/enums.yaml PowerMode.concurrentConnections](../../../specs/enums.yaml)
-- [CONSTITUTION.md §IV Performance Requirements](../../../CONSTITUTION.md)
+- [SPEC.md §8.4, §10, §13.7](../../../SPEC.md)
+- [Power Mode Behavior](../power/power-mode-behavior.md)
+- [Routing Design](../routing/routing-design.md)
+- [CONSTITUTION.md §IV](../../../CONSTITUTION.md#iv-performance-requirements)

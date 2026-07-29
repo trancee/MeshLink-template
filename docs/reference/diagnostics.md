@@ -1,91 +1,66 @@
 # Diagnostics & Events
 
-> Source: [SPEC.md §11](../../SPEC.md#11-diagnostics--events)
+> **Specification**: [SPEC.md §11](../../SPEC.md#diagnostics--events)  
+> **Design rationale**: [Callback Threading](../decisions/diagnostics/callback-threading.md)
 
-## 11.1 Peer Events
+## Peer Events (Public API)
 
-```text
+```kotlin
 sealed interface PeerEvent {
-  data class Found(val peerIdentity: PeerIdentity, val connectionState: PeerConnectionState)
-  data class StateChanged(val peerIdentity: PeerIdentity, val state: PeerConnectionState)
-  data class Lost(val peerIdentity: PeerIdentity)
+    data class Found(val peerId: PeerIdentity, val state: PeerConnectionState) : PeerEvent
+    data class StateChanged(val peerId: PeerIdentity, val state: PeerConnectionState) : PeerEvent
+    data class Lost(val peerId: PeerIdentity) : PeerEvent
 }
 ```
 
-## 11.2 Connection States
+## Peer Lifecycle (Internal)
 
 ```text
-enum class PeerConnectionState {
-  CONNECTED,
-  DISCONNECTED
-  // GONE is internal only, triggers PeerEvent.Lost
-}
+CONNECTED (active BLE link)
+    └── BLE link lost → DISCONNECTED (grace period active)
+            ├── BLE reconnects → CONNECTED
+            └── Grace period expires → GONE (ephemeral cleanup; trust retained)
 ```
 
-### 11.2.1 Internal Connection State Tracking
+Grace periods: HIGH=15s, MEDIUM=30s, LOW=45s.
 
-`PeerLifecycleState` is the internal runtime tracking type that drives the peer lifecycle (CONNECTED → DISCONNECTED → GONE). It is not exposed publicly — only `PeerConnectionState` (the enum above) is visible to the host app.
+## Diagnostic Event Hierarchy
 
-```text
-PeerLifecycleState {
-  peerIdentity: PeerIdentity
-  connectionState: PeerConnectionState
-  expiresAt: Instant?        // Non-null while grace window is active; null when GONE
-  rssi: Int?                 // For metric calculation
-  supportsL2CAP: Boolean       // L2CAP CoC capability
-  connectionInterval: Int    // ms
-  handshakeAt: Instant?      // For timeout calculations
-}
-```
+Sealed interface `DiagnosticEvent` with subtypes per layer:
 
-`PeerLifecycleState` tracks grace periods and coordinates cleanup across routing, transfer, and presence state. The host app only sees `PeerEvent.Found`, `PeerEvent.StateChanged`, and `PeerEvent.Lost`.
+| Layer | Event Types |
+|-------|-------------|
+| Route | `RouteDecryptFailureEvent`, `RouteDigestMismatchEvent` |
+| Transport | `TransportFallbackEvent` |
+| Transfer | `TransferDataPlaneBearerEvent`, `TransferSessionTransitionEvent`, `TransferFailureEvent` |
+| Power | `PowerModeEffectiveEvent` |
+| Handshake | `HandshakeEvent` |
+| Key Rotation | `KeyRotationEvent` |
+| Noise | `NoiseSessionTransitionEvent` |
 
-## 11.3 Diagnostic Events (Machine Observable)
+## Severity Levels
 
-All diagnostic events are defined in `meshlink/src/commonMain/kotlin/ch/trancee/meshlink/diagnostics/DiagnosticEvent.kt` as a sealed interface hierarchy.
+`DEBUG`, `INFO`, `WARN`, `ERROR` — mapped to platform logging (Logcat, OSLog).
 
-| Event Category | Fields | Code Type |
-|----------------|--------|-----------|
-| `route.*` | `peerIdentity`, `frameType`, `failureReason` | `RouteDecryptFailureEvent` |
-| `transport.*` | `peerIdentity`, `reason` | `TransportFallbackEvent` |
-| `transfer.*` | `sessionId`, `bearer` | `TransferDataPlaneBearerEvent` |
-| `power.*` | `requestedMode`, `effectiveMode`, `regulatoryRegion`, `scanDutyCyclePercent`, `advertisementIntervalMs`, `connectionIntervalMs` | `PowerModeEffectiveEvent` |
-| `handshake.*` | `sessionId`, `pattern`, `fallbackUsed`, `verificationLevel`, `rateLimitAttempts`, `nonceReplayDetected` | `HandshakeEvent` |
-| `key_rotation.*` | `peerIdentity`, `oldKeyVerified`, `sequenceNumberReset`, `propagationDeadlineMet`, `reason` | `KeyRotationEvent` |
-| `route.*` | `peerIdentity`, `localDigest`, `remoteDigest` | `RouteDigestMismatchEvent` |
-| `transfer.*` | `sessionId`, `peerIdentity`, `fromState`, `toState`, `bytesTransferred`, `totalBytes` | `TransferSessionTransitionEvent` |
-| `transfer.*` | `sessionId`, `peerIdentity`, `reason` | `TransferFailureEvent` |
-| `noise.*` | `peerIdentity`, `layer`, `fromState`, `toState`, `role`, `handshakePattern`, `failureReason` | `NoiseSessionTransitionEvent` |
+## Callback Threading
 
-**Diagnostic Field Descriptions:**
+All callbacks execute on dedicated `MeshLink` coroutine dispatcher (IO-limited, 2 threads, not Main thread).
 
-- `transfer.priority`: Reflects the Priority (HIGH/NORMAL/LOW) of the transfer, inherited from the originating RoutingMessage. Enables QoS monitoring and resource allocation decisions. This field is surfaced on `TransferSessionTransitionEvent` via the transfer session's `priority` field.
-- `handshake.fallbackUsed`: `true` when the NX fallback handshake pattern is used instead of IX; set when the destination's public key is unknown.
-- `handshake.fullPublicKeyVerified`: `true` when the NX fallback verified the full 64-byte concatenated public key (Ed25519 || X25519) byte-for-byte in Msg1.
-- `key_rotation.sequenceNumberReset`: `true` when the neighbor accepted the new key and reset its seqno to 1.
-- `key_rotation.propagationDeadlineMet`: `true` when the key rotation announcement reached all direct neighbors within the deadline.
+**Contract**:
 
-## 11.4 Error Model
+- **DO** forward to your own dispatcher
+- **DO** update UI via `mainDispatcher.launch { }`
+- **DON'T** block, do I/O, or update UI directly
 
-Errors use a sealed `MeshLinkException` hierarchy in `commonMain`, with platform exceptions wrapped and never leaking to consumers:
+## emitToLog
 
-- Trust/Security errors (PeerNotFoundError, TrustError, KeyUnknownError)
-- Routing errors (NoRouteError, RouteUpdateError)
-- Transfer errors (TransferTimeoutError, TransferCancelledError, TransferCorruptedError)
-- Transport errors (BluetoothStateError, ConnectionTimeoutError, CocNotSupportedError)
+Opt-in (`emitToLog = false` default). Platform-native: Logcat (Android), `os_log` (iOS).
 
-**ErrorCode enum:** `PEER_NOT_FOUND`, `KEY_UNKNOWN`, `TRUST_VIOLATION`, `TRANSFER_TIMEOUT`, `BLUETOOTH_DISABLED`, `CONNECTION_FAILED`, `INVALID_PARAMETER`, `INTERNAL_ERROR`
+---
 
-**TransferFailureReason:**
+## Quick Links
 
-```text
-sealed interface TransferFailureReason {
-  data class Unrecoverable(val message: String) : TransferFailureReason
-  data class TrustFailure(val peerIdentity: PeerIdentity) : TransferFailureReason
-}
-```
-
-This type is carried by `TransferSession.failureReason` and distinguishes the two terminal failure modes that map to the `FAILED` delivery outcome:
-
-- `Unrecoverable` → delivery outcome `unrecoverable-failure`
-- `TrustFailure` → delivery outcome `trust-failure`
+- [SPEC.md §11 — Full diagnostics spec](../../SPEC.md#diagnostics--events)
+- [Callback Threading ADR](../decisions/diagnostics/callback-threading.md)
+- [Diagnostic Events Spec](../../specs/diagnostic-events.yaml)
+- [SPEC.md §5.7 — Peer lifecycle](../../SPEC.md#e2e-handshake-routing-over-mesh)

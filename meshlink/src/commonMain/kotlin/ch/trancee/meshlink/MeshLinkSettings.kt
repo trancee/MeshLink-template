@@ -66,7 +66,7 @@ public data class MeshLinkSettings(
 )
 
 // ---------------------------------------------------------------------------
-// Lambda DSL — primary API per docs/decisions/model/meshlinksettings-dsl.md
+// Lambda DSL — primary API per docs/decisions/model/settings-model.md
 // ---------------------------------------------------------------------------
 
 /**

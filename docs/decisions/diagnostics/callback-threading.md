@@ -1,285 +1,77 @@
-# Diagnostic Callback Threading Model
+# Diagnostic Callback Threading Model — Rationale
 
 **Status:** Locked — 2026-07-26
 
+> **Specification content** (dispatcher settings, callback signature, platform emitters, testing) lives in [SPEC.md §11](../../../SPEC.md#diagnostics--events). This ADR captures only the *why*.
+
+---
+
 ## Decision
 
-**All diagnostic callbacks execute on a dedicated `MeshLink` coroutine dispatcher** (IO-limited, not Main thread). This applies to both `eventCallback` and `emitToLog`.
+**All diagnostic callbacks execute on a dedicated `MeshLink` coroutine dispatcher** (IO-limited, not Main thread). Applies to both `eventCallback` and `emitToLog`.
 
-## Threading Architecture
+---
 
-```text
-┌────────────────────────────────────────────────────────────┐
-│                    MeshLink Core                           │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │  Routing    │  │  Transfer   │  │  Crypto     │  ...    │
-│  │  (Dispatch) │  │  (Dispatch) │  │  (Dispatch) │         │
-│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘         │
-│         │                │                │                │
-│         ▼                ▼                ▼                │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │            DiagnosticEmitter (single)               │   │
-│  │  - Batches events                                   │   │
-│  │  - Forwards to callback on MeshLink dispatcher      │   │
-│  └────────────────────┬────────────────────────────────┘   │
-│                       │                                    │
-│         ┌─────────────┴─────────────┐                      │
-│         ▼                           ▼                      │
-│  ┌───────────────┐          ┌─────────────────┐            │
-│  │ eventCallback │          │  emitToLog      │            │
-│  │ (user code)   │          │  (logcat/oslog) │            │
-│  └───────────────┘          └─────────────────┘            │
-└────────────────────────────────────────────────────────────┘
-```
+## Why Dedicated Dispatcher?
 
-## Dispatcher Configuration
+| Alternative | Why Rejected |
+|-------------|--------------|
+| Main thread | Blocks UI; crashes on iOS if callback does I/O |
+| Default dispatcher | Competes with CPU-intensive crypto/routing work |
+| Caller's thread | Unpredictable (BLE callback, timer, etc.) — breaks encapsulation |
+| New thread per event | Thread explosion under high event rate |
 
-```kotlin
-// meshlink/src/commonMain/kotlin/ch/trancee/meshlink/diagnostics/DiagnosticDispatcher.kt
+**Design**: Fixed thread pool (2 threads) — isolates blocking callbacks, bounds memory, prevents starvation.
 
-object DiagnosticDispatcher {
-    /** 
-     * Dedicated dispatcher for diagnostic callbacks.
-     * - Limited parallelism (2) to prevent callback overload
-     * - Not Main thread (no UI blocking)
-     * - Not Default (not competing with CPU-intensive work)
-     */
-    val dispatcher: CoroutineDispatcher = Executors.newFixedThreadPool(2).asCoroutineDispatcher()
-    
-    /** For testing: override with TestDispatcher */
-    @VisibleForTesting
-    var testOverride: CoroutineDispatcher? = null
-    
-    val effective: CoroutineDispatcher
-        get() = testOverride ?: dispatcher
-}
-```
+---
 
-## Callback Signature
+## Why Not Main Thread?
 
-```kotlin
-// meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLinkSettings.kt
+- **Android**: `Log.d()` is fast but user callbacks may do I/O or UI ops
+- **iOS**: `os_log` is fast but any Swift callback may capture `@MainActor` context
+- **Cross-platform parity**: Same threading model on both platforms
 
-data class MeshLinkSettings(
-    // ... existing fields ...
-    
-    /** 
-     * Callback for diagnostic events. 
-     * 
-     * EXECUTION: On `DiagnosticDispatcher.dispatcher` (background thread).
-     * DO NOT: Perform blocking I/O, long computations, or UI operations directly.
-     * DO: Forward to your own dispatcher, log, send to analytics, update UI via Main.
-     * 
-     * @param event The diagnostic event (sealed hierarchy, see DiagnosticEvent.kt)
-     */
-    val eventCallback: ((DiagnosticEvent) -> Unit)? = null,
-    
-    /** 
-     * Also emit events to platform log (logcat on Android, os_log on iOS).
-     * Default: false (opt-in for production).
-     */
-    val emitToLog: Boolean = false,
-)
-```
+---
 
-## User Code Guidelines
+## Callback Contract (Rationale)
 
-### ✅ Correct Usage
+| Rule | Rationale |
+|------|-----------|
+| **Execute on diagnostic dispatcher** | Predictable, isolated, testable |
+| **Don't block** | 2-thread pool → blocking starves other events |
+| **Don't update UI directly** | Not Main thread; use `mainDispatcher.launch { }` |
+| **Do forward to your dispatcher** | Decouples MeshLink from host app architecture |
 
-```kotlin
-// Forward to your own dispatcher
-val settings = MeshLinkSettings(
-    eventCallback = { event ->
-        // Option 1: Forward to your logging dispatcher
-        myLoggingDispatcher.launch { 
-            logger.log(event) 
-        }
-        
-        // Option 2: Update UI via Main dispatcher
-        if (event is DiagnosticEvent.TransferSessionTransitionEvent) {
-            mainDispatcher.launch { 
-                uiState.updateTransferProgress(event) 
-            }
-        }
-        
-        // Option 3: Send to analytics (non-blocking)
-        analyticsDispatcher.launch { 
-            analytics.track(event) 
-        }
-    }
-)
-```
+---
 
-### ❌ Incorrect Usage
+## emitToLog Rationale
 
-```kotlin
-// DON'T: Block on the diagnostic dispatcher
-eventCallback = { event ->
-    Thread.sleep(100) // BLOCKS diagnostic pipeline!
-    database.insert(event) // BLOCKING I/O!
-}
+- **Opt-in** (`emitToLog = false` default) — production apps may not want logcat/os_log spam
+- **Platform-native** — logcat on Android, `os_log` on iOS (structured, filterable)
+- **Severity mapping** — DEBUG→verbose, INFO→debug, WARN→warn, ERROR→error
 
-// DON'T: Update UI directly
-eventCallback = { event ->
-    textView.text = event.toString() // WRONG THREAD!
-}
+---
 
-// DON'T: Heavy computation
-eventCallback = { event ->
-    val hash = heavyCryptoHash(event) // STARVES OTHER CALLBACKS!
-}
-```
+## Testing Rationale
 
-## emitToLog Implementation
+- **Test override** (`DiagnosticDispatcher.testOverride`) enables deterministic testing with `TestCoroutineDispatcher`
+- **Blocking resilience test** — verifies 2-thread pool handles one blocked callback without stalling others
 
-### Android (logcat)
+---
 
-```kotlin
-// meshlink/src/androidMain/kotlin/ch/trancee/meshlink/android/diagnostics/AndroidLogEmitter.kt
+## Performance Targets
 
-class AndroidLogEmitter : LogEmitter {
-    override fun emit(event: DiagnosticEvent) {
-        val tag = "MeshLink.${event.category}" // e.g., "MeshLink.transfer"
-        val msg = event.toLogString()
-        
-        when (event.severity) {
-            DiagnosticSeverity.DEBUG -> Log.d(tag, msg)
-            DiagnosticSeverity.INFO -> Log.i(tag, msg)
-            DiagnosticSeverity.WARN -> Log.w(tag, msg)
-            DiagnosticSeverity.ERROR -> Log.e(tag, msg)
-        }
-    }
-}
-```
-
-### iOS (os_log)
-
-```swift
-// meshlink/src/iosMain/kotlin/ch/trancee/meshlink/ios/diagnostics/IosLogEmitter.swift
-
-import os.log
-
-class IosLogEmitter : LogEmitter {
-    private let log = OSLog(subsystem: "ch.trancee.meshlink", category: "diagnostics")
-    
-    override fun emit(event: DiagnosticEvent) {
-        let category = event.category // "transfer", "routing", etc.
-        let osLog = OSLog(subsystem: "ch.trancee.meshlink", category: category)
-        let message = event.toLogString()
-        
-        switch event.severity {
-        case .debug: os_log(.debug, log: osLog, "%{public}@", message)
-        case .info:  os_log(.info, log: osLog, "%{public}@", message)
-        case .warn:  os_log(.default, log: osLog, "%{public}@", message)
-        case .error: os_log(.error, log: osLog, "%{public}@", message)
-        }
-    }
-}
-```
-
-## Event Structure for Logging
-
-```kotlin
-// meshlink/src/commonMain/kotlin/ch/trancee/meshlink/diagnostics/DiagnosticEvent.kt
-
-public sealed interface DiagnosticEvent {
-    val timestamp: Instant
-    val category: String // "route", "transport", "transfer", "power", "handshake", "key_rotation", "noise"
-    val severity: DiagnosticSeverity
-    
-    fun toLogString(): String = "$category ${this::class.simpleName} $payload"
-    
-    val payload: String // JSON or key=value pairs
-}
-
-enum class DiagnosticSeverity {
-    DEBUG, INFO, WARN, ERROR
-}
-```
-
-## Testing
-
-```kotlin
-// meshlink/src/commonTest/kotlin/ch/trancee/meshlink/diagnostics/DiagnosticDispatcherTest.kt
-
-class DiagnosticDispatcherTest {
-    @Test
-    fun `callback executes on diagnostic dispatcher`() = runTest {
-        val testDispatcher = testScheduler
-        DiagnosticDispatcher.testOverride = testDispatcher
-        
-        var capturedContext: CoroutineContext? = null
-        
-        val settings = MeshLinkSettings(
-            eventCallback = { capturedContext = coroutineContext[CoroutineDispatcher] }
-        )
-        
-        // Emit event
-        DiagnosticEmitter.emit(DiagnosticEvent.TestEvent())
-        
-        advanceUntilIdle()
-        
-        assertEquals(testDispatcher, capturedContext)
-    }
-    
-    @Test
-    fun `blocking callback does not block other events`() = runTest {
-        val testDispatcher = testScheduler
-        DiagnosticDispatcher.testOverride = testDispatcher
-        
-        var count = 0
-        val latch = CompletableDeferred<Unit>()
-        
-        val settings = MeshLinkSettings(
-            eventCallback = { event ->
-                if (event is SlowEvent) {
-                    // Simulate blocking (bad practice, but test resilience)
-                    Thread.sleep(50)
-                }
-                count++
-                if (count == 2) latch.complete(Unit)
-            }
-        )
-        
-        DiagnosticEmitter.emit(SlowEvent())
-        DiagnosticEmitter.emit(FastEvent())
-        
-        // Should not timeout - dispatcher handles blocking gracefully (limited parallelism)
-        awaitResult(latch.await())
-        
-        assertEquals(2, count)
-    }
-}
-```
-
-## Performance Characteristics
-
-| Metric | Target | Implementation |
-|--------|--------|----------------|
-| Callback latency | < 1 ms | Lock-free channel, minimal work in emitter |
+| Metric | Target | Mechanism |
+|--------|--------|-----------|
+| Callback latency | < 1 ms | Lock-free channel, minimal emitter work |
 | Throughput | 10,000 events/sec | Batched dispatch, bounded queue |
 | Memory overhead | < 100 KB | Object pooling for frequent events |
 | Blocking tolerance | 2 concurrent blocked | Fixed thread pool (2) isolates blocking |
 
-## Migration Note
-
-If you previously used `eventCallback` on Main thread (incorrect assumption):
-
-```kotlin
-// OLD (wrong assumption)
-eventCallback = { event ->
-    runOnUiThread { updateUI(event) } // Was accidentally working on some platforms
-}
-
-// NEW (explicit)
-eventCallback = { event ->
-    mainDispatcher.launch { updateUI(event) }
-}
-```
+---
 
 ## Related
 
-- [MeshLinkSettings Spec](../../../specs/settings.yaml)
-- [Diagnostic Events Spec](../../../specs/diagnostic-events.yaml)
-- [CONSTITUTION.md §IV Performance Requirements](../../../CONSTITUTION.md)
-- [Kotlin Coroutines Skill](../../../.agents/skills/kotlin-coroutines/SKILL.md)
+- [SPEC.md §11](../../../SPEC.md#diagnostics--events) — Full diagnostic event hierarchy
+- [SPEC.md](../../../SPEC.md)
+- [CONSTITUTION.md §IV](../../../CONSTITUTION.md#iv-performance-requirements)

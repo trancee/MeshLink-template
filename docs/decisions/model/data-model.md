@@ -2,7 +2,7 @@
 
 **Status:** Locked — 2026-07-20
 
-Complete type definitions in [SPEC.md §3](../../../SPEC.md#3-core-data-models).
+Complete type definitions in [SPEC.md §3](../../../SPEC.md#core-data-models).
 Machine-readable references:
 
 - [specs/enums.yaml](../../../specs/enums.yaml) — all enum values
@@ -78,7 +78,7 @@ class Scoreboard(totalChunks: UInt) {
 
 ### TransferState transitions
 
-Complete state machine in [SPEC.md §3.4.1](../../../SPEC.md#341-transfer-session-state-transitions) and [specs/state-machines.yaml](../../../specs/state-machines.yaml#transferstate).
+Complete state machine in [SPEC.md §3.4.1](../../../SPEC.md#transfer-session-state-transitions) and [specs/state-machines.yaml](../../../specs/state-machines.yaml#transferstate).
 
 Transition logic lives in `TransferCoordinator.kt`. Scoreboard completeness checked before COMPLETED.
 
@@ -86,7 +86,7 @@ Transition logic lives in `TransferCoordinator.kt`. Scoreboard completeness chec
 
 ### PowerMode maps to concrete BLE parameters
 
-**Full table in [SPEC.md §10.4](../../../SPEC.md#104-mode-driven-parameters) and [specs/settings.yaml](../../../specs/settings.yaml#power_mode_parameter_mapping).**
+**Full table in [SPEC.md §10.4](../../../SPEC.md#mode-driven-parameters) and [specs/settings.yaml](../../../specs/settings.yaml#power_mode_parameter_mapping).**
 
 Defaults in `MeshLinkSettings` match MEDIUM mode. EU region clamps adv interval floor to 300ms.
 
@@ -130,7 +130,7 @@ All types require 100% line/branch coverage in `:meshlink`.
 
 ## Related
 
-- [SPEC.md Core Models](../../../SPEC.md#3-core-data-models)
+- [SPEC.md Core Models](../../../SPEC.md#core-data-models)
 - [Routing Design](../routing/routing-design.md)
 - [Power Mode Behavior](../power/power-mode-behavior.md)
 - [Crypto Design](../crypto/crypto-design.md)

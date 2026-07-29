@@ -2,7 +2,7 @@
 
 **Status:** Locked — 2026-07-20
 
-See [SPEC.md §10](../../../SPEC.md#10-power-management) for complete parameter tables and [specs/settings.yaml](../../../specs/settings.yaml) for machine-readable config.
+> **Specification content** (parameter tables, grace periods, EU clamping) lives in [SPEC.md §10](../../../SPEC.md#power-management) and [specs/settings.yaml](../../../specs/settings.yaml). This ADR captures only the *rationale*.
 
 ## Context
 
@@ -10,89 +10,59 @@ MeshLink requires power-aware operation: discrete power modes governing scan dut
 
 ## Decision: Three-Mode Model with Fixed Grace Periods
 
-### PowerMode Enum
+### Why Three Modes?
 
-```kotlin
-enum class PowerMode { HIGH, MEDIUM, LOW }
-```
+| Alternatives Considered | Why Rejected |
+|-------------------------|--------------|
+| Continuous slider (0-100%) | No meaningful UX; developers can't reason about "73% power" |
+| 5+ modes | Diminishing returns; 3 modes cover the practical range (max throughput / balanced / max battery) |
+| Platform-specific modes | Violates cross-platform parity (CONSTITUTION.md §III) |
 
-### Mode Parameters
+### Parameter Rationale
 
-**Complete parameter tables in [SPEC.md §10.4](../../../SPEC.md#104-mode-driven-parameters) and [specs/enums.yaml](../../../specs/enums.yaml).**
+| Parameter | Rationale |
+|-----------|-----------|
+| **Scan duty cycle** | Linear relationship with BLE current draw (studies show ~1:1) |
+| **Advertisement interval** | Shorter = faster discovery, but exponential power cost; 100ms/500ms/1000ms cover practical range |
+| **Connection interval** | Quantized in 1.25ms units; 7.5ms (6 units) = Android floor; 15ms = iOS throughput/power sweet spot |
+| **Chunk size** | Fits within BLE MTU (23–251B) after L2CAP/GATT headers (4B), ChaCha20-Poly1305 overhead (16B nonce+tag), framing |
+| **Max retries / retry budget** | Balanced against battery drain and resource exhaustion; scales with mode's aggressiveness |
 
-| Mode | Scan Duty | Adv Interval | Conn Interval | Concurrent | Chunk Size | Max Retries | Retry Budget | Grace Period |
-|------|-----------|--------------|---------------|------------|------------|-------------|--------------|--------------|
-| HIGH | 20% | 100ms | 7.5–15ms | 8 | 512B | 10 | 60s | 15s |
-| MEDIUM | 10% | 500ms | 15–30ms | 4 | 256B | 5 | 30s | 30s |
-| LOW | 5% | 1000ms | 30–60ms | 2 | 128B | 3 | 15s | 45s |
+### Grace Period Rationale
 
-**Rationale:**
+Fixed grace period per mode — after expiry without reconnection, peer transitions to GONE (ephemeral cleanup; trust persists).
 
-- Scan duty cycle: Based on BLE power consumption studies showing linear relationship with current draw
-- Advertisement interval: Shorter intervals improve discovery latency but increase power consumption
-- Connection interval: Quantized in 1.25ms units; 7.5ms (=6 units) is the Android BLE stack floor; 15ms is the iOS sweet spot for throughput/power balance
-- Chunk sizes: Sized to fit within BLE MTU (23–251 bytes) after accounting for L2CAP/GATT headers (4 bytes), security overhead (nonce+tag=16 bytes for ChaCha20-Poly1305), and protocol framing
-- Max retries & retry budget: Tuned to balance reliability against resource exhaustion and battery drain
+| Mode | Grace Period | Why |
+|------|-------------|-----|
+| HIGH | 15s | Aggressive mode expects fast reconnect; short grace avoids stale state |
+| MEDIUM | 30s | Default; balances discovery reliability vs cleanup |
+| LOW | 45s | Sparse connections; longer window for natural reappearance |
 
-### Grace Period
+**Future**: Adaptive grace period based on peer stability tracked separately.
 
-Fixed grace period per power mode. After the grace period expires without reconnection, the peer transitions to GONE and ephemeral state (presence, routes, pending transfers) is cleaned up. Pinned trust state persists.
+### EU Regulatory Clamping Rationale
 
-| Mode | Grace Period |
-|------|-------------|
-| HIGH | 15 seconds |
-| MEDIUM (default) | 30 seconds |
-| LOW | 45 seconds |
+- **Advertisement floor 300ms**: EU ETSI EN 300 328 limits duty cycle; intervals <300ms risk non-compliance
+- **Scan ceiling 70%**: Same regulation; prevents excessive radio-on time
 
-**Future work:** Adaptive grace period based on peer stability is tracked separately.
+Clamping in shared policy code (not platform wrappers) ensures cross-platform consistency.
 
-### Regulatory Clamping (EU)
+### Platform Integration Rationale
 
-When `RegulatoryRegion = EU` (see [SPEC.md §10.2](../../../SPEC.md#102-regulatory-region)):
+| Platform | Mapping | Notes |
+|----------|---------|-------|
+| **Android** | HIGH→`LOW_LATENCY`, MEDIUM→`OPPORTUNISTIC`, LOW→`LOW_POWER` | Direct `ScanSettings` mode mapping |
+| **iOS** | LOW uses background preservation | iOS scan modes less granular; background task for LOW mode |
 
-- Advertisement interval floor: 300ms (values below clamped to 300ms)
-- Scan duty cycle ceiling: 70% (values above clamped to 70%)
+### Diagnostics Contract Rationale
 
-Clamping happens in shared policy code, not platform-specific wrappers.
+`PowerModeEffectiveEvent` emits **effective** parameters after clamping — so host apps observe actual behavior, not just requested values.
 
-### Platform Integration
-
-#### Android
-
-Power mode maps to Android `ScanSettings`:
-
-- HIGH → `SCAN_MODE_LOW_LATENCY`
-- MEDIUM → `SCAN_MODE_OPPORTUNISTIC`
-- LOW → `SCAN_MODE_LOW_POWER`
-
-#### iOS
-
-iOS scan modes are less granular than Android. The LOW mode uses background preservation rather than scan duty cycle.
-
-### Diagnostics Contract
-
-`PowerModeEffectiveEvent` emits observed effective parameters after regulatory clamping:
-
-```yaml
-power:
-  requestedMode: "medium"
-  effectiveMode: "medium"
-  regulatoryRegion: "DEFAULT"
-  scanDutyCyclePercent: 10
-  advertisementIntervalMs: 500
-  connectionIntervalMs: 15.0
-```
-
-### Testing
-
-- `PowerModeTest`: verify each mode produces correct platform settings
-- `BatteryConsumptionBenchmark`: verify LOW mode consumes ≤1% battery/hour
-- `CrossPlatformComparisonTest`: verify similar behavior on Android/iOS
+---
 
 ## Related
 
-- [CONSTITUTION.md §IV Performance Requirements](../../../CONSTITUTION.md#iv-performance-requirements)
-- [SPEC.md §10 Power Management](../../../SPEC.md#10-power-management)
-- [peer-lifecycle.md](../../explanation/peer-lifecycle.md)
-- [MTU Negotiation](../transport/mtu-negotiation.md)
-- [optimize-ble-throughput skill references](../../../.agents/skills/optimize-ble-throughput/references/mobile-platforms.md)
+- [CONSTITUTION.md §IV](../../../CONSTITUTION.md#iv-performance-requirements) — Performance budgets
+- [SPEC.md §10](../../../SPEC.md#power-management) — Full parameter tables
+- [Peer Lifecycle](../../explanation/peer-lifecycle.md) — Grace period drives CONNECTED→DISCONNECTED→GONE
+- [MTU Negotiation](../transport/mtu-negotiation.md) — Chunk size bounded by negotiated MTU

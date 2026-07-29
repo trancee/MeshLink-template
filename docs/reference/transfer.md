@@ -1,41 +1,67 @@
 # Transfer Layer
 
-> Source: [SPEC.md §9](../../SPEC.md#9-transfer-layer)
+> **Specification**: [SPEC.md §9](../../SPEC.md#transfer-layer)  
+> **Design rationale**: [Data Model ADR](../decisions/model/data-model.md)
 
-## 9.1 Transfer Session
+## Chunked Transfer with SACK
 
-The `TransferSession` model is defined in [specs/data-models.yaml](../../specs/data-models.yaml). Key fields:
+- **Chunk size**: Selected by local `PowerMode` at session start, bounded by peer's advertised MTU
+- **SACK bitfield**: Dynamic length = `ceil(totalChunks / 8)` bytes. Bit N = 1 means chunk N received
+- **Cut-through relay**: Relays forward chunks before full reassembly (reduces latency)
 
-- `chunkSize`: Selected by local power mode, bounded by peer MTU
-- `scoreboard`: Dynamic bitfield (`ByteArray`) of length `ceil(totalChunks / 8)` bytes; bit N = 1 means chunk N received
-- `totalBytes`/`bytesReceived`: Progress tracking in bytes (not chunks)
-
-[Decision: docs/decisions/model/data-model.md]
-
-## 9.2 Selective Acknowledgment
-
-- **Dynamic bitfield encoding**: Bitfield length = `ceil(totalChunks / 8)` bytes, derived from `totalChunks` known via TransferSession. Bit N = 1 means chunk N is received (standard SACK convention).
-- **Variable overhead**: Small transfers (10 chunks) use 1 byte; large transfers (1000 chunks) use 125 bytes
-- Partial ACK never forces re-send of already-received chunks
-- Scoreboard clears on session completion or explicit failure
-
-## 9.3 Cut-Through Relay
-
-- Pipeline forwarding without full reassembly
-- Relays decrypt (hop layer) → re-encrypt (next hop) → forward
-- Relay buffers maintained for local retransmission handling
-
-## 9.4 TransferAck Wire Format
+## Transfer Session Lifecycle
 
 ```text
-TransferAck {
-  sessionId: UInt64 (8 bytes)
-  bitfield: UInt8Vector (ceil(totalChunks / 8) bytes; bit N = 1 means chunk N received; receiver knows totalChunks from session)
-}
+IN_PROGRESS
+    ├── all chunks received → COMPLETED
+    ├── route lost → WAITING_FOR_ROUTE
+    ├── chunk missing → RETRYING
+    ├── error/cancel/trust failure → FAILED
+    └── retry budget exhausted → TIMED_OUT
+
+WAITING_FOR_ROUTE
+    ├── route found → IN_PROGRESS
+    └── grace period exhausted → TIMED_OUT
+
+RETRYING
+    ├── retransmission complete → IN_PROGRESS
+    └── retry budget exhausted → FAILED
 ```
 
-The bitfield length is derived from `totalChunks` in the `TransferSession`, so no extra length field is needed in the SACK message.
+## Retry Policy
 
-If the `TransferSession` is not found (expired or already completed), the receiver MUST reject the `TransferAck` with `TransferError.SessionNotFound`.
+| Parameter | Default | Per PowerMode |
+|-----------|---------|---------------|
+| Max retries | 5 | HIGH=10, MEDIUM=5, LOW=3 |
+| Retry budget | 30s | HIGH=60s, MEDIUM=30s, LOW=15s |
+| Backoff | Exponential + jitter | 1s, 2s, 4s... |
 
-[Decision: ../specs/wire-frames.yaml]
+## TransferDeliveryOutcome Mapping
+
+| TransferState | FailureReason | Outcome |
+|---------------|---------------|---------|
+| COMPLETED | — | `success` |
+| IN_PROGRESS | — | `in-progress` |
+| RETRYING | — | `retrying` |
+| WAITING_FOR_ROUTE | — | `route-waiting` |
+| TIMED_OUT | — | `timeout` |
+| FAILED | Unrecoverable | `unrecoverable-failure` |
+| FAILED | TrustFailure | `trust-failure` |
+
+## Wire Frames
+
+| Frame | Type | Encryption | Key Fields |
+|-------|------|------------|------------|
+| `TRANSFER_CHUNK` | 4 | Link-layer AEAD | sessionId, chunkIndex, offset, length, payload, isLast |
+| `TRANSFER_ACKNOWLEDGMENT` | 5 | Link-layer AEAD | sessionId, bitfield (dynamic) |
+| `TRANSFER_CANCEL` | 6 | Link-layer AEAD | sessionId, reason |
+
+---
+
+## Quick Links
+
+- [SPEC.md §9 — Full transfer spec](../../SPEC.md#transfer-layer)
+- [Data Model ADR](../decisions/model/data-model.md)
+- [State Machines Spec](../../specs/state-machines.yaml#transferstate)
+- [Wire Frames Spec](../../specs/wire-frames.yaml)
+- [Power Mode Spec](power.md)

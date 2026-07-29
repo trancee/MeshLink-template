@@ -1,36 +1,37 @@
 # Architecture Overview
 
-> Source: [SPEC.md §2](../../SPEC.md#2-architecture-overview)
+> **Specification**: [SPEC.md §2](../../SPEC.md#architecture-overview)  
+> **Design rationale**: [Module Structure](../explanation/module-structure.md)
 
-## 2.1 Module Structure
+## Module Structure
 
-```text
-meshlink/          # Shipped library (JVM + Android + iOS)
-meshlink-reference/ # Reference app consuming public API only
-meshlink-proof/    # Real-device validation (android/ + ios/ subdirectories)
-meshlink-benchmark/ # Performance benchmarking
-```
+| Module | Purpose | Runs On |
+|--------|---------|---------|
+| `meshlink` | Shipped library (public API + implementation) | JVM + Android + iOS |
+| `meshlink-reference` | Reference app (public API only, Compose Multiplatform) | Android + iOS |
+| `meshlink-proof` | Real-device validation (needs internal access) | Real Android/iOS devices |
+| `meshlink-benchmark` | Performance benchmarking | JVM + device fleet |
 
-`meshlink-proof/` contains `android/` and `ios/` subdirectories for platform-specific real-device validation. Both test the same proof scenarios on their respective platforms. [Decision: docs/explanation/module-structure.md]
+## Source Set Structure
 
-## 2.2 Source Set Structure
+| Source Set | Contents |
+|------------|----------|
+| `commonMain` | Shared business logic (security, routing, transfer, diagnostics) |
+| `androidMain` | BLE glue, fallback crypto for API 26-32 |
+| `iosMain` | BLE glue |
+| `commonTest` | Pure JVM tests (protocol logic, wire codec, crypto) |
+| `androidHostTest` | Host-side Android tests (crypto fallback paths) |
 
-- `commonMain` — Shared business logic (security, routing, transfer, diagnostics)
-- `androidMain` — Platform-specific BLE glue, fallback crypto for older Android
-- `iosMain` — Platform-specific BLE glue
-- `commonTest` — Pure JVM tests (protocol logic, wire codecs, crypto)
-- `androidHostTest` — Host-side Android tests (crypto fallback paths)
-- `androidDeviceTest` — Instrumented device tests (reserved for future use; `:meshlink` currently has no Android-specific code requiring device tests)
+## Platform Minimums
 
-## 2.3 Wire Protocol Reference Standards
+- Android API 26 (Android 8.0)
+- iOS 14
+- Higher APIs guarded at runtime
 
-- RFC 7748 (X25519/X448 ECDH)
-- RFC 8032 (Ed25519 signatures)
-- RFC 8439 (ChaCha20-Poly1305 AEAD)
-- RFC 5869 (HKDF)
-- RFC 2104 (HMAC)
-- RFC 6234 (SHA-2 family)
-- RFC 9147 (DTLS 1.3 for replay protection patterns)
-- RFC 8966 (Babel routing for feasibility conditions and seqno)
-- RFC 9420 (MLS — design reference for group security)
-- RFC 7435 (Opportunistic security — design reference for best-effort encryption)
+---
+
+## Quick Links
+
+- [SPEC.md §2 — Full architecture details](../../SPEC.md#architecture-overview)
+- [Module Structure Explanation](../explanation/module-structure.md)
+- [CONSTITUTION.md Technical Constraints](../../CONSTITUTION.md#technical-constraints)

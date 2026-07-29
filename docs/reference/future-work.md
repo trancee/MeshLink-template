@@ -1,10 +1,35 @@
 # Future Work
 
-> Source: [SPEC.md §15](../../SPEC.md#15-future-work)
+> **Specification**: [SPEC.md §15](../../SPEC.md#future-work)  
+> **Design rationale**: [PQ-Hybrid Candidate Matrix](../decisions/crypto/pq-hybrid-candidate-matrix.md)
 
-- **PQ-hybrid key establishment**: Post-quantum readiness via conservative C2 candidate (see `docs/decisions/crypto/pq-hybrid-candidate-matrix.md`)
-- **Noise IK for E2E layer**: Replace IX with IK for stronger mutual authentication at cost of one extra round trip
-- **Throughput-based link metrics**: Replace RSSI proxy with actual measured throughput for path selection
-- **Payload compression**: Optional Zstandard/Brotli for large transfers over small MTU
-- **Adaptive grace periods**: Adjust based on peer stability and session uptime
-- **Group messaging**: Extend Noise for multicast/broadcast (MLS-inspired, see RFC 9420)
+## Planned Enhancements
+
+### 1. PQ-Hybrid Key Establishment
+
+**Candidate**: Conservative hybrid (C2) — classical X25519 + ML-KEM-768 with staged extension frames.
+
+**Why not aggressive**: Requires provider maturity and state-machine work beyond first spike.
+
+### 2. Noise IK for E2E Layer
+
+Replace IX with IK when both peers hold pinned keys → mutual 0-RTT E2E authentication.
+
+### 3. Throughput-Based Link Metrics
+
+Replace RSSI proxy with measured throughput for routing decisions (post-connection refinement).
+
+### 4. Payload Compression
+
+Optional zlib/Brotli/Zstd for large payloads (RFC 1950/1951/1952, RFC 7932, RFC 8878).
+
+### 5. Group Messaging
+
+MLS (RFC 9420) integration for multi-recipient E2E encryption.
+
+---
+
+## Quick Links
+
+- [SPEC.md §15 — Full future work spec](../../SPEC.md#future-work)
+- [PQ-Hybrid Candidate Matrix ADR](../decisions/crypto/pq-hybrid-candidate-matrix.md)

@@ -1,30 +1,53 @@
 # Build & Quality Constraints
 
-> Source: [SPEC.md §12](../../SPEC.md#12-build--quality-constraints)
+> **Specification**: [SPEC.md §12](../../SPEC.md#build--quality-constraints)  
+> **Binding rules**: [CONSTITUTION.md](../../CONSTITUTION.md)
 
-## 12.1 Performance Budgets (CI-Enforced)
+## Performance Budgets (CI-Enforced)
 
-| Metric | Target | Measurement | Rationale |
-|--------|--------|-------------|-----------|
-| Throughput (1-hop L2CAP) | ≥80 KB/s Android, ≥60 KB/s iOS | Benchmark | Matches practical file transfer requirements while respecting BLE limitations |
-| Latency (1-hop, 256B, p95) | <50 ms | Benchmark | Ensures responsive interactive applications (messaging, gaming) |
-| Memory (steady state, 8 peers) | ≤8 MB heap | Benchmark | Targets <0.5% of typical 2GB RAM device, minimizing impact on host apps |
-| Battery scan duty cycle | ≤5% | Instrumentation | Targets <5% additional drain beyond baseline for all-day operation |
-| Cold start | <500 ms to first advertisement | Benchmark | Ensures responsive user experience when enabling mesh |
-| Routing convergence (10 nodes) | ≤3 s | Virtual harness | Balances rapid topology adaptation with control plane overhead |
-| Wire codec op | <1 μs/message | JMH | Ensures minimal CPU impact for high-throughput scenarios |
+| Target | Budget | Measurement |
+|--------|--------|-------------|
+| Throughput (1-hop L2CAP) | ≥80 KB/s (Android Pixel 6+), ≥60 KB/s (iOS iPhone 12+) | `meshlink-benchmark` |
+| Latency (1-hop, 256B, p95) | <50 ms after connection established | `meshlink-benchmark` |
+| Memory (steady state, 8 peers) | ≤8 MB heap | `meshlink-benchmark` |
+| Battery | ≤5% scan duty cycle, ≥500 ms connection interval | Derived from PowerMode |
+| Cold start | <500 ms from `mesh.start()` to first advertisement | `meshlink-benchmark` |
+| Routing convergence | ≤3 s for 10-node topology change (virtual transport) | `meshlink-benchmark` |
+| Wire codec encode/decode | <1 μs/message (JVM benchmark) | `kotlinx-benchmark` |
 
-## 12.2 Code Quality Rules
+**Regression gate**: >10% vs last committed benchmark blocks merge.
 
-- Detekt: Zero suppressions
-- ktfmt: Auto-format before every commit
-- BCV: Track public API, explicit versioning for breaking changes
-- ExplicitApi(): All public declarations need explicit visibility/return types
-- No TODO comments in merged code
+## Code Quality (Per CONSTITUTION.md §I)
 
-## 12.3 Platform Minimums
+- Detekt: zero suppressions (test suppressions require justification comment)
+- ktfmt: formatting before every commit
+- Full descriptive identifiers (no `cfg`, `mgr`, `idx`, `tmp`, `msg`)
+- BCV tracks public API; `.api` diff requires version-bump rationale
+- `explicitApi()` enabled
+- No `TODO` comments in merged code
+- Tooling at latest stable releases
+- Dependencies pinned, upgraded promptly
 
-- Android: API 26 (runtime crypto capability checks for 26-32)
-- iOS: 14.0
-- iOS: Native targets only on macOS host (cross-compilation limitation)
-- CHANGELOG.md is auto-generated from Conventional Commits at release time, not hand-maintained
+## Platform Minimums
+
+- Android API 26 (Android 8.0)
+- iOS 14
+- Higher APIs guarded at runtime
+
+## Runtime Dependencies
+
+Only `kotlinx-coroutines-core` in shipped `:meshlink` artifact.
+`kotlinx-datetime` for `Duration` in settings DSL is acknowledged exception.
+
+## Dokka / SKI / Coverage
+
+Apply to `:meshlink` **only** — not reference/proof/benchmark modules.
+
+---
+
+## Quick Links
+
+- [SPEC.md §12 — Full build/quality spec](../../SPEC.md#build--quality-constraints)
+- [CONSTITUTION.md — Binding Rules](../../CONSTITUTION.md)
+- [meshlink/build.gradle.kts](../../meshlink/build.gradle.kts)
+- [Kover Config](../../meshlink/build.gradle.kts)
