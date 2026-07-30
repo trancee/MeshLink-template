@@ -7,6 +7,14 @@ duplicate its content here, just link to it.
 New clone? Run `./scripts/bootstrap.sh` once before anything else — see
 [How to bootstrap MeshLink's local tooling](docs/how-to/bootstrap-project-tooling.md).
 
+## Agent Operational Preferences
+
+- **Git commits**: Never commit with `git commit` without explicit user approval. Always ask before creating a commit.
+- **Gradle invocations**: Always pass `--rerun` and disable the build cache (e.g. `--no-build-cache`). Do not rely on cached outputs.
+- **Kover coverage gate**: Always achieve 100% line and branch coverage (`:meshlink`) before committing. Run `./gradlew :meshlink:koverVerify` to confirm. If coverage drops, add tests to close the gap.
+- **API dump**: Update the MeshLink API dump (`meshlink/api/jvm/meshlink.api`) in the same change set for any public API change. Regenerate with `./gradlew :meshlink:jvmApiDump`.
+- **Docs/specs**: Update docs (README, KDoc, ADRs, `docs/`) and specs (`specs/`, `SPEC.md`) in the same change set as the code they describe — never as a follow-up.
+
 ## Workflow (in order)
 
 1. Read relevant skill files before implementation, refactors, or any task
@@ -35,6 +43,8 @@ New clone? Run `./scripts/bootstrap.sh` once before anything else — see
 
 ## Build, Test & Lint Commands
 
+> **Note**: All `./gradlew` calls must include `--rerun` and `--no-build-cache` to ensure fresh execution.
+
 `.githooks/` run the first two tiers automatically; CI
 (`.github/workflows/ci.yml`) is authoritative — see
 [Quality Gates](CONSTITUTION.md#quality-gates).
@@ -43,7 +53,7 @@ New clone? Run `./scripts/bootstrap.sh` once before anything else — see
 | --- | --- | --- |
 | Fast | Every commit, touched modules only | `gitleaks protect --staged`, `./gradlew :meshlink:ktfmtFormat`, `./gradlew :meshlink:detekt` |
 | Full | Every push | `gitleaks detect`, `./gradlew :meshlink:build` |
-| CI (authoritative) | Every PR | Full tier, plus `koverVerify`, `apiCheck`, `ktfmtCheck`, and iOS simulator tests |
+| CI (authoritative) | Every PR | Full tier, plus `koverVerify` (100% coverage gate), `apiCheck`, `ktfmtCheck`, and iOS simulator tests |
 
 Both tiers also run `yamllint` and `./scripts/check_markdown.sh` (markdownlint-cli2 +
 lychee) whenever `.yml`/`.yaml`/`.md` files are touched — see

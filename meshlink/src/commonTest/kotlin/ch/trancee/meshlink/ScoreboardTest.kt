@@ -325,7 +325,7 @@ class ScoreboardTest {
     }
 
     @Test
-    fun `Scoreboard or fails when byteSize mismatch (FIXED vs DYNAMIC)`() {
+    fun `Scoreboard or fails when byteSize mismatch`() {
         // Arrange
         val sbDynamic = Scoreboard(5u).markReceived(0) // byteSize=1
         val sbFixed = Scoreboard(5u, 100u).markReceived(0) // byteSize=13
