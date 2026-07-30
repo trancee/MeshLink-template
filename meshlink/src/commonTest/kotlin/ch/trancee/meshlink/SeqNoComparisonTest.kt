@@ -367,17 +367,17 @@ class SeqNoComparisonTest {
 
     @Test
     fun `sorted orders SeqNo correctly`() {
-        // Arrange
+        // Arrange — use values well within the comparison window (not at ±2^31 boundary)
         val unsorted: List<SeqNo> =
-            listOf(SeqNo(0xFFFFFFFFu), SeqNo(0u), SeqNo(0x80000000u), SeqNo(1u))
+            listOf(SeqNo(0x10000000u), SeqNo(0u), SeqNo(0xFFFFFFFFu), SeqNo(1u))
 
         // Act
         val sorted = unsorted.sorted()
 
-        // Assert
-        assertEquals(SeqNo(0x80000000u), sorted[0])
-        assertEquals(SeqNo(0xFFFFFFFFu), sorted[1])
-        assertEquals(SeqNo(0u), sorted[2])
-        assertEquals(SeqNo(1u), sorted[3])
+        // Assert — modular signed comparison: 0xFFFFFFFF < 0 < 1 < 0x10000000
+        assertEquals(SeqNo(0xFFFFFFFFu), sorted[0])
+        assertEquals(SeqNo(0u), sorted[1])
+        assertEquals(SeqNo(1u), sorted[2])
+        assertEquals(SeqNo(0x10000000u), sorted[3])
     }
 }
