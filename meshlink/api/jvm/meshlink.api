@@ -1018,11 +1018,18 @@ public final class ch/trancee/meshlink/model/VerificationLevel : java/lang/Enum 
 }
 
 public final class ch/trancee/meshlink/security/ReplayWindow {
+	public static final field Companion Lch/trancee/meshlink/security/ReplayWindow$Companion;
+	public static final field WINDOW_SIZE I
 	public fun <init> ()V
-	public final fun checkNonce (J)Z
+	public final fun advanceEpoch ()V
+	public final fun consumeNonce (J)Z
 	public final fun getBaseNonce ()J
+	public final fun getEpoch ()J
 	public final fun getWindow-s-VKNKU ()J
 	public final fun reset ()V
+}
+
+public final class ch/trancee/meshlink/security/ReplayWindow$Companion {
 }
 
 public final class ch/trancee/meshlink/util/ConstantTime {

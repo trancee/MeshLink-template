@@ -572,10 +572,11 @@ All operations on secret data (private keys, shared secrets, session keys, KDF o
 
 **Sliding bitmap window** per RFC 9147:
 
-- Window size: 64 packets (configurable)
-- Per-epoch numbering (epoch increments on KeyUpdate)
-- Deprotect-before-advance to avoid timing channels
-- Replay detection on both hop-by-hop and E2E layers
+- **Window size**: 64 packets (fixed; see `ReplayWindow.WINDOW_SIZE`)
+- **Bitmap shift direction**: right-shift (`ULong.shr`) so that existing bit positions correctly map to nonces under the new baseNonce after an advance; bits shifted off the low end are evicted
+- **Per-epoch numbering** (epoch increments on KeyUpdate); `advanceEpoch()` resets the bitmap and epoch counter
+- **Deprotect-before-advance** (RFC 9147 §4.2): the replay check is performed before any bitmap mutation, preventing replay and fresh nonces within the window from taking different code paths
+- **Replay detection** on both hop-by-hop and E2E layers
 
 **ADR**: docs/decisions/crypto/replay-window.md
 
