@@ -173,3 +173,30 @@ if [[ ${#lint_tasks[@]} -gt 0 ]]; then
   echo "[pre-commit] Running Detekt: ${lint_tasks[*]}"
   "${gradle_cmd[@]}" "${lint_tasks[@]}"
 fi
+
+# Check test names for invalid characters (e.g., parentheses) that break Kotlin/Native
+kotlin_test_files=()
+for file in "${staged_files[@]}"; do
+  if [[ "$file" == *.kt && "$file" == */commonTest/* ]] || [[ "$file" == *.kt && "$file" == */androidTest/* ]] || [[ "$file" == *.kt && "$file" == */jvmTest/* ]] || [[ "$file" == *.kt && "$file" == */iosTest/* ]] || [[ "$file" == *.kt && "$file" == */test/* ]]; then
+    kotlin_test_files+=("$file")
+  fi
+done
+
+if [[ ${#kotlin_test_files[@]} -gt 0 ]]; then
+  echo "[pre-commit] Checking test names for invalid characters..."
+  invalid_found=0
+  for file in "${kotlin_test_files[@]}"; do
+    # Look for backtick-quoted test function names containing parentheses
+    # Pattern: fun `name with (parentheses)`()
+    if grep -nE "fun\s+\`[^\`]*\([^)]*\)[^\`]*\`" "$file" >/dev/null; then
+      echo "[pre-commit] ERROR: Test name with parentheses found in $file:" >&2
+      grep -nE "fun\s+\`[^\`]*\([^)]*\)[^\`]*\`" "$file" | sed 's/^/    /' >&2
+      echo "[pre-commit] Parentheses in test names are invalid for Kotlin/Native compilation." >&2
+      echo "[pre-commit] Replace with words like 'plus', 'minus', 'equals', or rephrase." >&2
+      invalid_found=1
+    fi
+  done
+  if [[ $invalid_found -eq 1 ]]; then
+    exit 1
+  fi
+fi
