@@ -366,7 +366,7 @@ class SeqNoComparisonTest {
     }
 
     @Test
-    fun `sorted() orders SeqNo correctly`() {
+    fun `sorted orders SeqNo correctly`() {
         // Arrange
         val unsorted: List<SeqNo> =
             listOf(SeqNo(0xFFFFFFFFu), SeqNo(0u), SeqNo(0x80000000u), SeqNo(1u))

@@ -3,6 +3,7 @@ package ch.trancee.meshlink
 import ch.trancee.meshlink.model.SeqNo
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -114,21 +115,8 @@ class SeqNoWireTest {
         val fiveBytes = byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x01)
 
         // Act & Assert
-        // @Suppress("SwallowedException") - intentional exception catch for assertion
-        var threw = false
-        try {
-            SeqNo.fromByteArray(threeBytes)
-        } catch (e: IllegalArgumentException) {
-            threw = true
-        }
-        assertTrue(threw)
-        threw = false
-        try {
-            SeqNo.fromByteArray(fiveBytes)
-        } catch (e: IllegalArgumentException) {
-            threw = true
-        }
-        assertTrue(threw)
+        assertFailsWith<IllegalArgumentException> { SeqNo.fromByteArray(threeBytes) }
+        assertFailsWith<IllegalArgumentException> { SeqNo.fromByteArray(fiveBytes) }
     }
 
     // ---- unsignedDistance ----
