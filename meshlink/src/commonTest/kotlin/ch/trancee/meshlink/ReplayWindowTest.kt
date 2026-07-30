@@ -3,6 +3,7 @@ package ch.trancee.meshlink
 import ch.trancee.meshlink.security.ReplayWindow
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -48,7 +49,7 @@ class ReplayWindowTest {
     }
 
     @Test
-    fun `nonce at window boundary (base + 64) advances window`() {
+    fun `nonce at window boundary base plus 64 advances window`() {
         val window = ReplayWindow()
         assertTrue(window.consumeNonce(0L))
         assertTrue(window.consumeNonce(64L))
@@ -97,6 +98,13 @@ class ReplayWindowTest {
         val window = ReplayWindow()
         window.consumeNonce(70L) // baseNonce → 7
         assertFalse(window.consumeNonce(3L))
+    }
+
+    @Test
+    fun `nonce far behind window is rejected`() {
+        val window = ReplayWindow()
+        window.consumeNonce(70L) // baseNonce → 7
+        assertFalse(window.consumeNonce(3L)) // 3 is behind baseNonce 7
     }
 
     // ── epoch / key rotation ───────────────────────────────────────────
@@ -211,10 +219,10 @@ class ReplayWindowTest {
 
     // ── input validation ───────────────────────────────────────────────
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun `negative nonce throws IllegalArgumentException`() {
         val window = ReplayWindow()
-        window.consumeNonce(-1L)
+        assertFailsWith<IllegalArgumentException> { window.consumeNonce(-1L) }
     }
 
     // ── state exposure ─────────────────────────────────────────────────
