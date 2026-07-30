@@ -61,20 +61,64 @@ RFC 8966 §3.7 requires signed interpretation. `(this - other).toInt() > 0` hand
 
 ## Transfer Model
 
-### Scoreboard uses immutable dynamic bitfield
+### Scoreboard: immutable SACK bitfield with O(1) completeness and mesh merge ops
 
 ```kotlin
-class Scoreboard(totalChunks: UInt) {
-  fun markReceived(chunkIndex: Int): Scoreboard  // Returns new instance
-  fun markMissing(chunkIndex: Int): Scoreboard
-  fun isReceived(chunkIndex: Int): Boolean
-  fun missingChunks(): List<Int>
-  fun toByteArray(): ByteArray
-}
+class Scoreboard(totalChunks: UInt)               // Dynamic bitfield
+class Scoreboard(totalChunks: UInt, maxChunksPerSession: UInt)  // FIXED pre-allocation
+
+// Immutable operations (return new Scoreboard, cached counts)
+fun markReceived(index: Int): Scoreboard          // O(1) count update
+fun markMissing(index: Int): Scoreboard           // O(1) count update
+fun isComplete(): Boolean                         // O(1) — all chunks received
+fun receivedCount(): Int                          // O(1)
+fun missingCount(): Int                           // O(1)
+
+// Bitwise merge operations (for mesh relay cut-through)
+fun or(other: Scoreboard): Scoreboard             // Union of ACKs from multiple peers
+fun and(other: Scoreboard): Scoreboard            // Intersection (all peers confirm)
+fun xor(other: Scoreboard): Scoreboard            // Symmetric difference
+
+// Lazy/zero-allocation iteration
+fun missingSequence(): Sequence<Int>
+inline fun forEachMissing(action: (index: Int) -> Unit)
+
+// Wire serialization
+companion fun fromBytes(totalChunks: UInt, bytes: ByteArray): Scoreboard
+fun toByteArray(): ByteArray
+fun get byteSize: Int                            // Bitfield byte count for framing
 ```
 
-**Why immutable:** Thread-safe sharing between protocol-layer and test assertions.
-**Why dynamic:** Small transfers (10 chunks) use 1 byte; large transfers (1000 chunks) use 125 bytes. Memory scales with transfer size.
+**Why immutable:** Thread-safe sharing between protocol-layer and test assertions. The immutable
+`markReceived`/`markMissing` pattern enables structural sharing for free.
+
+**Why cached counts:** `receivedCount()`/`missingCount()`/`isComplete()` track their values
+incrementally — `markReceived` adds 1 when a bit flips 0→1, `markMissing` subtracts 1 when
+a bit flips 1→0. Duplicate/absent marks are no-ops with zero count delta.
+
+**Why bitwise ops (`or`/`and`/`xor`):** Mesh cut-through relay requires merging ACK bitfields
+from multiple peers receiving the same transfer. `or` gives the union (all chunks any peer has
+seen); `and` gives the intersection (chunks all peers confirmed); `xor` highlights divergence.
+
+**Why FIXED encoding:** When `totalChunks` is unknown upfront (e.g. streaming transfer) but
+`maxChunksPerSession` provides a safe upper bound, the FIXED constructor pre-allocates the
+bitfield to avoid resize logic. The `scoreboardEncoding` setting in `TransferSettings` controls
+which constructor is used.
+
+**Why bounds checking:** `IndexOutOfBoundsException` with descriptive messages (`Chunk index
+5 is out of range [0, 4)`) replaces the cryptic `ArrayIndexOutOfBoundsException` from the
+previous unchecked array access.
+
+**Why `fromBytes` companion:** Wire deserialization of `TRANSFER_ACKNOWLEDGMENT` frames
+requires constructing a Scoreboard from raw bytes. Previously `fromBytes` was `internal`,
+blocking this use case.
+
+**Why O(1) completeness:** The state machine transition "All chunks received +
+scoreboard complete → COMPLETED" requires an O(1) check. Previously `missingCount() == 0`
+was O(n) and allocated nothing but still required full iteration.
+
+**Why dynamic:** Small transfers (10 chunks) use 1 byte; large transfers (1000 chunks) use
+125 bytes. Memory scales with transfer size.
 
 ### TransferState transitions
 

@@ -559,6 +559,8 @@ public final class ch/trancee/meshlink/model/LinkMetric {
 public final class ch/trancee/meshlink/model/MutableScoreboard {
 	public synthetic fun <init> (ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun getTotalChunks-pVg5ArA ()I
+	public final fun isComplete ()Z
+	public final fun isMissing (I)Z
 	public final fun isReceived (I)Z
 	public final fun markMissing (I)V
 	public final fun markReceived (I)V
@@ -782,17 +784,30 @@ public final class ch/trancee/meshlink/model/RoutingPolicy {
 }
 
 public final class ch/trancee/meshlink/model/Scoreboard {
+	public static final field Companion Lch/trancee/meshlink/model/Scoreboard$Companion;
+	public synthetic fun <init> (IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (II[BILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public synthetic fun <init> (ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public synthetic fun <init> (I[BLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun and (Lch/trancee/meshlink/model/Scoreboard;)Lch/trancee/meshlink/model/Scoreboard;
+	public final fun forEachMissing (Lkotlin/jvm/functions/Function1;)V
+	public final fun getByteSize ()I
 	public final fun getTotalChunks-pVg5ArA ()I
+	public final fun isComplete ()Z
 	public final fun isMissing (I)Z
 	public final fun isReceived (I)Z
 	public final fun markMissing (I)Lch/trancee/meshlink/model/Scoreboard;
 	public final fun markReceived (I)Lch/trancee/meshlink/model/Scoreboard;
 	public final fun missingChunks ()Ljava/util/List;
 	public final fun missingCount ()I
+	public final fun missingSequence ()Lkotlin/sequences/Sequence;
+	public final fun or (Lch/trancee/meshlink/model/Scoreboard;)Lch/trancee/meshlink/model/Scoreboard;
 	public final fun receivedCount ()I
 	public final fun toByteArray ()[B
+	public final fun xor (Lch/trancee/meshlink/model/Scoreboard;)Lch/trancee/meshlink/model/Scoreboard;
+}
+
+public final class ch/trancee/meshlink/model/Scoreboard$Companion {
+	public final fun fromBytes-qim9Vi0 (I[B)Lch/trancee/meshlink/model/Scoreboard;
 }
 
 public final class ch/trancee/meshlink/model/ScoreboardEncoding : java/lang/Enum {

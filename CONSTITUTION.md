@@ -83,8 +83,12 @@ in crypto, replay protection, or routing are correctness/security risks.
   behavior MUST be validated on real hardware (`meshlink-proof`); emulators
   and simulators remain fine for non-radio logic (crypto, routing over the
   virtual harness, wire codec, business logic).
-- No `require()` with string interpolation — use explicit condition +
-  throw instead.
+- Prefer `require()` for precondition validation — it is the idiomatic Kotlin
+  pattern, throws `IllegalArgumentException` (the correct exception type for
+  invalid arguments), and its lazy message lambda is only evaluated on
+  failure. Use explicit `if` + `throw` only when a different exception type
+  is semantically required (e.g., `IndexOutOfBoundsException` for index
+  checks).
 - No `while(isActive)` loops for long-running coroutines — use structured
   coroutine patterns.
 - Every `when` over a closed set MUST be exhaustive.
@@ -269,4 +273,4 @@ conflict.
 - Anything below constitutional level (day-to-day conventions) belongs in
   `docs/`, not here.
 
-**Version**: 1.18.0 | **Ratified**: 2026-04-30 | **Last Amended**: 2026-07-19
+**Version**: 1.19.0 | **Ratified**: 2026-04-30 | **Last Amended**: 2026-07-29

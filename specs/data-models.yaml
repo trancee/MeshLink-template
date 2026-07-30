@@ -82,85 +82,141 @@ data_models:
   - name: Scoreboard
     package: ch.trancee.meshlink.model
     type: class
-    description: "Immutable bitfield for selective acknowledgment of received chunks. Bit N = 1 means chunk N is received (standard SACK convention). Length is ceil(totalChunks / 8) bytes derived from totalChunks. Immutable — markReceived and markMissing return a new Scoreboard instance."
+    description: "Immutable bitfield for selective acknowledgment (SACK). Bit N = 1 means chunk N received. Length is ceil(totalChunks / 8) bytes. Counts (receivedCount, missingCount, isComplete) are O(1) via cached incremental tracking. Immutable markReceived/markMissing return new instances for thread-safe sharing."
+    constructors:
+      - name: Scoreboard(totalChunks: UInt)
+        description: "Dynamic bitfield sized for the actual chunk count."
+      - name: Scoreboard(totalChunks: UInt, maxChunksPerSession: UInt)
+        description: "FIXED encoding — pre-allocates a byte array sized for maxChunksPerSession. Used when totalChunks is unknown upfront but an upper bound is known. Only bits 0..totalChunks-1 carry meaning."
     fields:
       - name: totalChunks
         type: UInt
         description: "Total number of chunks in this transfer"
+      - name: byteSize
+        type: Int
+        description: "Number of bytes in the underlying bitfield — for wire-frame sizing"
+      - name: receivedCount
+        type: Int
+        description: "O(1) — cached; updated incrementally on markReceived/markMissing"
+      - name: missingCount
+        type: Int
+        description: "O(1) — derived as totalChunks - receivedCount"
+      - name: isComplete
+        type: Boolean
+        description: "O(1) — true when all chunks received"
     functions:
       - name: markReceived
         params:
           - name: index
             type: Int
         return_type: Scoreboard
-        description: "Marks chunk index as received. Returns a new Scoreboard."
+        description: "Marks chunk index as received. Returns a new Scoreboard. Throws IndexOutOfBoundsException if index >= totalChunks."
       - name: markMissing
         params:
           - name: index
             type: Int
         return_type: Scoreboard
-        description: "Marks chunk index as missing. Returns a new Scoreboard."
+        description: "Marks chunk index as missing. Returns a new Scoreboard. Throws IndexOutOfBoundsException if index >= totalChunks."
       - name: isReceived
         params:
           - name: index
             type: Int
         return_type: Boolean
-        description: "Returns true if chunk index has been received."
+        description: "Returns true if chunk index received. Throws IndexOutOfBoundsException if out of range."
       - name: isMissing
         params:
           - name: index
             type: Int
         return_type: Boolean
-        description: "Returns true if chunk index has not yet been received."
+        description: "Returns true if chunk index not received. Throws IndexOutOfBoundsException if out of range."
       - name: missingChunks
         return_type: List<Int>
-        description: "Returns the list of chunk indices that have not yet been received."
-      - name: receivedCount
-        return_type: Int
-        description: "Returns the count of chunks that have been received."
-      - name: missingCount
-        return_type: Int
-        description: "Returns the count of chunks that have not yet been received."
+        description: "Allocates a list of missing chunk indices. Use missingSequence or forEachMissing for zero-allocation alternatives."
+      - name: missingSequence
+        return_type: Sequence<Int>
+        description: "Lazy sequence of missing chunk indices — no list allocation."
+      - name: forEachMissing
+        params:
+          - name: action
+            type: "(index: Int) -> Unit"
+        return_type: Unit
+        description: "Zero-allocation iteration over missing chunks via inline callback."
+      - name: or
+        params:
+          - name: other
+            type: Scoreboard
+        return_type: Scoreboard
+        description: "Merges ACK bitfields from multiple mesh peers (union of received chunks). Both scoreboards must have matching totalChunks and byteSize."
+      - name: and
+        params:
+          - name: other
+            type: Scoreboard
+        return_type: Scoreboard
+        description: "Intersects ACK bitfields (chunks received by ALL peers). Both scoreboards must have matching totalChunks and byteSize."
+      - name: xor
+        params:
+          - name: other
+            type: Scoreboard
+        return_type: Scoreboard
+        description: "Symmetric difference of ACK bitfields (chunks received by exactly one peer). Both scoreboards must have matching totalChunks and byteSize."
       - name: toByteArray
         return_type: ByteArray
-        description: "Returns the raw bitfield as a ByteArray."
+        description: "Returns a defensive copy of the raw bitfield for wire transmission."
 
   - name: MutableScoreboard
     package: ch.trancee.meshlink.model
     type: class
-    description: "High-performance mutable accumulator for chunk receipt tracking. Use in hot paths (e.g. receiving a burst of ACKs) where allocating a new immutable Scoreboard per update would cause excessive GC pressure. Call toImmutable to obtain a thread-safe snapshot for the transfer state."
+    description: "High-performance mutable accumulator for chunk receipt tracking in hot paths (e.g. burst ACK processing). O(1) counts tracked incrementally. Call toImmutable for thread-safe snapshot."
     fields:
       - name: totalChunks
         type: UInt
         description: "Total number of chunks in this transfer"
+      - name: receivedCount
+        type: Int
+        description: "O(1) cached count, updated incrementally"
+      - name: missingCount
+        type: Int
+        description: "O(1) derived count"
+      - name: isComplete
+        type: Boolean
+        description: "O(1) — true when all chunks received"
     functions:
       - name: markReceived
         params:
           - name: index
             type: Int
         return_type: Unit
-        description: "Marks chunk index as received in-place."
+        description: "Marks chunk index as received in-place. Throws IndexOutOfBoundsException if index out of range."
       - name: markMissing
         params:
           - name: index
             type: Int
         return_type: Unit
-        description: "Marks chunk index as missing in-place."
+        description: "Marks chunk index as missing in-place. Throws IndexOutOfBoundsException if index out of range."
       - name: isReceived
         params:
           - name: index
             type: Int
         return_type: Boolean
-        description: "Returns true if chunk index has been received."
+        description: "Returns true if chunk index received. Throws IndexOutOfBoundsException if out of range."
+      - name: isMissing
+        params:
+          - name: index
+            type: Int
+        return_type: Boolean
+        description: "Returns true if chunk index not received. Throws IndexOutOfBoundsException if out of range."
       - name: receivedCount
         return_type: Int
-        description: "Returns the count of received chunks."
+        description: "O(1) cached count."
       - name: missingCount
         return_type: Int
-        description: "Returns the count of missing chunks."
+        description: "O(1) derived count."
+      - name: isComplete
+        return_type: Boolean
+        description: "O(1) — true when every chunk received."
       - name: toImmutable
         return_type: Scoreboard
-        description: "Converts this mutable scoreboard to an immutable snapshot."
+        description: "Converts to an immutable snapshot for transfer state."
 
   - name: RouteEntry
     package: ch.trancee.meshlink.model

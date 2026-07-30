@@ -73,11 +73,11 @@ settings:
       - name: scoreboardEncoding
         type: ScoreboardEncoding
         default: "DYNAMIC"
-        description: "Scoreboard bitfield encoding strategy"
+        description: "Scoreboard bitfield encoding strategy. FIXED is useful when totalChunks is unknown upfront but maxChunksPerSession provides a safe upper bound (e.g. streaming transfers)."
       - name: maxChunksPerSession
         type: UInt
         default: "1024u"
-        description: "Used when scoreboardEncoding = FIXED to pre-allocate bitfield"
+        description: "Upper bound on chunks per session, used to pre-allocate the scoreboard bitfield when scoreboardEncoding = FIXED. Ignored for DYNAMIC encoding. Must be > 0."
 
   RoutingSettings:
     package: ch.trancee.meshlink

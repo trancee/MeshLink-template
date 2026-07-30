@@ -43,10 +43,10 @@ enums:
     values:
       - name: DYNAMIC
         ordinal: 0
-        description: "Dynamic bitfield size based on totalChunks - saves memory for small transfers"
+        description: "Dynamic bitfield size = ceil(totalChunks / 8) bytes. Saves memory for small transfers. Used when totalChunks is known upfront."
       - name: FIXED
         ordinal: 1
-        description: "Fixed pre-allocated bitfield - predictable memory, requires maxChunksPerSession"
+        description: "Fixed pre-allocated bitfield = ceil(maxChunksPerSession / 8) bytes. Predictable memory footprint and no reallocation when transfer size exceeds initial estimate. Used when totalChunks is unknown upfront but maxChunksPerSession provides a safe upper bound. Requires maxChunksPerSession > 0."
 
   - name: Priority
     package: ch.trancee.meshlink.model
