@@ -57,7 +57,21 @@ data class RouteEntry(
 
 ### SeqNo wraps UInt with signed comparison
 
-RFC 8966 §3.7 requires signed interpretation. `(this - other).toInt() > 0` handles wrap at 2^32. Implemented in `SeqNo.kt`.
+RFC 8966 §3.7 requires signed interpretation. `(this - other).toInt() > 0` handles wrap at 2^32.
+
+Implements `Comparable<SeqNo>` so seqnos can be sorted and compared in standard Kotlin ordering utilities (`sorted()`, `min()` on collections).
+
+- `toUInt()` / `fromUInt(value)` provide logical wire serialization (raw value extraction)
+- `toByteArray()` / `fromByteArray(bytes)` provide 4-byte big-endian byte-level wire serialization
+- `isNewerThanOrEqualTo` / `isOlderThanOrEqualTo` support the Babel feasibility condition (`>=` comparison)
+- `max(other)` / `min(other)` select the newer/older seqno for route table merges
+- `compareTo` delegates to `minus`: same modular signed comparison as all comparison methods
+- `operator inc()` advances the seqno by 1 with modular wrap at 2^32
+- `unsignedDistance(other)` returns the modular unsigned forward distance, useful for route staleness diagnostics
+- `MAX_VALUE` documents the 2^32 - 1 boundary; `isZero` is a convenience check
+- Modular comparison window is 2^31: at exactly ±2^31 the comparison is ambiguous and `isNewerThan` returns false (conservative)
+
+Implemented in `SeqNo.kt`.
 
 ## Transfer Model
 

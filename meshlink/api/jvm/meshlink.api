@@ -818,25 +818,39 @@ public final class ch/trancee/meshlink/model/ScoreboardEncoding : java/lang/Enum
 	public static fun values ()[Lch/trancee/meshlink/model/ScoreboardEncoding;
 }
 
-public final class ch/trancee/meshlink/model/SeqNo {
+public final class ch/trancee/meshlink/model/SeqNo : java/lang/Comparable {
 	public static final field Companion Lch/trancee/meshlink/model/SeqNo$Companion;
 	public static final synthetic fun box-impl (I)Lch/trancee/meshlink/model/SeqNo;
+	public synthetic fun compareTo (Ljava/lang/Object;)I
+	public fun compareTo-4x_Q2Qc (I)I
+	public static fun compareTo-4x_Q2Qc (II)I
 	public static fun constructor-impl (I)I
 	public fun equals (Ljava/lang/Object;)Z
 	public static fun equals-impl (ILjava/lang/Object;)Z
 	public static final fun equals-impl0 (II)Z
 	public fun hashCode ()I
 	public static fun hashCode-impl (I)I
-	public static final fun increment-lOAkoVk (I)I
+	public static final fun inc-lOAkoVk (I)I
 	public static final fun isNewerThan-4x_Q2Qc (II)Z
+	public static final fun isNewerThanOrEqualTo-4x_Q2Qc (II)Z
 	public static final fun isOlderThan-4x_Q2Qc (II)Z
+	public static final fun isOlderThanOrEqualTo-4x_Q2Qc (II)Z
+	public static final fun isZero-impl (I)Z
+	public static final fun max-ZZjc-LY (II)I
+	public static final fun min-ZZjc-LY (II)I
 	public static final fun minus-4x_Q2Qc (II)I
+	public static final fun toByteArray-impl (I)[B
 	public fun toString ()Ljava/lang/String;
 	public static fun toString-impl (I)Ljava/lang/String;
+	public static final fun toUInt-pVg5ArA (I)I
 	public final synthetic fun unbox-impl ()I
+	public static final fun unsignedDistance-o2U2Zls (II)I
 }
 
 public final class ch/trancee/meshlink/model/SeqNo$Companion {
+	public final fun fromByteArray-26HBUwk ([B)I
+	public final fun fromUInt-aj64iL4 (I)I
+	public final fun getMAX_VALUE-lOAkoVk ()I
 	public final fun getZERO-lOAkoVk ()I
 }
 
@@ -1022,6 +1036,9 @@ public final class ch/trancee/meshlink/util/ConstantTime {
 
 public final class ch/trancee/meshlink/util/ConversionKt {
 	public static final fun toBytesBE-VKZWuLQ (J)[B
+	public static final fun toBytesBE-WZ4Q5Ns (I)[B
+	public static final fun toUIntBE ([BI)I
+	public static synthetic fun toUIntBE$default ([BIILjava/lang/Object;)I
 	public static final fun toULongBE ([BI)J
 	public static synthetic fun toULongBE$default ([BIILjava/lang/Object;)J
 }

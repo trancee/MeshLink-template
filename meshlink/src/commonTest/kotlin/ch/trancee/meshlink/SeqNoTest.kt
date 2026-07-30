@@ -2,74 +2,178 @@ package ch.trancee.meshlink
 
 import ch.trancee.meshlink.model.SeqNo
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class SeqNoTest {
+    // ---- Construction & value access ----
+
     @Test
     fun `constructor creates correct value`() {
-        val seqNo = SeqNo(42u)
-        kotlin.test.assertEquals(SeqNo(42u), seqNo)
+        // Arrange
+        val expected = 42u
+
+        // Act
+        val seqNo = SeqNo(expected)
+
+        // Assert
+        assertEquals(SeqNo(expected), seqNo)
+        assertEquals(expected, seqNo.toUInt())
+    }
+
+    @Test
+    fun `fromUInt creates SeqNo from raw UInt`() {
+        // Arrange
+        val raw = 0xDEADBEEFu
+
+        // Act
+        val seqNo = SeqNo.fromUInt(raw)
+
+        // Assert
+        assertEquals(raw, seqNo.toUInt())
+    }
+
+    @Test
+    fun `toUInt roundtrips through fromUInt`() {
+        // Arrange
+        val raw = 0xCAFEBABEu
+
+        // Act
+        val seqNo = SeqNo.fromUInt(raw)
+        val restored = seqNo.toUInt()
+
+        // Assert
+        assertEquals(raw, restored)
     }
 
     @Test
     fun `ZERO equals zero`() {
-        kotlin.test.assertEquals(SeqNo.ZERO, SeqNo.ZERO)
+        // Arrange
+        val zero = SeqNo.ZERO
+
+        // Act & Assert
+        assertEquals(SeqNo(0u), zero)
+        assertEquals(0u, zero.toUInt())
+        assertTrue(zero.isZero)
+    }
+
+    @Test
+    fun `MAX_VALUE equals UInt max`() {
+        // Arrange & Act
+        val max = SeqNo.MAX_VALUE
+
+        // Assert
+        assertEquals(UInt.MAX_VALUE, max.toUInt())
+        assertEquals(0xFFFFFFFFu, max.toUInt())
+        assertFalse(max.isZero)
+    }
+
+    @Test
+    fun `isZero is true for ZERO and false for non-zero`() {
+        // Arrange
+        val zero = SeqNo.ZERO
+        val nonZero = SeqNo(1u)
+
+        // Act & Assert
+        assertTrue(zero.isZero)
+        assertFalse(nonZero.isZero)
     }
 
     @Test
     fun `toString returns decimal`() {
-        kotlin.test.assertEquals("42", SeqNo(42u).toString())
-        kotlin.test.assertEquals("0", SeqNo.ZERO.toString())
+        // Arrange
+        val seqNo = SeqNo(42u)
+
+        // Act & Assert
+        assertEquals("42", seqNo.toString())
+        assertEquals("0", SeqNo.ZERO.toString())
+        assertEquals("4294967295", SeqNo.MAX_VALUE.toString())
+    }
+
+    // ---- operator inc (increments by 1, wraps at 2^32) ----
+
+    @Test
+    fun `operator inc wraps at 2^32`() {
+        // Arrange
+        var max = SeqNo(0xFFFFFFFFu)
+
+        // Act
+        max++
+
+        // Assert
+        assertEquals(SeqNo.ZERO, max)
     }
 
     @Test
-    fun `isNewerThan returns true for higher value`() {
-        assertTrue(SeqNo(42u).isNewerThan(SeqNo(41u)))
+    fun `operator inc produces next value`() {
+        // Arrange
+        var seqNo = SeqNo(42u)
+
+        // Act
+        seqNo++
+
+        // Assert
+        assertEquals(SeqNo(43u), seqNo)
     }
 
     @Test
-    fun `isNewerThan returns false for lower value`() {
-        assertFalse(SeqNo(41u).isNewerThan(SeqNo(42u)))
+    fun `operator inc from zero produces one`() {
+        // Arrange
+        var zero = SeqNo.ZERO
+
+        // Act
+        zero++
+
+        // Assert
+        assertEquals(SeqNo(1u), zero)
     }
 
     @Test
-    fun `isNewerThan returns false for equal value`() {
-        assertFalse(SeqNo(42u).isNewerThan(SeqNo(42u)))
+    fun `operator inc works same as increment`() {
+        // Arrange
+        var seqNo = SeqNo(42u)
+
+        // Act
+        val result = seqNo++
+
+        // Assert
+        assertEquals(SeqNo(42u), result)
+        assertEquals(SeqNo(43u), seqNo)
     }
 
     @Test
-    fun `isOlderThan is symmetric to isNewerThan`() {
-        val a = SeqNo(10u)
-        val b = SeqNo(20u)
-        assertTrue(a.isOlderThan(b))
-        assertTrue(b.isNewerThan(a))
+    fun `postIncrement returns old value and advances seqNo`() {
+        // Arrange
+        var seqNo = SeqNo(42u)
+
+        // Act — post-increment returns the OLD value
+        val resultOp = seqNo++
+
+        // Assert — seqNo is now 43
+        assertEquals(SeqNo(42u), resultOp)
+        assertEquals(SeqNo(43u), seqNo)
+    }
+
+    // ---- Equality ----
+
+    @Test
+    fun `equal seqnos are equal`() {
+        // Arrange
+        val a = SeqNo(42u)
+        val b = SeqNo(42u)
+
+        // Act & Assert
+        assertEquals(a, b)
     }
 
     @Test
-    fun `isNewerThan handles wrap-around correctly`() {
-        // old = 0xFFFFFFFE (4294967294), new = 1 (wrapped)
-        // 1 - 0xFFFFFFFE = 3 (signed) > 0 → newer
-        val old = SeqNo(0xFFFFFFFEu)
-        val new = SeqNo(1u)
-        assertTrue(new.isNewerThan(old))
-        assertFalse(old.isNewerThan(new))
-    }
+    fun `different seqnos are not equal`() {
+        // Arrange
+        val a = SeqNo(42u)
+        val b = SeqNo(43u)
 
-    @Test
-    fun `minus returns signed difference`() {
-        kotlin.test.assertEquals(5, (SeqNo(10u) - SeqNo(5u)))
-        kotlin.test.assertEquals(-5, (SeqNo(5u) - SeqNo(10u)))
-    }
-
-    @Test
-    fun `increment wraps at 2^32`() {
-        val max = SeqNo(0xFFFFFFFFu)
-        kotlin.test.assertEquals(SeqNo.ZERO, max.increment())
-    }
-
-    @Test
-    fun `increment produces next value`() {
-        kotlin.test.assertEquals(SeqNo(43u), SeqNo(42u).increment())
+        // Act & Assert
+        assertFalse(a == b)
     }
 }

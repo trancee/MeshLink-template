@@ -56,28 +56,88 @@ data_models:
       - name: ZERO
         value: "SeqNo(0u)"
         description: "Sequence number zero"
+      - name: MAX_VALUE
+        value: "SeqNo(UInt.MAX_VALUE)"
+        description: "Maximum sequence number value (2^32 - 1 = 4294967295)"
     functions:
+      - name: fromUInt
+        params:
+          - name: value
+            type: UInt
+        return_type: SeqNo
+        description: "Creates a SeqNo from a raw UInt value (e.g., read from the wire). Deserialization counterpart to toUInt."
+      - name: toUInt
+        return_type: UInt
+        description: "Raw 32-bit unsigned value, for wire serialization"
+      - name: fromByteArray
+        params:
+          - name: bytes
+            type: ByteArray
+        return_type: SeqNo
+        description: "Deserializes from a 4-byte big-endian byte array. Throws IllegalArgumentException if bytes.length != 4. Deserialization counterpart to toByteArray."
+      - name: toByteArray
+        return_type: ByteArray
+        description: "Serializes to a 4-byte big-endian byte array for wire transmission. Deserialization counterpart to fromByteArray."
+      - name: isZero
+        return_type: Boolean
+        description: "True if this seqno equals ZERO"
       - name: isNewerThan
         params:
           - name: other
             type: SeqNo
         return_type: Boolean
         description: "Returns true if this seqno is newer than other, handling 32-bit wrap-around. Uses signed comparison: (this - other).toInt() > 0"
+      - name: isNewerThanOrEqualTo
+        params:
+          - name: other
+            type: SeqNo
+        return_type: Boolean
+        description: "Returns true if this seqno is newer than or equal to other. Used by Babel feasibility condition (RFC 8966 §3.7)."
       - name: isOlderThan
         params:
           - name: other
             type: SeqNo
         return_type: Boolean
         description: "Returns true if this seqno is older than other. Symmetric to isNewerThan per RFC 8966 §3.7"
+      - name: isOlderThanOrEqualTo
+        params:
+          - name: other
+            type: SeqNo
+        return_type: Boolean
+        description: "Returns true if this seqno is older than or equal to other. Symmetric to isNewerThanOrEqualTo."
       - name: minus
         params:
           - name: other
             type: SeqNo
         return_type: Int
         description: "Signed difference for modular arithmetic comparison. (this - other) interpreted as signed 32-bit integer"
-      - name: increment
+      - name: compareTo
+        params:
+          - name: other
+            type: SeqNo
+        return_type: Int
+        description: "Comparable<SeqNo> implementation using the same modular signed comparison. Enables sorted() and min()/max() on collections of SeqNo values."
+      - name: operator inc
         return_type: SeqNo
-        description: "Increments this seqno by 1, wrapping at 2^32. Used on cold start of mesh participation (MeshLink.start())"
+        description: "Increments seqno by 1 with modular wrap at 2^32. Operator form enables idiomatic 'seqNo++' syntax."
+      - name: max
+        params:
+          - name: other
+            type: SeqNo
+        return_type: SeqNo
+        description: "Returns the newer of this and other using modular comparison. When equal, returns other."
+      - name: min
+        params:
+          - name: other
+            type: SeqNo
+        return_type: SeqNo
+        description: "Returns the older of this and other using modular comparison. When equal, returns other."
+      - name: unsignedDistance
+        params:
+          - name: other
+            type: SeqNo
+        return_type: UInt
+        description: "Modular unsigned forward distance from other to this (this - other) in UInt arithmetic with natural wraparound. Useful for route staleness diagnostics and gap analysis."
 
   - name: Scoreboard
     package: ch.trancee.meshlink.model

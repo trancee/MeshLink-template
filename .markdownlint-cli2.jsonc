@@ -25,6 +25,7 @@
     ".pi-agent-notes.md",
     "./plans/**",
     "./requirements/**",
-    "./specs/**"
+    "./specs/**",
+    "./**/build/**"
   ]
 }

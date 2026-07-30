@@ -142,22 +142,40 @@ All public API lives in `ch.trancee.meshlink` package. Platform differences hidd
 
 ### 3.2 SeqNo {#seqno-model}
 
-**Unsigned 32-bit sequence number with safe wrap-around comparison.** Per RFC 8966 §3.7, comparisons use signed interpretation.
+**Unsigned 32-bit sequence number with safe wrap-around comparison.** Per RFC 8966 §3.7, comparisons use signed interpretation. Implements [Comparable] for sorting and standard ordering utilities.
 
 ```kotlin
-@JvmInline value class SeqNo(private val value: UInt) {
+@JvmInline value class SeqNo(private val value: UInt) : Comparable<SeqNo> {
     companion object {
         val ZERO: SeqNo = SeqNo(0u)
+        val MAX_VALUE: SeqNo = SeqNo(UInt.MAX_VALUE)
+        fun fromUInt(value: UInt): SeqNo = SeqNo(value)
+        fun fromByteArray(bytes: ByteArray): SeqNo  // 4-byte big-endian deserialization
     }
+    fun toUInt(): UInt = value
+    fun toByteArray(): ByteArray                    // 4-byte big-endian serialization
+    val isZero: Boolean
     fun isNewerThan(other: SeqNo): Boolean = (value - other.value).toInt() > 0
+    fun isNewerThanOrEqualTo(other: SeqNo): Boolean = (value - other.value).toInt() >= 0
     fun isOlderThan(other: SeqNo): Boolean = other.isNewerThan(this)
+    fun isOlderThanOrEqualTo(other: SeqNo): Boolean = other.isNewerThanOrEqualTo(this)
     operator fun minus(other: SeqNo): Int = (value - other.value).toInt()
-    fun increment(): SeqNo = SeqNo(value + 1u)
+    override fun compareTo(other: SeqNo): Int = minus(other)
+    operator fun inc(): SeqNo = SeqNo(value + 1u)  // wraps at 2^32
+    fun max(other: SeqNo): SeqNo
+    fun min(other: SeqNo): SeqNo
+    fun unsignedDistance(other: SeqNo): UInt         // modular forward distance, UInt wraparound
 }
 ```
 
 - Incremented **only on cold start** (`MeshLink.start()`)
 - Self-reported by destination in `RouteUpdate` frames
+- `toUInt()`/`fromUInt()` for logical wire serialization (value extraction)
+- `toByteArray()`/`fromByteArray()` for 4-byte big-endian byte-level wire serialization
+- `isNewerThanOrEqualTo` used by Babel feasibility condition (RFC 8966 §3.7)
+- `max`/`min` for route table merges
+- `compareTo` enables `sortedBy()`, `min()`, `max()` on `Iterable<SeqNo>`
+- `unsignedDistance` for route staleness diagnostics and gap analysis
 - **SPEC-ANCHOR**: `seqno-model`
 
 ### 3.3 Scoreboard (Immutable) & MutableScoreboard {#scoreboard-model}
