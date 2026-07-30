@@ -1,6 +1,6 @@
 # Constant-Time Crypto Policy
 
-**Status:** Locked — 2026-07-27
+**Status:** Locked — 2026-07-27 (Updated 2026-07-27 — improved `constantTimeEquals` for size mismatch, fixed negative-condition handling in `constantTimeSelect`/`constantTimeSwap`)
 
 ## Context
 
@@ -23,37 +23,51 @@ However, Kotlin/JVM does not provide native constant-time byte array operations.
 
 ### Constant-Time Primitives (Pure Kotlin)
 
-All pure-Kotlin implementations MUST use `ConstantTime` — a utility providing constant-time comparison and selection via `constantTimeEquals` and `constantTimeSelect`:
+All pure-Kotlin implementations MUST use `ConstantTime` — a utility providing constant-time comparison, selection, swap, and zero-check operations:
 
 ```kotlin
-/**
- * Constant-time comparison of two byte arrays.
- * Returns 0 if equal, non-zero if different.
- * Execution time is independent of the number of matching bytes.
- */
-internal fun constantTimeEquals(a: ByteArray, b: ByteArray): Int {
-    if (a.size != b.size) return -1  // Length mismatch is fine; result is non-zero
-    var result = 0
-    for (i in a.indices) {
-        result = result or (a[i].toInt() xor b[i].toInt())
-    }
-    return result
-}
+object ConstantTime {
+    /**
+     * Constant-time comparison of two byte arrays.
+     * Returns 0 if equal, non-zero if different.
+     * Execution time is proportional to max(a.size, b.size) — no early exit
+     * on length mismatch, so timing does not leak the shared prefix length.
+     */
+    fun constantTimeEquals(a: ByteArray, b: ByteArray): Int { ... }
 
-/**
- * Constant-time selection: returns [a] if condition is 0, [b] otherwise.
- * Both branches are computed; only the selection is data-dependent.
- * (Compiler may optimize this — see note on JIT below.)
- */
-internal fun constantTimeSelect(condition: Int, a: ByteArray, b: ByteArray): ByteArray {
-    val mask = -condition  // 0xFFFFFFFF if condition != 0, 0x00000000 if condition == 0
-    return ByteArray(a.size) { i ->
-        val av = a[i].toInt()
-        val bv = b[i].toInt()
-        ((av and mask.inv()) or (bv and mask)).toByte()
-    }
+    /**
+     * Constant-time selection: returns [a] if condition is 0, [b] otherwise.
+     * Both branches are fully computed; only the selection output depends on condition.
+     * Uses arithmetic branch-free normalization to handle any non-zero condition value,
+     * including negative values.
+     */
+    fun constantTimeSelect(condition: Int, a: ByteArray, b: ByteArray): ByteArray { ... }
+
+    /** Constant-time byte array comparison returning a Boolean. */
+    fun constantTimeEqualsBoolean(a: ByteArray, b: ByteArray): Boolean =
+        constantTimeEquals(a, b) == 0
+
+    /** Constant-time zero check: returns true if all bytes are zero. */
+    fun constantTimeIsZero(a: ByteArray): Boolean { ... }
+
+    /** Constant-time conditional swap: swaps arrays when condition is non-zero. */
+    fun constantTimeSwap(condition: Int, a: ByteArray, b: ByteArray): Pair<ByteArray, ByteArray> { ... }
 }
 ```
+
+### Key Implementation Details
+
+1. **`constantTimeEquals` handles size mismatch without early return** — both arrays are fully iterated (up to the longer length). The size XOR is folded into the result, so timing depends only on `max(a.size, b.size)`, not on where the arrays diverge.
+
+2. **`constantTimeSelect` and `constantTimeSwap` normalize the condition arithmetically**:
+
+   ```kotlin
+   val mask = -(condition or -condition ushr 31)
+   ```
+
+   This produces `0xFFFFFFFF` (all bits set) for any non-zero `condition` and `0` for `condition == 0`, covering positive, negative, and large-magnitude conditions branch-free.
+
+3. **`constantTimeSelect` and `constantTimeSwap` validate equal array sizes** via `require()` — calling them with mismatched arrays throws `IllegalArgumentException`.
 
 ### JIT Mitigation
 
