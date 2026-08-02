@@ -254,7 +254,7 @@ test_files_by_layer:
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/PeerIdentityTest.kt"
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/SeqNoTest.kt"
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/ScoreboardTest.kt"
-    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/RouteEntryTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/RouteCandidateTest.kt"
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/IdentityKeyTest.kt"
   enums:
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/EnumCoverageTest.kt"

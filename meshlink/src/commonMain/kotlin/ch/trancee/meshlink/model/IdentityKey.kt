@@ -2,7 +2,11 @@ package ch.trancee.meshlink.model
 
 import kotlin.jvm.JvmInline
 
-/** Ed25519 public key for MeshLink identity verification and signing. */
+/**
+ * Ed25519 public key for MeshLink identity verification and signing.
+ *
+ * SPEC-ANCHOR: identity-key-model
+ */
 @JvmInline
 public value class IdentityKey(private val bytes: ByteArray) {
     override fun toString(): String = bytes.toHexString()

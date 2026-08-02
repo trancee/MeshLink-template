@@ -22,6 +22,11 @@ import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Instant
 
+/**
+ * Diagnostic events for observability.
+ *
+ * SPEC-ANCHOR: diagnostic-event
+ */
 @JvmInline public value class DiagnosticCode(public val value: UShort)
 
 @JvmInline public value class HandshakeId(public val value: UInt)

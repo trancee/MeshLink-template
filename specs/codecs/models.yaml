@@ -255,7 +255,7 @@ data_models:
   - name: RouteCandidate
     package: ch.trancee.meshlink.routing
     visibility: internal
-    type: class
+    type: data_class
     description: "One candidate route learned from an authenticated adjacent peer. Cost, hop count, and local link quality have distinct semantics."
     fields:
       - name: destination

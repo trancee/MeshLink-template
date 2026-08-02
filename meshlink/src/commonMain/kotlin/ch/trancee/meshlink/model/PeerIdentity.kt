@@ -20,6 +20,13 @@ public value class PeerIdentity(private val parts: Pair<ULong, ULong>) {
 
         public fun generate(): PeerIdentity = PeerIdentity(randomULong() to randomULong())
 
+        public fun fromHex(hex: String): PeerIdentity {
+            require(hex.length == ID_HEX_LENGTH) {
+                "PeerIdentity must be $ID_HEX_LENGTH hex chars ($ID_BYTE_LENGTH bytes)"
+            }
+            return fromBytes(hex.hexToByteArray())
+        }
+
         public fun fromBytes(bytes: ByteArray): PeerIdentity {
             require(bytes.size == ID_BYTE_LENGTH) {
                 "PeerIdentity must be exactly $ID_BYTE_LENGTH bytes"
@@ -39,3 +46,4 @@ public value class PeerIdentity(private val parts: Pair<ULong, ULong>) {
 private const val ID_BYTE_LENGTH: Int = 16
 private const val ID_HALF_BYTE_LENGTH: Int = 8
 private const val ID_HALF_HEX_LENGTH: Int = 16
+private const val ID_HEX_LENGTH: Int = 32

@@ -7,7 +7,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 
 class SeqNoWireTest {
-    // ---- toByteArray / fromByteArray ----
+    // ---- toByteArray / fromBytes ----
 
     @Test
     fun `toByteArray produces 4-byte big-endian`() {
@@ -52,31 +52,31 @@ class SeqNoWireTest {
     }
 
     @Test
-    fun `fromByteArray roundtrips through toByteArray`() {
+    fun `fromBytes roundtrips through toByteArray`() {
         // Arrange
         val seqNo = SeqNo(0xDEADBEEFu)
 
         // Act
         val bytes = seqNo.toByteArray()
-        val restored = SeqNo.fromByteArray(bytes)
+        val restored = SeqNo.fromBytes(bytes)
 
         // Assert
         assertEquals(seqNo, restored)
     }
 
     @Test
-    fun `fromByteArray for ZERO produces ZERO`() {
+    fun `fromBytes for ZERO produces ZERO`() {
         // Act
-        val seqNo = SeqNo.fromByteArray(ByteArray(4))
+        val seqNo = SeqNo.fromBytes(ByteArray(4))
 
         // Assert
         assertEquals(SeqNo.ZERO, seqNo)
     }
 
     @Test
-    fun `fromByteArray for MAX_VALUE produces MAX_VALUE`() {
+    fun `fromBytes for MAX_VALUE produces MAX_VALUE`() {
         // Act
-        val seqNo = SeqNo.fromByteArray(ByteArray(4) { 0xFF.toByte() })
+        val seqNo = SeqNo.fromBytes(ByteArray(4) { 0xFF.toByte() })
 
         // Assert
         assertEquals(SeqNo.MAX_VALUE, seqNo)
@@ -99,23 +99,23 @@ class SeqNoWireTest {
     }
 
     @Test
-    fun `fromByteArray for seqNo 1 produces correct SeqNo`() {
+    fun `fromBytes for seqNo 1 produces correct SeqNo`() {
         // Act
-        val seqNo = SeqNo.fromByteArray(byteArrayOf(0x00, 0x00, 0x00, 0x01))
+        val seqNo = SeqNo.fromBytes(byteArrayOf(0x00, 0x00, 0x00, 0x01))
 
         // Assert
         assertEquals(SeqNo(1u), seqNo)
     }
 
     @Test
-    fun `fromByteArray throws for invalid byte array size`() {
+    fun `fromBytes throws for invalid byte array size`() {
         // Arrange
         val threeBytes = byteArrayOf(0x00, 0x00, 0x01)
         val fiveBytes = byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x01)
 
         // Act & Assert
-        assertFailsWith<IllegalArgumentException> { SeqNo.fromByteArray(threeBytes) }
-        assertFailsWith<IllegalArgumentException> { SeqNo.fromByteArray(fiveBytes) }
+        assertFailsWith<IllegalArgumentException> { SeqNo.fromBytes(threeBytes) }
+        assertFailsWith<IllegalArgumentException> { SeqNo.fromBytes(fiveBytes) }
     }
 
     // ---- distanceFrom ----

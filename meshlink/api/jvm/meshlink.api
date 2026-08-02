@@ -649,6 +649,7 @@ public final class ch/trancee/meshlink/model/PeerIdentity {
 
 public final class ch/trancee/meshlink/model/PeerIdentity$Companion {
 	public final fun fromBytes-Mayr5Ro ([B)Lkotlin/Pair;
+	public final fun fromHex-Mayr5Ro (Ljava/lang/String;)Lkotlin/Pair;
 	public final fun generate-jkpD0pM ()Lkotlin/Pair;
 	public final fun getZERO-jkpD0pM ()Lkotlin/Pair;
 }
@@ -690,26 +691,28 @@ public final class ch/trancee/meshlink/model/PowerMode$Companion {
 }
 
 public final class ch/trancee/meshlink/model/PowerModeSettings {
-	public fun <init> (IIDIIIII)V
+	public fun <init> (IIDDIIIII)V
 	public final fun component1 ()I
 	public final fun component2 ()I
 	public final fun component3 ()D
-	public final fun component4 ()I
+	public final fun component4 ()D
 	public final fun component5 ()I
 	public final fun component6 ()I
 	public final fun component7 ()I
 	public final fun component8 ()I
-	public final fun copy (IIDIIIII)Lch/trancee/meshlink/model/PowerModeSettings;
-	public static synthetic fun copy$default (Lch/trancee/meshlink/model/PowerModeSettings;IIDIIIIIILjava/lang/Object;)Lch/trancee/meshlink/model/PowerModeSettings;
+	public final fun component9 ()I
+	public final fun copy (IIDDIIIII)Lch/trancee/meshlink/model/PowerModeSettings;
+	public static synthetic fun copy$default (Lch/trancee/meshlink/model/PowerModeSettings;IIDDIIIIIILjava/lang/Object;)Lch/trancee/meshlink/model/PowerModeSettings;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getAdvertisementIntervalMs ()I
+	public final fun getActiveConnectionInterval ()D
+	public final fun getAdvertisementInterval ()I
 	public final fun getChunkSize ()I
-	public final fun getConcurrentConnections ()I
-	public final fun getConnectionIntervalMs ()D
-	public final fun getGracePeriodSeconds ()I
-	public final fun getMaxRetries ()I
-	public final fun getRetryBudgetSeconds ()I
-	public final fun getScanDutyCyclePercent ()I
+	public final fun getConcurrentConnectionLimit ()I
+	public final fun getDisconnectGracePeriod ()I
+	public final fun getIdleConnectionInterval ()D
+	public final fun getRetryBudget ()I
+	public final fun getRetryLimit ()I
+	public final fun getScanDutyCycle ()I
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -784,7 +787,7 @@ public final class ch/trancee/meshlink/model/SeqNo {
 }
 
 public final class ch/trancee/meshlink/model/SeqNo$Companion {
-	public final fun fromByteArray-26HBUwk ([B)I
+	public final fun fromBytes-26HBUwk ([B)I
 	public final fun fromUInt-aj64iL4 (I)I
 	public final fun getMAX_VALUE-lOAkoVk ()I
 	public final fun getZERO-lOAkoVk ()I
@@ -826,21 +829,29 @@ public final class ch/trancee/meshlink/model/TransferFailureReason$Unrecoverable
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class ch/trancee/meshlink/model/TransferId {
+public final class ch/trancee/meshlink/model/TransferId : java/lang/Comparable {
 	public static final field Companion Lch/trancee/meshlink/model/TransferId$Companion;
 	public static final synthetic fun box-impl (I)Lch/trancee/meshlink/model/TransferId;
+	public synthetic fun compareTo (Ljava/lang/Object;)I
+	public fun compareTo-BN2lQyU (I)I
+	public static fun compareTo-BN2lQyU (II)I
 	public fun equals (Ljava/lang/Object;)Z
 	public static fun equals-impl (ILjava/lang/Object;)Z
 	public static final fun equals-impl0 (II)Z
 	public fun hashCode ()I
 	public static fun hashCode-impl (I)I
+	public static final fun inc-O05vZdo (I)I
+	public static final fun toByteArray-impl (I)[B
 	public fun toString ()Ljava/lang/String;
 	public static fun toString-impl (I)Ljava/lang/String;
+	public static final fun toUInt-pVg5ArA (I)I
 	public final synthetic fun unbox-impl ()I
 }
 
 public final class ch/trancee/meshlink/model/TransferId$Companion {
+	public final fun fromBytes-fr-QhS8 ([B)I
 	public final fun fromHex-fr-QhS8 (Ljava/lang/String;)I
+	public final fun fromUInt-lr_89RA (I)I
 	public final fun getZERO-O05vZdo ()I
 }
 

@@ -25,7 +25,7 @@ frame:
 
 wire_frames:
   - name: MESH_ENVELOPE
-    frame_type: "0x00"
+    code: "0x00"
     description: "Routed E2E handshake or payload"
     encryption: "Link-layer AEAD per hop"
     fields:
@@ -41,7 +41,7 @@ wire_frames:
         description: "Fixed topology bound: initialized to maximumHopCount 16, decremented before forwarding, dropped at zero; independent of delivery timeToLive and priority"
 
   - name: ROUTE_ADVERTISEMENT
-    frame_type: "0x01"
+    code: "0x01"
     description: "RouteAdvertisement containing a mandatory destination-signed RouteStatement and hop-mutable path fields"
     encryption: "Hop AEAD after adjacent Noise authentication"
     fields:
@@ -58,7 +58,7 @@ wire_frames:
         description: "Independent topological distance; relays increment by one"
 
   - name: ROUTE_WITHDRAWAL
-    frame_type: "0x02"
+    code: "0x02"
     description: "Adjacent sender retracts one route from its RouteExport"
     encryption: "Hop AEAD after adjacent Noise authentication"
     fields:
@@ -71,7 +71,7 @@ wire_frames:
         description: "Destination sequence associated with the withdrawn export"
 
   - name: ROUTE_DIGEST
-    frame_type: "0x03"
+    code: "0x03"
     description: "Summary of the sender's canonical RouteExport for this neighbor"
     encryption: "Hop AEAD after adjacent Noise authentication"
     fields:
@@ -85,7 +85,7 @@ wire_frames:
         description: "First 64 bits of SHA-256 over canonical destination-sorted RouteStatement, routeCost, and hopCount entries"
 
   - name: PAYLOAD_MANIFEST
-    frame_type: "0x20"
+    code: "0x20"
     description: "E2E-encrypted finite message/transfer offer"
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
@@ -124,7 +124,7 @@ wire_frames:
         invariant: "ceil(totalLength / chunkSize) == chunkCount using checked arithmetic"
 
   - name: PAYLOAD_DECISION
-    frame_type: "0x21"
+    code: "0x21"
     description: "E2E-encrypted acceptance or typed rejection of a manifest"
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
@@ -143,7 +143,7 @@ wire_frames:
         presence: "decision == REJECTED"
 
   - name: PAYLOAD_CHUNK
-    frame_type: "0x22"
+    code: "0x22"
     description: "Minimal E2E-encrypted payload chunk; offset/length/finality derive from accepted manifest"
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
@@ -161,7 +161,7 @@ wire_frames:
         description: "Exact manifest chunkSize except final remaining length"
 
   - name: PAYLOAD_ACKNOWLEDGEMENT
-    frame_type: "0x23"
+    code: "0x23"
     description: "Fixed 256-chunk sliding selective acknowledgement"
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
@@ -180,7 +180,7 @@ wire_frames:
         size_bytes: 32
 
   - name: PAYLOAD_CANCELLATION
-    frame_type: "0x24"
+    code: "0x24"
     description: "Idempotent E2E-encrypted message/transfer cancellation"
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
@@ -194,7 +194,7 @@ wire_frames:
         type: TransferFailureReason
 
   - name: KEY_ROTATION
-    frame_type: "0x40"
+    code: "0x40"
     description: "Signed long-term key continuity proof; retained in the installation-lifetime rotation chain"
     encryption: "Carried inside hop-encrypted control traffic; signatures remain end-to-end verifiable"
     fields:
@@ -261,7 +261,7 @@ routing_control_records:
   encryption: "Hop AEAD after adjacent Noise authentication; no plaintext mode"
   records:
     - name: ROUTE_SEQUENCE_ADVANCEMENT
-      frame_type: "0x04"
+      code: "0x04"
       fields:
         - name: requester
           type: PeerIdentity
@@ -282,14 +282,14 @@ routing_control_records:
           maximum: 16
           description: "Same fixed maximumHopCount used by routed envelopes; independent of requester priority"
     - name: ROUTE_SYNCHRONIZATION
-      frame_type: "0x05"
+      code: "0x05"
       description: "Receiver requests synchronization after RouteImport digest mismatch"
       fields:
         - name: revision
           type: UInt
           size_bytes: 4
     - name: ROUTE_SNAPSHOT
-      frame_type: "0x06"
+      code: "0x06"
       description: "Complete canonical RouteExport response, atomically replacing one sender's RouteImport after validation"
       fields:
         - name: revision
@@ -318,7 +318,7 @@ noise_epoch_control:
   delivery: "Idempotent semantic handling; each retry uses a fresh record counter and never reuses an AEAD nonce"
   records:
     - name: EPOCH_COMMIT
-      frame_type: "0x41"
+      code: "0x41"
       sender: preferred_initiator
       fields:
         - name: newEpoch
@@ -331,7 +331,7 @@ noise_epoch_control:
           type: ByteArray
           size_bytes: 32
     - name: EPOCH_ACKNOWLEDGEMENT
-      frame_type: "0x42"
+      code: "0x42"
       sender: responder
       fields:
         - name: newEpoch

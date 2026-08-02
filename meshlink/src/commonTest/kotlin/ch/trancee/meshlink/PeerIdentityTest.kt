@@ -69,4 +69,28 @@ class PeerIdentityTest {
         val id = PeerIdentity.fromBytes(bytes)
         assertEquals(bytes.toHexString(), id.toString())
     }
+
+    @Test
+    fun `fromHex roundtrips through toString`() {
+        val hex = "0102030405060708090a0b0c0d0e0f10"
+        val id = PeerIdentity.fromHex(hex)
+        assertEquals(hex, id.toString())
+        assertEquals(id, PeerIdentity.fromBytes(id.toByteArray()))
+    }
+
+    @Test
+    fun `fromHex throws on wrong length`() {
+        try {
+            PeerIdentity.fromHex("00") // too short
+            kotlin.test.fail("Expected IllegalArgumentException")
+        } catch (e: IllegalArgumentException) {
+            assertEquals("PeerIdentity must be 32 hex chars (16 bytes)", e.message)
+        }
+        try {
+            PeerIdentity.fromHex("00" + "0".repeat(31)) // too long
+            kotlin.test.fail("Expected IllegalArgumentException")
+        } catch (e: IllegalArgumentException) {
+            assertEquals("PeerIdentity must be 32 hex chars (16 bytes)", e.message)
+        }
+    }
 }

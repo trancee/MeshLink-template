@@ -23,42 +23,43 @@ public enum class PowerMode {
         /** Settings for HIGH power mode. */
         public val HIGH_SETTINGS: PowerModeSettings =
             PowerModeSettings(
-                scanDutyCyclePercent = 20,
-                advertisementIntervalMs = 100,
-                // 7.5ms = minimum valid BLE connection interval (6 × 1.25ms);
-                // Android BLE stack floor
-                connectionIntervalMs = 7.5,
-                concurrentConnections = 8,
+                scanDutyCycle = 20,
+                advertisementInterval = 100,
+                activeConnectionInterval = 7.5,
+                idleConnectionInterval = 15.0,
+                concurrentConnectionLimit = 8,
                 chunkSize = 512,
-                maxRetries = 10,
-                retryBudgetSeconds = 60,
-                gracePeriodSeconds = 15,
+                retryLimit = 10,
+                retryBudget = 60,
+                disconnectGracePeriod = 15,
             )
 
         /** Settings for MEDIUM power mode. */
         public val MEDIUM_SETTINGS: PowerModeSettings =
             PowerModeSettings(
-                scanDutyCyclePercent = 10,
-                advertisementIntervalMs = 500,
-                connectionIntervalMs = 15.0,
-                concurrentConnections = 4,
+                scanDutyCycle = 10,
+                advertisementInterval = 500,
+                activeConnectionInterval = 15.0,
+                idleConnectionInterval = 30.0,
+                concurrentConnectionLimit = 4,
                 chunkSize = 256,
-                maxRetries = 5,
-                retryBudgetSeconds = 30,
-                gracePeriodSeconds = 30,
+                retryLimit = 5,
+                retryBudget = 30,
+                disconnectGracePeriod = 30,
             )
 
         /** Settings for LOW power mode. */
         public val LOW_SETTINGS: PowerModeSettings =
             PowerModeSettings(
-                scanDutyCyclePercent = 5,
-                advertisementIntervalMs = 1000,
-                connectionIntervalMs = 30.0,
-                concurrentConnections = 2,
+                scanDutyCycle = 5,
+                advertisementInterval = 1000,
+                activeConnectionInterval = 30.0,
+                idleConnectionInterval = 60.0,
+                concurrentConnectionLimit = 2,
                 chunkSize = 128,
-                maxRetries = 3,
-                retryBudgetSeconds = 15,
-                gracePeriodSeconds = 45,
+                retryLimit = 3,
+                retryBudget = 15,
+                disconnectGracePeriod = 45,
             )
     }
 }
@@ -66,19 +67,21 @@ public enum class PowerMode {
 /** Settings parameters for a [PowerMode]. */
 public data class PowerModeSettings(
     /** Scan duty cycle as a percentage of the BLE connection interval. */
-    public val scanDutyCyclePercent: Int,
+    public val scanDutyCycle: Int,
     /** Minimum advertisement interval in milliseconds. */
-    public val advertisementIntervalMs: Int,
-    /** Connection interval in milliseconds. */
-    public val connectionIntervalMs: Double,
+    public val advertisementInterval: Int,
+    /** Active connection interval in milliseconds. */
+    public val activeConnectionInterval: Double,
+    /** Idle connection interval in milliseconds. */
+    public val idleConnectionInterval: Double,
     /** Maximum number of concurrent BLE connections this mode supports. */
-    public val concurrentConnections: Int,
+    public val concurrentConnectionLimit: Int,
     /** Transfer chunk size in bytes, bounded by peer MTU. */
     public val chunkSize: Int,
     /** Maximum number of retransmit attempts per chunk. */
-    public val maxRetries: Int,
+    public val retryLimit: Int,
     /** Time budget for retry attempts before marking a transfer as timed out. */
-    public val retryBudgetSeconds: Int,
+    public val retryBudget: Int,
     /** Grace period after disconnection before a peer transitions to GONE. */
-    public val gracePeriodSeconds: Int,
+    public val disconnectGracePeriod: Int,
 )

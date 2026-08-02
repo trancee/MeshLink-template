@@ -2,7 +2,11 @@ package ch.trancee.meshlink.model
 
 import kotlin.jvm.JvmInline
 
-/** X25519 public key for Noise handshake key agreement. */
+/**
+ * X25519 public key for Noise handshake key agreement.
+ *
+ * SPEC-ANCHOR: handshake-key-model
+ */
 @JvmInline
 public value class HandshakeKey(private val bytes: ByteArray) {
     override fun toString(): String = bytes.toHexString()

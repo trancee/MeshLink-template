@@ -92,10 +92,67 @@ class TransferIdTest {
 
     @Test
     fun `hex id rejects more than eight characters`() {
-        // Arrange
-        val hex = "000000000"
+        assertFailsWith<IllegalArgumentException> { TransferId.fromHex("000000000") }
+    }
 
-        // Act / Assert
-        assertFailsWith<IllegalArgumentException> { TransferId.fromHex(hex) }
+    @Test
+    fun `toUInt returns raw value`() {
+        val id = TransferId.fromHex("deadbeef")
+        assertEquals(0xDEADBEEFu, id.toUInt())
+    }
+
+    @Test
+    fun `fromUInt creates id from raw value`() {
+        val id = TransferId.fromUInt(0xCAFEBABEu)
+        assertEquals(0xCAFEBABEu, id.toUInt())
+        assertEquals("cafebabe", id.toString())
+    }
+
+    @Test
+    fun `toByteArray produces 4-byte big-endian`() {
+        val id = TransferId.fromHex("01020304")
+        val bytes = id.toByteArray()
+        assertEquals(4, bytes.size)
+        assertEquals(0x01.toByte(), bytes[0])
+        assertEquals(0x02.toByte(), bytes[1])
+        assertEquals(0x03.toByte(), bytes[2])
+        assertEquals(0x04.toByte(), bytes[3])
+    }
+
+    @Test
+    fun `fromBytes roundtrips through toByteArray`() {
+        val original = TransferId.fromHex("aabbccdd")
+        val bytes = original.toByteArray()
+        val restored = TransferId.fromBytes(bytes)
+        assertEquals(original, restored)
+    }
+
+    @Test
+    fun `fromBytes throws for invalid byte array size`() {
+        assertFailsWith<IllegalArgumentException> { TransferId.fromBytes(ByteArray(3)) }
+        assertFailsWith<IllegalArgumentException> { TransferId.fromBytes(ByteArray(5)) }
+    }
+
+    @Test
+    fun `inc operator increments with wrap`() {
+        var id = TransferId.fromHex("00000000")
+        id = id.inc()
+        assertEquals("00000001", id.toString())
+
+        id = TransferId.fromHex("ffffffff")
+        id = id.inc()
+        assertEquals("00000000", id.toString())
+    }
+
+    @Test
+    fun `compareTo orders by UInt value`() {
+        val id1 = TransferId.fromHex("00000001")
+        val id2 = TransferId.fromHex("00000002")
+        val id3 = TransferId.fromHex("ffffffff")
+
+        assertEquals(-1, id1.compareTo(id2))
+        assertEquals(1, id2.compareTo(id1))
+        assertEquals(0, id1.compareTo(id1))
+        assertEquals(-1, id1.compareTo(id3)) // 1 < UINT_MAX
     }
 }

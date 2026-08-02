@@ -8,7 +8,7 @@
 
 ## Decision
 
-**Single sealed `MeshLinkException` hierarchy in `commonMain` with stable explicit `ErrorCode` values. All platform exceptions (Android Bluetooth failures, iOS NSError) are wrapped at the boundary and never leak to consumers.**
+**Single sealed interface `MeshLinkException` hierarchy in `commonMain` with stable explicit `ErrorCode` values. All platform exceptions (Android Bluetooth failures, iOS NSError) are wrapped at the boundary and never leak to consumers.**
 
 ---
 

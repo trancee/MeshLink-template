@@ -54,7 +54,7 @@ public value class SeqNo(private val value: UInt) {
          *
          * @param bytes exactly 4 bytes; throws [IllegalArgumentException] if [bytes.size] is not 4.
          */
-        public fun fromByteArray(bytes: ByteArray): SeqNo {
+        public fun fromBytes(bytes: ByteArray): SeqNo {
             require(bytes.size == SEQNO_BYTE_LENGTH) {
                 "Expected $SEQNO_BYTE_LENGTH bytes, got ${bytes.size}"
             }
@@ -104,7 +104,7 @@ public value class SeqNo(private val value: UInt) {
      * Returns the 4-byte big-endian wire representation of this seqno.
      *
      * Matches the wire format defined in wire-frames.yaml (4 bytes, big-endian, unsigned 32-bit).
-     * See [fromByteArray] for the deserialization counterpart.
+     * See [fromBytes] for the deserialization counterpart.
      */
     public fun toByteArray(): ByteArray = value.toBytesBE()
 
