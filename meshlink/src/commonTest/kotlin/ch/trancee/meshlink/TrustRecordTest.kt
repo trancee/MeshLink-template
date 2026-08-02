@@ -3,8 +3,8 @@ package ch.trancee.meshlink
 import ch.trancee.meshlink.model.HandshakeKey
 import ch.trancee.meshlink.model.IdentityKey
 import ch.trancee.meshlink.model.PeerIdentity
+import ch.trancee.meshlink.model.PeerTrust
 import ch.trancee.meshlink.model.TrustRecord
-import ch.trancee.meshlink.model.TrustState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Clock
@@ -25,7 +25,7 @@ class TrustRecordTest {
                 seenAt = now,
                 verifiedAt = now,
             )
-        assertEquals(TrustState.INITIATED, record.state)
+        assertEquals(PeerTrust.UNVERIFIED, record.state)
         assertEquals(0, record.generation)
         assertEquals(PeerIdentity.ZERO, record.peerIdentity)
     }
@@ -44,9 +44,9 @@ class TrustRecordTest {
                 handshakeKey = handshake,
                 seenAt = now,
                 verifiedAt = now,
-                state = TrustState.TRUSTED,
+                state = PeerTrust.TRUSTED,
             )
-        assertEquals(TrustState.TRUSTED, record.state)
+        assertEquals(PeerTrust.TRUSTED, record.state)
     }
 
     @Test
@@ -63,10 +63,10 @@ class TrustRecordTest {
                 handshakeKey = handshake,
                 seenAt = now,
                 verifiedAt = now,
-                state = TrustState.REVOKED,
+                state = PeerTrust.REVOKED,
                 generation = 3,
             )
-        assertEquals(TrustState.REVOKED, record.state)
+        assertEquals(PeerTrust.REVOKED, record.state)
         assertEquals(3, record.generation)
     }
 }

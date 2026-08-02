@@ -25,10 +25,10 @@
 | Layer | Criteria |
 |-------|----------|
 | Data Model / Trust | Wire vectors, malformed input rejection |
-| Discovery / Advertisement | Single-packet format, PeerFingerprint matching |
-| Security Contract | Wycheproof vectors, fail-closed on all edge cases |
+| Discovery / Advertisement | Two-service-UUID format, peerHint rotation/deduplication, RPA races, and GATT identity resolution |
+| Security Contract | Wycheproof vectors, identity binding, appHash isolation, fail-closed on all edge cases |
 | Routing Control | Convergence under virtual harness, seqno correctness |
-| Chunked Transfer | Dynamic bitfield SACK, cut-through relay, retry bounds |
+| Chunked Transfer | Fixed 256-chunk sliding SACK window, cut-through relay, adaptive RTO, and retry bounds |
 | Power Policy | Mode-to-parameter mapping, EU clamping observable |
 | Public API | Identical Android/iOS surface, lifecycle events |
 

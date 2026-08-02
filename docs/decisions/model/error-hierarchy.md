@@ -1,6 +1,6 @@
 # MeshLink Exception Hierarchy — Rationale
 
-**Status:** Locked — 2026-07-28
+**Status:** Locked — 2026-07-31
 
 > **Full hierarchy, codes, platform wrapping helpers, and test matrix** live in [SPEC.md §7.6](../../../SPEC.md#error-hierarchy-sealed). This ADR captures the *why*.
 
@@ -8,7 +8,7 @@
 
 ## Decision
 
-**Single sealed `MeshLinkException` hierarchy in `commonMain` with stable `ErrorCode` enum. All platform exceptions (Android `BluetoothException`, iOS `NSError`) wrapped at boundary — never leak to consumers.**
+**Single sealed `MeshLinkException` hierarchy in `commonMain` with stable explicit `ErrorCode` values. All platform exceptions (Android Bluetooth failures, iOS NSError) are wrapped at the boundary and never leak to consumers.**
 
 ---
 
@@ -18,24 +18,45 @@
 |-------------|--------------|
 | Platform-specific exceptions | Violates cross-platform parity (CONSTITUTION.md §III) |
 | String-based error codes | No type safety; refactoring breaks consumers |
-| Single generic exception + enum | Can't carry structured context (peerId, sessionId, chunkIndex) |
+| Single generic exception + enum | Can't carry structured context (peer identity, transfer ID, chunk index) |
 | Multiple root exceptions | Harder to catch "any MeshLink error" |
 
 **Sealed hierarchy + `ErrorCode` enum** gives:
 
 - Exhaustive `when` handling for consumers
-- Structured context per error type (peerId, sessionId, etc.)
+- Structured context per error type (peer identity, transfer ID, etc.)
 - Stable `ErrorCode` for programmatic handling
 - Platform boundary wrapping is explicit and auditable
 
 ---
 
+## Error hierarchy
+
+```text
+MeshLinkException
+├── ConfigurationException
+├── LifecycleException
+├── PermissionException
+├── BluetoothException
+├── StorageException
+├── CryptoException
+├── TrustException
+├── RoutingException
+└── TransferException
+```
+
+Immediate public command failures throw typed subtypes. Untrusted parsing uses
+sealed internal results; long-running payload failures use terminal status and
+outcome. Coroutine `CancellationException` remains normal cancellation.
+
 ## ErrorCode Design
+
+**Categories** use explicit UShort ranges (never enum ordinals): configuration 0x01xx, permission/lifecycle 0x02xx, Bluetooth/transport 0x03xx, storage 0x04xx, crypto/trust 0x05xx, routing 0x06xx, transfer 0x07xx, and internal 0x0Fxx.
 
 **Categories** (reflected in enum grouping):
 
 - **Trust/Security**: `PEER_NOT_FOUND`, `KEY_UNKNOWN`, `TRUST_VIOLATION`, `SIGNATURE_VERIFICATION_FAILED`, `REPLAY_DETECTED`
-- **Routing**: `NO_ROUTE`, `ROUTE_UPDATE_FAILED`, `ROUTE_LOOP_DETECTED`
+- **Routing**: `NO_ROUTE`, `ROUTE_ADVERTISEMENT_FAILED`, `ROUTE_LOOP_DETECTED`
 - **Transfer**: `TRANSFER_TIMEOUT`, `TRANSFER_CANCELLED`, `TRANSFER_CORRUPTED`, `SESSION_NOT_FOUND`, `CHUNK_OUT_OF_BOUNDS`
 - **Transport**: `BLUETOOTH_DISABLED`, `CONNECTION_FAILED`, `COC_NOT_SUPPORTED`, `GATT_OPERATION_FAILED`, `L2CAP_CHANNEL_FAILED`
 - **Configuration**: `INVALID_PARAMETER`, `INVALID_STATE`, `PERMISSION_DENIED`
@@ -44,7 +65,9 @@
 **Why `ErrorCode` not `errorCode: Int`?**
 
 - Enum = stable, IDE-navigable, exhaustiveness-checkable
-- No magic numbers; adding codes requires source change (intentional)
+- Codes use explicit stable values and never enum ordinals
+- Error context is redacted and does not reveal whether identity/key guesses were close
+- Adding codes requires an intentional source/specification change
 
 ---
 

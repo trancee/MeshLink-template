@@ -61,46 +61,24 @@ public class ReplayWindow {
     public fun consumeNonce(nonce: Long): Boolean {
         require(nonce >= 0) { "Nonce must be non-negative, got $nonce" }
 
-        // Nonces behind the current window are always replays — reject
-        // immediately without mutating any state.
-        if (nonce < _baseNonce) {
-            return false
-        }
-
-        val bitIndex = (nonce - _baseNonce).toInt()
-
-        if (bitIndex < WINDOW_SIZE) {
-            // --- Nonce is within the current window ----------------------
-            // Deprotect-before-advance: compute the mask and check the bit
-            // BEFORE we mutate _window. If it's a replay the function
-            // returns false and _window is untouched.
-            val mask = 1uL shl bitIndex
-            if (_window and mask != 0uL) {
-                return false
+        var accepted = false
+        if (nonce >= _baseNonce) {
+            val bitIndex = (nonce - _baseNonce).toInt()
+            if (bitIndex < WINDOW_SIZE) {
+                val mask = 1uL shl bitIndex
+                if (_window and mask == 0uL) {
+                    _window = _window or mask
+                    accepted = true
+                }
+            } else {
+                val shift = bitIndex - WINDOW_SIZE + 1
+                val clearedWindow = if (shift >= WINDOW_SIZE) 0uL else _window shr shift
+                _window = clearedWindow or (1uL shl (WINDOW_SIZE - 1))
+                _baseNonce = nonce - WINDOW_SIZE + 1
+                accepted = true
             }
-            _window = _window or mask
-            return true
         }
-
-        // --- Nonce is beyond the current window -------------------------
-        // The window must be advanced (right-shifted) so that existing
-        // bits land at the correct positions under the new baseNonce.
-        // Bits that shift off the low end are evicted (their nonces are
-        // now behind the new baseNonce).
-        //
-        // The apex bit (position WINDOW_SIZE - 1) after a right-shift always reads from a
-        // bit position beyond the original 64-bit bitmap, which is always 0 — so nonces beyond
-        // the current window are always fresh and can never be replays.
-        // Deprotect-before-advance is therefore trivially satisfied for this branch.
-        //
-        // When shift >= WINDOW_SIZE, Kotlin's shr masks the distance to 6 bits, so
-        // shr 64 == shr 0 and old bits would survive. Guard explicitly to evict everything.
-        val shift = bitIndex - WINDOW_SIZE + 1
-        val clearedWindow = if (shift >= WINDOW_SIZE) 0uL else _window shr shift
-
-        _window = clearedWindow or (1uL shl (WINDOW_SIZE - 1))
-        _baseNonce = nonce - WINDOW_SIZE + 1
-        return true
+        return accepted
     }
 
     /**

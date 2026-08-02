@@ -1,258 +1,163 @@
 package ch.trancee.meshlink
 
-import ch.trancee.meshlink.diagnostics.DiagnosticEvent
-import ch.trancee.meshlink.model.HandshakePattern
 import ch.trancee.meshlink.model.PowerMode
 import ch.trancee.meshlink.model.RegulatoryRegion
-import ch.trancee.meshlink.model.ScoreboardEncoding
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
-
-// ---------------------------------------------------------------------------
-// Settings classes — immutable once built
-// ---------------------------------------------------------------------------
 
 public data class KeyRotationSettings(
-    public val interval: Duration,
-    public val rotationGracePeriod: Duration,
-    public val compromiseGracePeriod: Duration,
+    public val interval: Duration = 3.days,
+    public val rotationGracePeriod: Duration = 1.hours,
+    public val compromiseGracePeriod: Duration = Duration.ZERO,
 )
 
 public data class TransferSettings(
-    public val maxRetries: Int,
-    public val chunkSize: Int,
-    public val maxConcurrentSessionsPerPeer: Int,
-    public val scoreboardEncoding: ScoreboardEncoding,
-    public val maxChunksPerSession: UInt,
+    public val maxRetries: Int = 5,
+    public val chunkSize: Int = 256,
+    public val maxTransfersPerPeer: Int = 3,
 )
 
 public data class RoutingSettings(
-    public val routeUpdateMinInterval: Duration,
-    public val routeUpdateMaxInterval: Duration,
-    public val routeUpdateChangeThreshold: Int,
-    public val fullTableSyncInterval: Duration,
-    public val routeEntryExpiry: Duration,
-    public val feasibilityConditionEnabled: Boolean,
-    public val maxRouteEntries: Int,
+    public val routeAdvertisementChangeThreshold: Int = 3,
+    public val routeDigestInterval: Duration = 5.minutes,
+    public val routeExpiry: Duration = 15.minutes,
+    public val maxRoutes: Int = 256,
 )
 
-public data class SecuritySettings(
-    public val fallbackMaxAttemptsPerMinute: Int,
-    public val fallbackTimeout: Duration,
-    public val requireSignatureOnRouteUpdates: Boolean,
-    public val defaultHandshakePattern: HandshakePattern,
+public data class DiagnosticsSettings(
+    public val eventBufferSize: Int = 1000,
+    public val emitToLog: Boolean = false,
 )
-
-public data class DiagnosticsSettings(public val eventBufferSize: Int)
-
-// ---------------------------------------------------------------------------
-// Top-level MeshLinkSettings
-// ---------------------------------------------------------------------------
 
 public data class MeshLinkSettings(
     public val appId: String,
-    public val powerMode: PowerMode,
-    public val regulatoryRegion: RegulatoryRegion,
-    public val keyRotation: KeyRotationSettings,
-    public val transfer: TransferSettings,
-    public val routing: RoutingSettings,
-    public val security: SecuritySettings,
-    public val diagnostics: DiagnosticsSettings,
-    public val emitToLog: Boolean,
-    public val eventCallback: ((DiagnosticEvent) -> Unit)?,
+    public val powerMode: PowerMode = PowerMode.MEDIUM,
+    public val regulatoryRegion: RegulatoryRegion = RegulatoryRegion.DEFAULT,
+    public val backgroundOperation: Boolean = false,
+    public val keyRotation: KeyRotationSettings = KeyRotationSettings(),
+    public val transfer: TransferSettings = TransferSettings(),
+    public val routing: RoutingSettings = RoutingSettings(),
+    public val diagnostics: DiagnosticsSettings = DiagnosticsSettings(),
 )
 
-// ---------------------------------------------------------------------------
-// Lambda DSL — primary API per docs/decisions/model/settings-model.md
-// ---------------------------------------------------------------------------
-
-/**
- * MeshLink settings DSL builder.
- *
- * Usage:
- * ```kotlin
- * val settings = meshLinkSettings {
- *   appId = "com.example.myapp"
- *   powerMode = PowerMode.HIGH
- *   regulatoryRegion = RegulatoryRegion.EU
- *   keyRotation {
- *     interval = Duration.days(1)
- *     rotationGracePeriod = Duration.minutes(30)
- *     compromiseGracePeriod = Duration.ZERO
- *   }
- *   transfer {
- *     maxRetries = 3
- *     chunkSize = 512
- *     maxConcurrentSessionsPerPeer = 2
- *   }
- *   routing {
- *     routeUpdateMinInterval = Duration.seconds(1)
- *     routeUpdateMaxInterval = Duration.seconds(30)
- *     routeUpdateChangeThreshold = 3
- *     fullTableSyncInterval = Duration.minutes(5)
- *     routeEntryExpiry = Duration.minutes(15)
- *     feasibilityConditionEnabled = true
- *     maxRouteEntries = 256
- *   }
- *   security {
- *     fallbackMaxAttemptsPerMinute = 3
- *     fallbackTimeout = Duration.seconds(10)
- *     requireSignatureOnRouteUpdates = true
- *     defaultHandshakePattern = HandshakePattern.IX
- *   }
- *   diagnostics {
- *     eventBufferSize = 1000
- *   }
- *   emitToLog = true
- *   eventCallback = { event -> println(event) }
- * }
- * ```
- */
 public fun meshLinkSettings(block: MeshLinkSettingsBuilder.() -> Unit): MeshLinkSettings =
     MeshLinkSettingsBuilder().apply(block).build()
 
-// ---------------------------------------------------------------------------
-// Builder — imperative + lambda DSL
-// ---------------------------------------------------------------------------
-
 public class MeshLinkSettingsBuilder {
-    // Top-level
     public var appId: String = ""
     public var powerMode: PowerMode = PowerMode.MEDIUM
     public var regulatoryRegion: RegulatoryRegion = RegulatoryRegion.DEFAULT
-    public var emitToLog: Boolean = false
-    public var eventCallback: ((DiagnosticEvent) -> Unit)? = null
+    public var backgroundOperation: Boolean = false
 
-    // Key rotation (imperative)
     public var keyRotationInterval: Duration = 3.days
     public var keyRotationGracePeriod: Duration = 1.hours
     public var keyRotationCompromiseGracePeriod: Duration = Duration.ZERO
 
-    // Transfer (imperative)
     public var transferMaxRetries: Int = 5
     public var transferChunkSize: Int = 256
-    public var transferMaxConcurrentSessionsPerPeer: Int = 3
-    public var transferScoreboardEncoding: ScoreboardEncoding = ScoreboardEncoding.DYNAMIC
-    public var transferMaxChunksPerSession: UInt = 1024u
+    public var maxTransfersPerPeer: Int = 3
 
-    // Routing (imperative)
-    public var routingMinInterval: Duration = 1.seconds
-    public var routingMaxInterval: Duration = 30.seconds
-    public var routingChangeThreshold: Int = 3
-    public var routingFullSyncInterval: Duration = 5.minutes
-    public var routingExpiry: Duration = 15.minutes
-    public var routingFeasibilityEnabled: Boolean = true
-    public var routingMaxEntries: Int = 256
+    public var routeAdvertisementChangeThreshold: Int = 3
+    public var routeDigestInterval: Duration = 5.minutes
+    public var routeExpiry: Duration = 15.minutes
+    public var maxRoutes: Int = 256
 
-    // Security (imperative)
-    public var securityFallbackAttempts: Int = 3
-    public var securityFallbackTimeout: Duration = 10.seconds
-    public var securityRequireSignature: Boolean = true
-    public var securityDefaultHandshakePattern: HandshakePattern = HandshakePattern.IX
+    public var diagnosticsEventBufferSize: Int = 1000
+    public var emitToLog: Boolean = false
 
-    // Diagnostics (imperative)
-    public var diagnosticsBufferSize: Int = 1000
-
-    // --- Lambda DSL nested blocks ---
-
-    /** Nested builder for key rotation settings. */
     public fun keyRotation(block: KeyRotationSettingsBuilder.() -> Unit) {
-        val builder = KeyRotationSettingsBuilder()
-        builder.block()
-        keyRotationInterval = builder.interval
-        keyRotationGracePeriod = builder.rotationGracePeriod
-        keyRotationCompromiseGracePeriod = builder.compromiseGracePeriod
+        KeyRotationSettingsBuilder().apply(block).also { builder ->
+            keyRotationInterval = builder.interval
+            keyRotationGracePeriod = builder.rotationGracePeriod
+            keyRotationCompromiseGracePeriod = builder.compromiseGracePeriod
+        }
     }
 
-    /** Nested builder for transfer settings. */
     public fun transfer(block: TransferSettingsBuilder.() -> Unit) {
-        val builder = TransferSettingsBuilder()
-        builder.block()
-        transferMaxRetries = builder.maxRetries
-        transferChunkSize = builder.chunkSize
-        transferMaxConcurrentSessionsPerPeer = builder.maxConcurrentSessionsPerPeer
-        transferScoreboardEncoding = builder.scoreboardEncoding
-        transferMaxChunksPerSession = builder.maxChunksPerSession
+        TransferSettingsBuilder().apply(block).also { builder ->
+            transferMaxRetries = builder.maxRetries
+            transferChunkSize = builder.chunkSize
+            maxTransfersPerPeer = builder.maxTransfersPerPeer
+        }
     }
 
-    /** Nested builder for routing settings. */
     public fun routing(block: RoutingSettingsBuilder.() -> Unit) {
-        val builder = RoutingSettingsBuilder()
-        builder.block()
-        routingMinInterval = builder.routeUpdateMinInterval
-        routingMaxInterval = builder.routeUpdateMaxInterval
-        routingChangeThreshold = builder.routeUpdateChangeThreshold
-        routingFullSyncInterval = builder.fullTableSyncInterval
-        routingExpiry = builder.routeEntryExpiry
-        routingFeasibilityEnabled = builder.feasibilityConditionEnabled
-        routingMaxEntries = builder.maxRouteEntries
+        RoutingSettingsBuilder().apply(block).also { builder ->
+            routeAdvertisementChangeThreshold = builder.routeAdvertisementChangeThreshold
+            routeDigestInterval = builder.routeDigestInterval
+            routeExpiry = builder.routeExpiry
+            maxRoutes = builder.maxRoutes
+        }
     }
 
-    /** Nested builder for security settings. */
-    public fun security(block: SecuritySettingsBuilder.() -> Unit) {
-        val builder = SecuritySettingsBuilder()
-        builder.block()
-        securityFallbackAttempts = builder.fallbackMaxAttemptsPerMinute
-        securityFallbackTimeout = builder.fallbackTimeout
-        securityRequireSignature = builder.requireSignatureOnRouteUpdates
-        securityDefaultHandshakePattern = builder.defaultHandshakePattern
-    }
-
-    /** Nested builder for diagnostics settings. */
     public fun diagnostics(block: DiagnosticsSettingsBuilder.() -> Unit) {
-        val builder = DiagnosticsSettingsBuilder()
-        builder.block()
-        diagnosticsBufferSize = builder.eventBufferSize
+        DiagnosticsSettingsBuilder().apply(block).also { builder ->
+            diagnosticsEventBufferSize = builder.eventBufferSize
+            emitToLog = builder.emitToLog
+        }
     }
 
-    public fun build(): MeshLinkSettings =
-        MeshLinkSettings(
+    public fun build(): MeshLinkSettings {
+        require(appId.isNotBlank()) { "appId must not be blank" }
+        require(appId.encodeToByteArray().size <= MAX_APP_ID_BYTES) {
+            "appId must be at most 255 UTF-8 bytes"
+        }
+        require(keyRotationInterval > Duration.ZERO) { "key rotation interval must be positive" }
+        require(keyRotationGracePeriod >= Duration.ZERO) {
+            "key rotation grace period must not be negative"
+        }
+        require(keyRotationCompromiseGracePeriod >= Duration.ZERO) {
+            "compromise grace period must not be negative"
+        }
+        require(transferMaxRetries >= 0) { "maxRetries must not be negative" }
+        require(transferChunkSize > 0) { "chunkSize must be positive" }
+        require(maxTransfersPerPeer in MIN_TRANSFERS_PER_PEER..MAX_TRANSFERS_PER_PEER) {
+            "maxTransfersPerPeer must be between 1 and 3"
+        }
+        require(routeAdvertisementChangeThreshold >= 0) {
+            "routeAdvertisementChangeThreshold must not be negative"
+        }
+        require(routeDigestInterval > Duration.ZERO) { "routeDigestInterval must be positive" }
+        require(routeExpiry > routeDigestInterval) {
+            "routeExpiry must be greater than routeDigestInterval"
+        }
+        require(maxRoutes in MIN_ROUTES..MAX_ROUTES) { "maxRoutes must be between 1 and 256" }
+        require(diagnosticsEventBufferSize > 0) { "eventBufferSize must be positive" }
+
+        return MeshLinkSettings(
             appId = appId,
             powerMode = powerMode,
             regulatoryRegion = regulatoryRegion,
+            backgroundOperation = backgroundOperation,
             keyRotation =
                 KeyRotationSettings(
-                    keyRotationInterval,
-                    keyRotationGracePeriod,
-                    keyRotationCompromiseGracePeriod,
+                    interval = keyRotationInterval,
+                    rotationGracePeriod = keyRotationGracePeriod,
+                    compromiseGracePeriod = keyRotationCompromiseGracePeriod,
                 ),
             transfer =
                 TransferSettings(
-                    transferMaxRetries,
-                    transferChunkSize,
-                    transferMaxConcurrentSessionsPerPeer,
-                    transferScoreboardEncoding,
-                    transferMaxChunksPerSession,
+                    maxRetries = transferMaxRetries,
+                    chunkSize = transferChunkSize,
+                    maxTransfersPerPeer = maxTransfersPerPeer,
                 ),
             routing =
                 RoutingSettings(
-                    routingMinInterval,
-                    routingMaxInterval,
-                    routingChangeThreshold,
-                    routingFullSyncInterval,
-                    routingExpiry,
-                    routingFeasibilityEnabled,
-                    routingMaxEntries,
+                    routeAdvertisementChangeThreshold = routeAdvertisementChangeThreshold,
+                    routeDigestInterval = routeDigestInterval,
+                    routeExpiry = routeExpiry,
+                    maxRoutes = maxRoutes,
                 ),
-            security =
-                SecuritySettings(
-                    securityFallbackAttempts,
-                    securityFallbackTimeout,
-                    securityRequireSignature,
-                    securityDefaultHandshakePattern,
+            diagnostics =
+                DiagnosticsSettings(
+                    eventBufferSize = diagnosticsEventBufferSize,
+                    emitToLog = emitToLog,
                 ),
-            diagnostics = DiagnosticsSettings(diagnosticsBufferSize),
-            emitToLog = emitToLog,
-            eventCallback = eventCallback,
         )
+    }
 }
-
-// ---------------------------------------------------------------------------
-// Nested builder classes for lambda DSL
-// ---------------------------------------------------------------------------
 
 public class KeyRotationSettingsBuilder {
     public var interval: Duration = 3.days
@@ -263,28 +168,23 @@ public class KeyRotationSettingsBuilder {
 public class TransferSettingsBuilder {
     public var maxRetries: Int = 5
     public var chunkSize: Int = 256
-    public var maxConcurrentSessionsPerPeer: Int = 3
-    public var scoreboardEncoding: ScoreboardEncoding = ScoreboardEncoding.DYNAMIC
-    public var maxChunksPerSession: UInt = 1024u
+    public var maxTransfersPerPeer: Int = 3
 }
 
 public class RoutingSettingsBuilder {
-    public var routeUpdateMinInterval: Duration = 1.seconds
-    public var routeUpdateMaxInterval: Duration = 30.seconds
-    public var routeUpdateChangeThreshold: Int = 3
-    public var fullTableSyncInterval: Duration = 5.minutes
-    public var routeEntryExpiry: Duration = 15.minutes
-    public var feasibilityConditionEnabled: Boolean = true
-    public var maxRouteEntries: Int = 256
-}
-
-public class SecuritySettingsBuilder {
-    public var fallbackMaxAttemptsPerMinute: Int = 3
-    public var fallbackTimeout: Duration = 10.seconds
-    public var requireSignatureOnRouteUpdates: Boolean = true
-    public var defaultHandshakePattern: HandshakePattern = HandshakePattern.IX
+    public var routeAdvertisementChangeThreshold: Int = 3
+    public var routeDigestInterval: Duration = 5.minutes
+    public var routeExpiry: Duration = 15.minutes
+    public var maxRoutes: Int = 256
 }
 
 public class DiagnosticsSettingsBuilder {
     public var eventBufferSize: Int = 1000
+    public var emitToLog: Boolean = false
 }
+
+private const val MAX_APP_ID_BYTES: Int = 255
+private const val MIN_TRANSFERS_PER_PEER: Int = 1
+private const val MAX_TRANSFERS_PER_PEER: Int = 3
+private const val MIN_ROUTES: Int = 1
+private const val MAX_ROUTES: Int = 256

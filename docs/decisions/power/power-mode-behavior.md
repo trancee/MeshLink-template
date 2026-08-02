@@ -2,7 +2,7 @@
 
 **Status:** Locked — 2026-07-20
 
-> **Specification content** (parameter tables, grace periods, EU clamping) lives in [SPEC.md §10](../../../SPEC.md#power-management) and [specs/settings.yaml](../../../specs/settings.yaml). This ADR captures only the *rationale*.
+> **Specification content** (parameter tables, grace periods, EU clamping) lives in [SPEC.md §10](../../../SPEC.md#power-management) and [specs/catalogs/settings.yaml](../../../specs/catalogs/settings.yaml). This ADR captures only the *rationale*.
 
 ## Context
 
@@ -46,6 +46,18 @@ Fixed grace period per mode — after expiry without reconnection, peer transiti
 - **Scan ceiling 70%**: Same regulation; prevents excessive radio-on time
 
 Clamping in shared policy code (not platform wrappers) ensures cross-platform consistency.
+
+### Active and idle connection adaptation
+
+The mode connection interval applies while handshake, urgent control, ACK, or
+data work is queued. After five seconds without such work, MeshLink requests a
+500–1000 ms idle interval for every mode. New work immediately requests the
+active interval again.
+
+The 5% scan-duty battery target applies to LOW/background idle operation. HIGH
+and MEDIUM intentionally exceed it for discovery/performance. Platform APIs may
+clamp or coarsely map requested intervals; diagnostics expose effective values
+where observable.
 
 ### Platform Integration Rationale
 

@@ -1,7 +1,6 @@
-# MeshLink Documentation Cross-Reference Index
-# Machine-readable mapping between SPEC.md sections, ADRs, and code locations.
-# Enables AI agents to trace requirements → decisions → implementation.
-# SPEC-ANCHOR: cross-ref-index
+# MeshLink Specification Map
+# Generated traceability between SPEC sections, ADRs, codec/protocol contracts, implementation, and tests.
+# SPEC-ANCHOR: specification-map
 
 cross_references:
   - spec_id: "vision-pillars"
@@ -25,27 +24,26 @@ cross_references:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PeerIdentity.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/SeqNo.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Scoreboard.kt"
-      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/RouteEntry.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferSession.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TypeModel.kt"
-      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/LinkMetric.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/IdentityKey.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/HandshakeKey.kt"
-      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PeerEvent.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferFailureReason.kt"
-      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/SessionId.kt"
     specs:
-      - "specs/data-models.yaml"
-      - "specs/enums.yaml"
-    description: "Core data models: PeerIdentity, SeqNo, Scoreboard, RouteEntry, TransferSession, enums"
+      - "specs/codecs/models.yaml"
+      - "specs/codecs/enums.yaml"
+    description: "Core data models: PeerIdentity, internal SeqNo, Scoreboard, TransferSession, keys, and enums; routing candidates are specified separately"
 
   - spec_id: "discovery-identity"
     spec_section: "SPEC.md#discovery--identity"
-    adrs: []
+    adrs:
+      - "docs/decisions/discovery/connectable-advertisement.md"
+      - "docs/decisions/discovery/mesh-hash-derivation.md"
+      - "docs/decisions/discovery/peer-hint-and-identity-races.md"
     code_files: []
     specs:
-      - "specs/wire-frames.yaml"
-    description: "Advertisement format, privacy trade-offs, PeerFingerprint as discovery hint"
+      - "specs/codecs/frames.yaml"
+    description: "Connectable two-service-UUID advertisement, rotating peerHint, TransportHandle/RPA race coordination, GATT identity resolution, and limited privacy guarantee"
 
   - spec_id: "trust-model-tofu"
     spec_section: "SPEC.md#trust-model-tofu"
@@ -53,14 +51,16 @@ cross_references:
       - "docs/decisions/crypto/crypto-design.md"
     code_files: []
     specs:
-      - "specs/enums.yaml"
-      - "specs/state-machines.yaml"
-    description: "TOFU trust flow, Noise patterns (XX/IK for link, IX for E2E, NX fallback), key rotation, E2E handshake routing, session state machine"
+      - "specs/codecs/enums.yaml"
+      - "specs/protocol/state-machines.yaml"
+    description: "TOFU trust flow, Noise XX for unpinned contact, Noise IK for pinned reconnect, key rotation, E2E handshake routing, session state machine"
 
   - spec_id: "transport-layer"
     spec_section: "SPEC.md#transport-layer"
     adrs:
+      - "docs/decisions/transport/gatt-channel-and-framing.md"
       - "docs/decisions/transport/mtu-negotiation.md"
+      - "docs/decisions/transport/background-operation.md"
     code_files: []
     description: "Bearer selection (GATT control plane, L2CAP CoC data plane), negotiation sequence, fallback reasons"
 
@@ -68,41 +68,46 @@ cross_references:
     spec_section: "SPEC.md#security-layer"
     adrs:
       - "docs/decisions/crypto/crypto-design.md"
+      - "docs/decisions/crypto/identity-binding-and-fail-closed.md"
       - "docs/decisions/crypto/constant-time-policy.md"
+      - "docs/decisions/crypto/private-key-handling.md"
       - "docs/decisions/crypto/replay-window.md"
+      - "docs/decisions/crypto/noise-session-renewal.md"
       - "docs/decisions/crypto/key-rotation-propagation.md"
     code_files: []
     specs:
-      - "specs/enums.yaml"
-      - "specs/state-machines.yaml"
-    description: "Crypto primitives (validated against Wycheproof), Noise handshake patterns (XX/IK/IX/NX), session state machine, NX fallback, key rotation, E2E routing, fail-closed rules, Android constraints, key rotation propagation deadlines, error hierarchy"
+      - "specs/codecs/enums.yaml"
+      - "specs/protocol/state-machines.yaml"
+    description: "Crypto primitives (validated against Wycheproof), Noise XX/IK state machine, key rotation, E2E routing, fail-closed rules, Android constraints, key rotation propagation deadlines, error hierarchy"
 
   - spec_id: "routing-layer"
     spec_section: "SPEC.md#routing-layer"
     adrs:
       - "docs/decisions/routing/routing-design.md"
-    code_files:
-      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/RouteEntry.kt"
-      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/RoutingPolicy.kt"
-      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/LinkMetric.kt"
+    code_files: []
     specs:
-      - "specs/state-machines.yaml"
-      - "specs/enums.yaml"
-    description: "Babel-style distance-vector, destination-sourced seqno, digest-triggered resync, always-encrypted metadata, link quality metric, loop detection, TTL by priority"
+      - "specs/codecs/models.yaml"
+      - "specs/protocol/state-machines.yaml"
+      - "specs/codecs/frames.yaml"
+    description: "Babel-style additive route cost, separate hop count/link quality, destination-signed RouteStatement, source-owned sequence recovery, encrypted control, and per-neighbor RouteExport/RouteImport synchronization"
 
   - spec_id: "transfer-layer"
     spec_section: "SPEC.md#transfer-layer"
     adrs:
       - "docs/decisions/model/data-model.md"
       - "docs/decisions/model/error-hierarchy.md"
+      - "docs/decisions/transfer/transfer-identifier.md"
+      - "docs/decisions/transfer/payload-transfer-protocol.md"
+      - "docs/decisions/transfer/payload-identity-and-naming.md"
+      - "docs/decisions/transfer/transfer-source-sink-contract.md"
     code_files:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferSession.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Scoreboard.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferFailureReason.kt"
     specs:
-      - "specs/data-models.yaml"
-      - "specs/state-machines.yaml"
-      - "specs/wire-frames.yaml"
+      - "specs/codecs/models.yaml"
+      - "specs/protocol/state-machines.yaml"
+      - "specs/codecs/frames.yaml"
     description: "Transfer session, selective ACK (dynamic bitfield), cut-through relay, TransferAck wire format"
 
   - spec_id: "power-management"
@@ -112,20 +117,21 @@ cross_references:
     code_files:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PowerMode.kt"
     specs:
-      - "specs/enums.yaml"
-      - "specs/settings.yaml"
+      - "specs/codecs/enums.yaml"
+      - "specs/catalogs/settings.yaml"
     description: "Three power modes (HIGH/MEDIUM/LOW), regulatory region (EU clamping), grace periods, mode-driven parameters"
 
   - spec_id: "diagnostics-events"
     spec_section: "SPEC.md#diagnostics--events"
     adrs:
-      - "docs/decisions/diagnostics/callback-threading.md"
+      - "docs/decisions/diagnostics/flow-delivery.md"
+      - "docs/decisions/api/public-api-and-lifecycle.md"
     code_files:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/diagnostics/DiagnosticEvent.kt"
     specs:
-      - "specs/diagnostic-events.yaml"
-      - "specs/enums.yaml"
-    description: "Peer events, connection states, internal PeerLifecycleState, diagnostic event hierarchy, error model"
+      - "specs/catalogs/diagnostic-events.yaml"
+      - "specs/codecs/enums.yaml"
+    description: "Peer events, connection states, internal PeerLifecycle, diagnostic event hierarchy, error model"
 
   - spec_id: "build-quality"
     spec_section: "SPEC.md#build--quality-constraints"
@@ -138,17 +144,18 @@ cross_references:
     spec_section: "SPEC.md#testing--verification"
     adrs: []
     code_files: []
-    description: "Test suite structure (unit/host/device/proof), iOS proof testing, handshake testing, NX fallback testing, key rotation testing, virtual mesh harness, wire compatibility testing, acceptance criteria per layer"
+    description: "Test suite structure (unit/host/device/proof), iOS proof testing, XX/IK handshake testing, pinned-mismatch fail-closed testing, key rotation testing, virtual mesh harness, wire compatibility testing, acceptance criteria per layer"
 
   - spec_id: "configuration-model"
-    spec_section: "SPEC.md#configuration-model"
+    spec_section: "SPEC.md#settings-model"
     adrs:
-      - "docs/decisions/model/meshlinksettings-dsl.md"
+      - "docs/decisions/model/settings-model.md"
+      - "docs/decisions/api/public-api-and-lifecycle.md"
     code_files:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLinkSettings.kt"
     specs:
-      - "specs/settings.yaml"
-    description: "Configuration DSL (MeshLinkSettings, KeyRotationSettings, TransferSettings, RoutingSettings, SecuritySettings, DiagnosticsSettings)"
+      - "specs/catalogs/settings.yaml"
+    description: "Configuration DSL (MeshLinkSettings, KeyRotationSettings, TransferSettings, RoutingSettings, DiagnosticsSettings); mandatory security invariants are not configurable"
 
   - spec_id: "future-work"
     spec_section: "SPEC.md#future-work"
@@ -159,76 +166,88 @@ cross_references:
 adrs_by_area:
   crypto:
     - "docs/decisions/crypto/crypto-design.md"
+    - "docs/decisions/crypto/identity-binding-and-fail-closed.md"
     - "docs/decisions/crypto/constant-time-policy.md"
+    - "docs/decisions/crypto/private-key-handling.md"
     - "docs/decisions/crypto/replay-window.md"
+    - "docs/decisions/crypto/noise-session-renewal.md"
     - "docs/decisions/crypto/key-rotation-propagation.md"
     - "docs/decisions/crypto/pq-hybrid-candidate-matrix.md"
   routing:
     - "docs/decisions/routing/routing-design.md"
   transport:
+    - "docs/decisions/transport/gatt-channel-and-framing.md"
     - "docs/decisions/transport/mtu-negotiation.md"
+    - "docs/decisions/transport/background-operation.md"
   model:
     - "docs/decisions/model/data-model.md"
     - "docs/decisions/model/error-hierarchy.md"
-    - "docs/decisions/model/meshlinksettings-dsl.md"
+    - "docs/decisions/model/settings-model.md"
     - "docs/decisions/model/mesh-size-limits.md"
   power:
     - "docs/decisions/power/power-mode-behavior.md"
+  api:
+    - "docs/decisions/api/public-api-and-lifecycle.md"
   diagnostics:
-    - "docs/decisions/diagnostics/callback-threading.md"
+    - "docs/decisions/diagnostics/flow-delivery.md"
   discovery:
+    - "docs/decisions/discovery/connectable-advertisement.md"
     - "docs/decisions/discovery/mesh-hash-derivation.md"
+    - "docs/decisions/discovery/peer-hint-and-identity-races.md"
   storage:
     - "docs/decisions/storage/persistence-strategy.md"
+  transfer:
+    - "docs/decisions/transfer/transfer-identifier.md"
+    - "docs/decisions/transfer/payload-transfer-protocol.md"
+    - "docs/decisions/transfer/payload-identity-and-naming.md"
+    - "docs/decisions/transfer/transfer-source-sink-contract.md"
 
 spec_anchors_in_code:
   - "peer-identity-model" # PeerIdentity.kt
   - "seqno-model" # SeqNo.kt
   - "scoreboard-model" # Scoreboard.kt
-  - "route-entry-model" # RouteEntry.kt
   - "transfer-session-model" # TransferSession.kt
   - "ttl-by-priority" # RoutingPolicy.kt
   - "type-model" # TypeModel.kt
   - "diagnostic-event" # DiagnosticEvent.kt
   - "power-mode" # PowerMode.kt
   - "handshake-key-model" # HandshakeKey.kt
-  - "session-id-model" # SessionId.kt
   - "transfer-failure-reason-model" # TransferFailureReason.kt
-  - "link-metric-model" # LinkMetric.kt
   - "identity-key-model" # IdentityKey.kt
 
 implementation_status:
   implemented:
     - "PeerIdentity"
-    - "SeqNo"
     - "Scoreboard / MutableScoreboard"
-    - "RouteEntry"
     - "TransferSession / TransferState / TransferFailureReason"
-    - "SessionId"
-    - "LinkMetric"
     - "IdentityKey"
-    - "PeerConnectionState"
-    - "PeerEvent"
+    - "PeerState"
     - "All enums in TypeModel.kt"
     - "DiagnosticEvent sealed hierarchy"
     - "PowerMode"
     - "HandshakeKey"
-    - "RoutingPolicy (TTL by priority)"
   not_implemented:
-    - "MeshLink public API (MeshLink.kt is stub)"
-    - "RouteCoordinator"
+    - "MeshLink public API and lifecycle"
+    - "KnownPeer snapshots and trust commands"
+    - "Message and transfer handles, sources, and sinks"
+    - "Diagnostic flow delivery"
+    - "Internal non-Comparable SeqNo and persisted source-owned sequence allocator"
+    - "RouteCandidate, LinkQuality, additive cost, EWMA, and hysteresis"
+    - "RouteStatement and mandatory destination signatures"
+    - "RouteCoordinator"},{
     - "RouteDigestTracker"
     - "RouteAdvertisementPlanner"
     - "TransferCoordinator"
-    - "Noise handshake implementations (XX, IK, IX, NX)"
+    - "Noise handshake implementations (XX and IK)"
     - "CryptoProvider (X25519, Ed25519, ChaCha20-Poly1305, HKDF, HMAC)"
     - "BLE transport layer (GATT/L2CAP)"
-    - "KeyRotationAnnouncement handling"
+    - "KeyRotationProof handling, retained continuity chain, and rotation-recovery XX"
     - "TrustStore"
     - "PeerStateCoordinator"
     - "MeshLinkSettings DSL integration"
     - "Virtual mesh harness"
-    - "Wire codec (FlatBuffers-compatible)"
+    - "Custom MeshLink Wire Codec (frames, enums, models, bounded reader/writer)"
+    - "TransferId and source-owned persisted range allocator"
 
 test_files_by_layer:
   data_model:

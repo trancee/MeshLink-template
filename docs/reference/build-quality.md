@@ -10,7 +10,7 @@
 | Throughput (1-hop L2CAP) | ≥80 KB/s (Android Pixel 6+), ≥60 KB/s (iOS iPhone 12+) | `meshlink-benchmark` |
 | Latency (1-hop, 256B, p95) | <50 ms after connection established | `meshlink-benchmark` |
 | Memory (steady state, 8 peers) | ≤8 MB heap | `meshlink-benchmark` |
-| Battery | ≤5% scan duty cycle, ≥500 ms connection interval | Derived from PowerMode |
+| Battery (LOW/background idle) | Target ≤5% scan duty; request 500–1000 ms idle interval after 5 s without queued work | Derived from effective power settings |
 | Cold start | <500 ms from `mesh.start()` to first advertisement | `meshlink-benchmark` |
 | Routing convergence | ≤3 s for 10-node topology change (virtual transport) | `meshlink-benchmark` |
 | Wire codec encode/decode | <1 μs/message (JVM benchmark) | `kotlinx-benchmark` |

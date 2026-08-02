@@ -5,22 +5,29 @@
 Complete type definitions in [SPEC.md §3](../../../SPEC.md#core-data-models).
 Machine-readable references:
 
-- [specs/enums.yaml](../../../specs/enums.yaml) — all enum values
-- [specs/data-models.yaml](../../../specs/data-models.yaml) — all data class schemas
-- [specs/state-machines.yaml](../../../specs/state-machines.yaml) — TransferState, NoiseSessionState, PeerLifecycleState, TrustState
-- [specs/settings.yaml](../../../specs/settings.yaml) — MeshLinkSettings DSL
+- [specs/codecs/enums.yaml](../../../specs/codecs/enums.yaml) — all enum values
+- [specs/codecs/models.yaml](../../../specs/codecs/models.yaml) — all data class schemas
+- [specs/protocol/state-machines.yaml](../../../specs/protocol/state-machines.yaml) — TransferState, NoiseSessionState, PeerLifecycle, TrustState
+- [specs/catalogs/settings.yaml](../../../specs/catalogs/settings.yaml) — MeshLinkSettings DSL
 
 ## Peer Identity Model
 
 ### PeerIdentity is stable/random, not derived
 
-**Initial design** derived `PeerIdentity` from public key: `SHA-256(publicKey).first(16)`. Flaw: key rotation changes public key → changes PeerIdentity → TrustStore indexed by PeerIdentity becomes stale → KeyRotationAnnouncement breaks.
+**Initial design** derived `PeerIdentity` from public key: `SHA-256(publicKey).first(16)`. Flaw: key rotation changes public key → changes PeerIdentity → TrustStore indexed by PeerIdentity becomes stale → key-rotation continuity breaks.
 
-**Solution:** Generate stable PeerIdentity ONCE at install time (16-byte random). Ensures identity persists across key rotations, TrustStore lookups succeed for old keys, KeyRotationAnnouncement validates properly.
+**Solution:** Generate stable PeerIdentity ONCE at install time (16-byte random). Ensures identity persists across key rotations, TrustStore lookups succeed for old keys, rotation proofs validate against the stable identity.
 
-### PeerFingerprint is truncated discovery hint
+### PeerHint is a rotating advertisement hint
 
-12-byte `SHA-256(Ed25519Pub || X25519Pub)`. Used in discovery advertisements only. Ed25519 first (identity anchor), X25519 second (DH key may rotate independently). Both keys required. 12 bytes (96 bits) provides birthday bound 2^48 — negligible collision probability for any practical mesh. **Discovery hint only — never used for authentication.**
+`peerHint` is a 12-byte CSPRNG value carried only in the dynamic advertisement
+UUID. It rotates at a randomized best-effort interval, is never persisted, and
+is independent of PeerIdentity and Ed25519/X25519 keys.
+
+It coalesces ephemeral discovery attempts but is not sent through GATT, signed,
+or used as authentication. Trust, routes, transfers, and public state are keyed
+only by PeerIdentity. See the
+[peer-hint race decision](../discovery/peer-hint-and-identity-races.md).
 
 ### CryptoKey distinguishes signing from DH keys
 
@@ -36,50 +43,55 @@ sealed interface CryptoKey {
 
 ## Routing Model
 
-### RouteEntry structure
+### RouteCandidate separates cost and observation
 
 ```kotlin
-data class RouteEntry(
-  val source: PeerIdentity,        // peer from whom route was learned (loop detection)
+internal class RouteCandidate(
   val destination: PeerIdentity,
-  val nextHop: PeerIdentity?,
-  val metric: UInt,                // composite via LinkMetric; feasibility computed dynamically
-  val seqNo: SeqNo,                // destination-self-reported, wrapped for safe comparison
-  val identityKey: IdentityKey?,   // learned via route updates; enables E2E IX handshake
-  val handshakeKey: HandshakeKey?,  
+  val nextHop: PeerIdentity,
+  val sequenceNumber: SeqNo,
+  val routeCost: UInt,
+  val hopCount: UByte,
+  val linkQuality: LinkQuality,
   val expiresAt: Instant,
 )
 ```
 
-- `metric` composite = `(flags shl 8) or rssiNormalized` per [Routing Design](../routing/routing-design.md)
-- `isFeasible` computed dynamically via Babel feasibility condition (RFC 8966 §3.5.1), not stored
-- `identityKey` enables E2E IX handshake — see [Crypto Design](../crypto/crypto-design.md)
+`routeCost` is lower-is-better and additive. `hopCount` is independent.
+`linkQuality` describes only the local authenticated next-hop link. Destination
+identity, sequence, and candidate binding arrive in mandatory signed
+RouteStatement; nextHop is inferred locally from the adjacent sender.
 
-### SeqNo wraps UInt with signed comparison
+### SeqNo is an internal modular serial
 
-RFC 8966 §3.7 requires signed interpretation. `(this - other).toInt() > 0` handles wrap at 2^32.
+RFC 8966 §3.7-style comparison interprets the UInt difference as signed within
+the half-range window. `SeqNo` is not Comparable because modular serial ordering
+is not a globally transitive total order.
 
-Implements `Comparable<SeqNo>` so seqnos can be sorted and compared in standard Kotlin ordering utilities (`sorted()`, `min()` on collections).
-
-- `toUInt()` / `fromUInt(value)` provide logical wire serialization (raw value extraction)
-- `toByteArray()` / `fromByteArray(bytes)` provide 4-byte big-endian byte-level wire serialization
-- `isNewerThanOrEqualTo` / `isOlderThanOrEqualTo` support the Babel feasibility condition (`>=` comparison)
-- `max(other)` / `min(other)` select the newer/older seqno for route table merges
-- `compareTo` delegates to `minus`: same modular signed comparison as all comparison methods
-- `operator inc()` advances the seqno by 1 with modular wrap at 2^32
-- `unsignedDistance(other)` returns the modular unsigned forward distance, useful for route staleness diagnostics
-- `MAX_VALUE` documents the 2^32 - 1 boundary; `isZero` is a convenience check
-- Modular comparison window is 2^31: at exactly ±2^31 the comparison is ambiguous and `isNewerThan` returns false (conservative)
-
-Implemented in `SeqNo.kt`.
+It exposes explicit internal operations such as `isNewerThan`,
+`isNewerThanOrEqualTo`, `isOlderThan`, `distanceFrom`, and `next`. The exact
+`2^31` half-range difference is ambiguous and cannot drive route ordering.
+Destination-owned values persist and advance independently of transport,
+cryptographic keys, and peer hints.
 
 ## Transfer Model
+
+### TransferId is a 32-bit origin-scoped counter
+
+A logical transfer is identified by `(authenticated origin PeerIdentity,
+TransferId)`. The four-byte identifier is allocated from a durably reserved,
+monotonically increasing source-owned counter; zero is invalid. It is not a
+secret or authorization token. This avoids repeating a globally unique 64- or
+128-bit value in every chunk and acknowledgement while preserving an
+unambiguous transfer namespace.
+
+See the [Transfer Identifier ADR](../transfer/transfer-identifier.md) for
+allocation, crash safety, replay retention, and wrap-around rules.
 
 ### Scoreboard: immutable SACK bitfield with O(1) completeness and mesh merge ops
 
 ```kotlin
 class Scoreboard(totalChunks: UInt)               // Dynamic bitfield
-class Scoreboard(totalChunks: UInt, maxChunksPerSession: UInt)  // FIXED pre-allocation
 
 // Immutable operations (return new Scoreboard, cached counts)
 fun markReceived(index: Int): Scoreboard          // O(1) count update
@@ -114,18 +126,13 @@ a bit flips 1→0. Duplicate/absent marks are no-ops with zero count delta.
 from multiple peers receiving the same transfer. `or` gives the union (all chunks any peer has
 seen); `and` gives the intersection (chunks all peers confirmed); `xor` highlights divergence.
 
-**Why FIXED encoding:** When `totalChunks` is unknown upfront (e.g. streaming transfer) but
-`maxChunksPerSession` provides a safe upper bound, the FIXED constructor pre-allocates the
-bitfield to avoid resize logic. The `scoreboardEncoding` setting in `TransferSettings` controls
-which constructor is used.
-
 **Why bounds checking:** `IndexOutOfBoundsException` with descriptive messages (`Chunk index
 5 is out of range [0, 4)`) replaces the cryptic `ArrayIndexOutOfBoundsException` from the
 previous unchecked array access.
 
-**Why `fromBytes` companion:** Wire deserialization of `TRANSFER_ACKNOWLEDGMENT` frames
-requires constructing a Scoreboard from raw bytes. Previously `fromBytes` was `internal`,
-blocking this use case.
+**Wire boundary:** Large-transfer acknowledgements use the fixed 256-chunk
+PayloadAcknowledgment window. Whole-transfer Scoreboard serialization is not a
+publicly configurable wire strategy.
 
 **Why O(1) completeness:** The state machine transition "All chunks received +
 scoreboard complete → COMPLETED" requires an O(1) check. Previously `missingCount() == 0`
@@ -136,7 +143,7 @@ was O(n) and allocated nothing but still required full iteration.
 
 ### TransferState transitions
 
-Complete state machine in [SPEC.md §3.4.1](../../../SPEC.md#transfer-session-state-transitions) and [specs/state-machines.yaml](../../../specs/state-machines.yaml#transferstate).
+Complete state machine in [SPEC.md §3.4.1](../../../SPEC.md#transfer-session-state-transitions) and [specs/protocol/state-machines.yaml](../../../specs/protocol/state-machines.yaml#transferstate).
 
 Transition logic lives in `TransferCoordinator.kt`. Scoreboard completeness checked before COMPLETED.
 
@@ -144,7 +151,7 @@ Transition logic lives in `TransferCoordinator.kt`. Scoreboard completeness chec
 
 ### PowerMode maps to concrete BLE parameters
 
-**Full table in [SPEC.md §10.4](../../../SPEC.md#mode-driven-parameters) and [specs/settings.yaml](../../../specs/settings.yaml#power_mode_parameter_mapping).**
+**Full table in [SPEC.md §10.4](../../../SPEC.md#mode-driven-parameters) and [specs/catalogs/settings.yaml](../../../specs/catalogs/settings.yaml#power_mode_parameter_mapping).**
 
 Defaults in `MeshLinkSettings` match MEDIUM mode. EU region clamps adv interval floor to 300ms.
 
@@ -158,7 +165,7 @@ Clamping happens in shared policy code, not platform-specific wrappers.
 ## Diagnostic Events
 
 All events defined in `DiagnosticEvent.kt` as a sealed interface hierarchy.
-Machine-readable reference: [specs/diagnostic-events.yaml](../../../specs/diagnostic-events.yaml).
+Machine-readable reference: [specs/catalogs/diagnostic-events.yaml](../../../specs/catalogs/diagnostic-events.yaml).
 
 | Layer | Event Types |
 |-------|-------------|
@@ -170,7 +177,7 @@ Machine-readable reference: [specs/diagnostic-events.yaml](../../../specs/diagno
 | key_rotation | `KeyRotationEvent` |
 | noise | `NoiseSessionTransitionEvent` |
 
-Events are machine-observable: consumed by `eventCallback` in settings or logged when `emitToLog = true`.
+Events are machine-observable through `MeshLink.diagnostics` and may also be mirrored to platform logging when `DiagnosticsSettings.emitToLog` is enabled.
 
 ## Testing Matrix
 
@@ -192,8 +199,8 @@ All types require 100% line/branch coverage in `:meshlink`.
 - [Routing Design](../routing/routing-design.md)
 - [Power Mode Behavior](../power/power-mode-behavior.md)
 - [Crypto Design](../crypto/crypto-design.md)
-- [specs/enums.yaml](../../../specs/enums.yaml)
-- [specs/data-models.yaml](../../../specs/data-models.yaml)
-- [specs/state-machines.yaml](../../../specs/state-machines.yaml)
-- [specs/settings.yaml](../../../specs/settings.yaml)
-- [specs/diagnostic-events.yaml](../../../specs/diagnostic-events.yaml)
+- [specs/codecs/enums.yaml](../../../specs/codecs/enums.yaml)
+- [specs/codecs/models.yaml](../../../specs/codecs/models.yaml)
+- [specs/protocol/state-machines.yaml](../../../specs/protocol/state-machines.yaml)
+- [specs/catalogs/settings.yaml](../../../specs/catalogs/settings.yaml)
+- [specs/catalogs/diagnostic-events.yaml](../../../specs/catalogs/diagnostic-events.yaml)

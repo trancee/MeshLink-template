@@ -1,260 +1,190 @@
 package ch.trancee.meshlink
 
 import ch.trancee.meshlink.diagnostics.DiagnosticEvent
+import ch.trancee.meshlink.diagnostics.HandshakeId
+import ch.trancee.meshlink.diagnostics.NoiseSessionId
 import ch.trancee.meshlink.model.DataPlaneBearer
 import ch.trancee.meshlink.model.DecryptFailureReason
 import ch.trancee.meshlink.model.DiagnosticSeverity
-import ch.trancee.meshlink.model.FrameType
 import ch.trancee.meshlink.model.HandshakePattern
 import ch.trancee.meshlink.model.KeyRotationReason
 import ch.trancee.meshlink.model.NoiseFailureReason
 import ch.trancee.meshlink.model.NoiseLayer
+import ch.trancee.meshlink.model.NoiseRole
 import ch.trancee.meshlink.model.NoiseSessionState
 import ch.trancee.meshlink.model.PeerIdentity
 import ch.trancee.meshlink.model.PowerMode
 import ch.trancee.meshlink.model.RegulatoryRegion
-import ch.trancee.meshlink.model.SessionId
 import ch.trancee.meshlink.model.TransferFailureReason
+import ch.trancee.meshlink.model.TransferId
 import ch.trancee.meshlink.model.TransferState
 import ch.trancee.meshlink.model.TransportFallbackReason
 import ch.trancee.meshlink.model.VerificationLevel
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 
 class DiagnosticEventTest {
     @Test
-    fun `DiagnosticEvent RouteDecryptFailureEvent`() {
-        val event =
+    fun `events expose accepted common metadata and logical field order`() {
+        // Arrange
+        val events = diagnosticEvents()
+
+        // Act
+        val first = events.first()
+        val transfer = events[8] as DiagnosticEvent.TransferSessionTransitionEvent
+
+        // Assert
+        assertEquals(10, events.size)
+        assertEquals(0x0501u, first.code.value)
+        assertEquals(1u, (first as DiagnosticEvent.RouteDecryptFailureEvent).frameType)
+        assertEquals(10L, transfer.offset)
+    }
+
+    private fun diagnosticEvents(): List<DiagnosticEvent> {
+        val identity = PeerIdentity.ZERO
+        return listOf(
             DiagnosticEvent.RouteDecryptFailureEvent(
-                peerIdentity = PeerIdentity.ZERO,
-                frameType = FrameType.TRANSFER_CHUNK,
-                failureReason = DecryptFailureReason.AUTHENTICATION_TAG_MISMATCH,
-            )
-        assertEquals(FrameType.TRANSFER_CHUNK, event.frameType)
-        assertEquals(DecryptFailureReason.AUTHENTICATION_TAG_MISMATCH, event.failureReason)
-        assertNotNull(event.timestamp)
-        assertEquals("route", event.category)
-        assertEquals(DiagnosticSeverity.WARN, event.severity)
-        assertTrue(event.payload.contains("peerIdentity"))
-    }
-
-    @Test
-    fun `DiagnosticEvent TransportFallbackEvent`() {
-        val event =
+                identity,
+                1u,
+                DecryptFailureReason.MALFORMED_FRAME,
+            ),
             DiagnosticEvent.TransportFallbackEvent(
-                peerIdentity = PeerIdentity.ZERO,
-                reason = TransportFallbackReason.NO_PSM_ADVERTISED,
-            )
-        assertEquals(TransportFallbackReason.NO_PSM_ADVERTISED, event.reason)
-        assertNotNull(event.timestamp)
-        assertEquals("transport", event.category)
-        assertEquals(DiagnosticSeverity.WARN, event.severity)
-        assertTrue(event.payload.contains("peerIdentity"))
-    }
-
-    @Test
-    fun `DiagnosticEvent TransferDataPlaneBearerEvent`() {
-        val event =
+                identity,
+                TransportFallbackReason.L2CAP_STREAM_ERROR,
+            ),
             DiagnosticEvent.TransferDataPlaneBearerEvent(
-                sessionId = SessionId.ZERO,
-                bearer = DataPlaneBearer.GATT,
-            )
-        assertEquals(DataPlaneBearer.GATT, event.bearer)
-        assertNotNull(event.timestamp)
-        assertEquals("transfer", event.category)
-        assertEquals(DiagnosticSeverity.INFO, event.severity)
-        assertTrue(event.payload.contains("bearer"))
-    }
-
-    @Test
-    fun `DiagnosticEvent PowerModeEffectiveEvent`() {
-        val event =
-            DiagnosticEvent.PowerModeEffectiveEvent(
-                requestedMode = PowerMode.HIGH,
-                effectiveMode = PowerMode.MEDIUM,
-                regulatoryRegion = RegulatoryRegion.EU,
-                scanDutyCyclePercent = 10,
-                advertisementIntervalMs = 500,
-                connectionIntervalMs = 15.0,
-            )
-        assertEquals(PowerMode.HIGH, event.requestedMode)
-        assertEquals(PowerMode.MEDIUM, event.effectiveMode)
-        assertEquals(RegulatoryRegion.EU, event.regulatoryRegion)
-        assertNotNull(event.timestamp)
-        assertEquals("power", event.category)
-        assertEquals(DiagnosticSeverity.INFO, event.severity)
-        assertTrue(event.payload.contains("requestedMode"))
-    }
-
-    @Test
-    fun `DiagnosticEvent HandshakeEvent`() {
-        val event =
+                TransferId.fromHex("1"),
+                DataPlaneBearer.GATT,
+            ),
+            powerEvent(),
             DiagnosticEvent.HandshakeEvent(
-                sessionId = SessionId.ZERO,
-                pattern = HandshakePattern.XX,
-                fallbackUsed = true,
-                verificationLevel = VerificationLevel.FULL,
-                rateLimitAttempts = 3,
-                nonceReplayDetected = false,
-            )
-        assertEquals(HandshakePattern.XX, event.pattern)
-        assertTrue(event.fallbackUsed)
-        assertEquals(VerificationLevel.FULL, event.verificationLevel)
-        assertEquals(3, event.rateLimitAttempts)
-        assertFalse(event.nonceReplayDetected)
-        assertNotNull(event.timestamp)
-        assertEquals("handshake", event.category)
-        assertEquals(DiagnosticSeverity.INFO, event.severity)
-        assertTrue(event.payload.contains("pattern"))
+                HandshakeId(2u),
+                HandshakePattern.XX,
+                VerificationLevel.TOFU_PIN,
+                false,
+            ),
+            rotationEvent(identity),
+            noiseEvent(identity),
+            DiagnosticEvent.RouteDigestMismatchEvent(identity, 1u, 2u),
+            DiagnosticEvent.TransferSessionTransitionEvent(
+                TransferId.fromHex("4"),
+                identity,
+                TransferState.TRANSFERRING,
+                10L,
+                100L,
+                null,
+            ),
+            DiagnosticEvent.TransferFailureEvent(
+                TransferId.fromHex("4"),
+                identity,
+                TransferFailureReason.Unrecoverable("failure"),
+            ),
+        )
     }
 
-    @Test
-    fun `DiagnosticEvent HandshakeEvent with NONE verification level`() {
-        val event =
-            DiagnosticEvent.HandshakeEvent(
-                sessionId = SessionId.ZERO,
-                pattern = HandshakePattern.XX,
-                fallbackUsed = false,
-                verificationLevel = VerificationLevel.NONE,
-                rateLimitAttempts = 0,
-                nonceReplayDetected = false,
-            )
-        assertEquals(DiagnosticSeverity.ERROR, event.severity)
-    }
+    private fun powerEvent(): DiagnosticEvent.PowerModeEffectiveEvent =
+        DiagnosticEvent.PowerModeEffectiveEvent(
+            PowerMode.MEDIUM,
+            PowerMode.MEDIUM,
+            RegulatoryRegion.DEFAULT,
+            10,
+            500.milliseconds,
+            15.milliseconds,
+            500.milliseconds,
+            5_000.milliseconds,
+            4,
+            256,
+            5,
+            30_000.milliseconds,
+            30_000.milliseconds,
+        )
+
+    private fun rotationEvent(identity: PeerIdentity): DiagnosticEvent.KeyRotationEvent =
+        DiagnosticEvent.KeyRotationEvent(
+            identity,
+            1u,
+            2u,
+            KeyRotationReason.PERIODIC,
+            true,
+            false,
+            true,
+        )
+
+    private fun noiseEvent(identity: PeerIdentity): DiagnosticEvent.NoiseSessionEvent =
+        DiagnosticEvent.NoiseSessionEvent(
+            NoiseSessionId(3u),
+            identity,
+            NoiseLayer.HOP_BY_HOP,
+            NoiseRole.INITIATOR,
+            HandshakePattern.IK,
+            NoiseSessionState.HANDSHAKING_IK,
+            NoiseSessionState.ESTABLISHED,
+            null,
+        )
 
     @Test
-    fun `DiagnosticEvent KeyRotationEvent`() {
-        val event =
-            DiagnosticEvent.KeyRotationEvent(
-                peerIdentity = PeerIdentity.ZERO,
-                reason = KeyRotationReason.PERIODIC,
-                oldKeyVerified = true,
-            )
-        assertEquals(KeyRotationReason.PERIODIC, event.reason)
-        assertTrue(event.oldKeyVerified)
-        assertNotNull(event.timestamp)
-        assertEquals("key_rotation", event.category)
-        assertEquals(DiagnosticSeverity.INFO, event.severity)
-        assertTrue(event.payload.contains("peerIdentity"))
-    }
+    fun `failure events expose error severity`() {
+        // Arrange
+        val identity = PeerIdentity.ZERO
 
-    @Test
-    fun `DiagnosticEvent KeyRotationEvent with failed verification`() {
-        val event =
-            DiagnosticEvent.KeyRotationEvent(
-                peerIdentity = PeerIdentity.ZERO,
-                reason = KeyRotationReason.SECURITY_EVENT,
-                oldKeyVerified = false,
+        // Act
+        val events =
+            listOf(
+                DiagnosticEvent.HandshakeEvent(
+                    id = HandshakeId(1u),
+                    pattern = HandshakePattern.IK,
+                    verificationLevel = VerificationLevel.NONE,
+                    nonceReplayDetected = true,
+                ),
+                DiagnosticEvent.KeyRotationEvent(
+                    peerIdentity = identity,
+                    oldGeneration = 2u,
+                    newGeneration = 4u,
+                    reason = KeyRotationReason.SECURITY_EVENT,
+                    continuityVerified = false,
+                    conflictDetected = true,
+                    propagationDeadlineMet = false,
+                ),
+                DiagnosticEvent.KeyRotationEvent(
+                    peerIdentity = identity,
+                    oldGeneration = 2u,
+                    newGeneration = 3u,
+                    reason = KeyRotationReason.MANUAL,
+                    continuityVerified = true,
+                    conflictDetected = true,
+                    propagationDeadlineMet = true,
+                ),
+                DiagnosticEvent.NoiseSessionEvent(
+                    id = NoiseSessionId(2u),
+                    peerIdentity = identity,
+                    layer = NoiseLayer.END_TO_END,
+                    role = NoiseRole.RESPONDER,
+                    pattern = HandshakePattern.XX,
+                    fromState = NoiseSessionState.HANDSHAKING_XX,
+                    toState = NoiseSessionState.FAILED,
+                    failureReason = NoiseFailureReason.HANDSHAKE_MESSAGE_MALFORMED,
+                ),
+                DiagnosticEvent.TransferSessionTransitionEvent(
+                    id = TransferId.fromHex("5"),
+                    peerIdentity = identity,
+                    state = TransferState.FAILED,
+                    offset = 0L,
+                    total = 10L,
+                    reason = null,
+                ),
+                DiagnosticEvent.TransferSessionTransitionEvent(
+                    id = TransferId.fromHex("6"),
+                    peerIdentity = identity,
+                    state = TransferState.EXPIRED,
+                    offset = 0L,
+                    total = 10L,
+                    reason = null,
+                ),
             )
-        assertEquals(DiagnosticSeverity.INFO, event.severity)
-    }
 
-    @Test
-    fun `DiagnosticEvent NoiseSessionEvent`() {
-        val event =
-            DiagnosticEvent.NoiseSessionEvent(
-                sessionId = SessionId.ZERO,
-                layer = NoiseLayer.HOP_BY_HOP,
-                fromState = NoiseSessionState.DISCONNECTED,
-                toState = NoiseSessionState.ESTABLISHED,
-                reason = null,
-            )
-        assertEquals(NoiseLayer.HOP_BY_HOP, event.layer)
-        assertEquals(NoiseSessionState.ESTABLISHED, event.toState)
-        assertNull(event.reason)
-        assertNotNull(event.timestamp)
-        assertEquals("noise", event.category)
-        assertEquals(DiagnosticSeverity.INFO, event.severity)
-        assertTrue(event.payload.contains("layer"))
-    }
-
-    @Test
-    fun `DiagnosticEvent NoiseSessionEvent with failure`() {
-        val event =
-            DiagnosticEvent.NoiseSessionEvent(
-                sessionId = SessionId.ZERO,
-                layer = NoiseLayer.END_TO_END,
-                fromState = NoiseSessionState.HANDSHAKING_XX,
-                toState = NoiseSessionState.FAILED,
-                reason = NoiseFailureReason.HANDSHAKE_TIMEOUT,
-            )
-        assertEquals(NoiseSessionState.FAILED, event.toState)
-        assertEquals(NoiseFailureReason.HANDSHAKE_TIMEOUT, event.reason)
-        assertNotNull(event.timestamp)
-        assertEquals("noise", event.category)
-        assertEquals(DiagnosticSeverity.ERROR, event.severity)
-    }
-
-    @Test
-    fun `DiagnosticEvent TransferSessionEvent`() {
-        val event =
-            DiagnosticEvent.TransferSessionEvent(
-                sessionId = SessionId.ZERO,
-                peerIdentity = PeerIdentity.ZERO,
-                state = TransferState.COMPLETED,
-                reason = null,
-            )
-        assertEquals(TransferState.COMPLETED, event.state)
-        assertNull(event.reason)
-        assertNotNull(event.timestamp)
-        assertEquals("transfer", event.category)
-        assertEquals(DiagnosticSeverity.INFO, event.severity)
-        assertTrue(event.payload.contains("state"))
-    }
-
-    @Test
-    fun `DiagnosticEvent TransferSessionEvent with FAILED state`() {
-        val event =
-            DiagnosticEvent.TransferSessionEvent(
-                sessionId = SessionId.ZERO,
-                peerIdentity = PeerIdentity.ZERO,
-                state = TransferState.FAILED,
-                reason = null,
-            )
-        assertEquals(DiagnosticSeverity.ERROR, event.severity)
-    }
-
-    @Test
-    fun `DiagnosticEvent TransferSessionEvent with TIMED_OUT state`() {
-        val event =
-            DiagnosticEvent.TransferSessionEvent(
-                sessionId = SessionId.ZERO,
-                peerIdentity = PeerIdentity.ZERO,
-                state = TransferState.TIMED_OUT,
-                reason = null,
-            )
-        assertEquals(DiagnosticSeverity.ERROR, event.severity)
-    }
-
-    @Test
-    fun `DiagnosticEvent TransferSessionEvent with IN_PROGRESS state`() {
-        val event =
-            DiagnosticEvent.TransferSessionEvent(
-                sessionId = SessionId.ZERO,
-                peerIdentity = PeerIdentity.ZERO,
-                state = TransferState.IN_PROGRESS,
-                reason = null,
-            )
-        assertEquals(DiagnosticSeverity.INFO, event.severity)
-    }
-
-    @Test
-    fun `DiagnosticEvent TransferSessionEvent with failure reason`() {
-        val event =
-            DiagnosticEvent.TransferSessionEvent(
-                sessionId = SessionId.ZERO,
-                peerIdentity = PeerIdentity.ZERO,
-                state = TransferState.FAILED,
-                reason = TransferFailureReason.Unrecoverable("disk full"),
-            )
-        assertEquals(TransferFailureReason.Unrecoverable("disk full"), event.reason)
-        assertNotNull(event.timestamp)
-        assertEquals("transfer", event.category)
-        assertEquals(DiagnosticSeverity.ERROR, event.severity)
-        assertTrue(event.payload.contains("reason"))
+        // Assert
+        assertEquals(6, events.size)
+        events.forEach { event -> assertEquals(DiagnosticSeverity.ERROR, event.severity) }
     }
 }

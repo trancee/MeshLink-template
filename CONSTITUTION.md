@@ -18,13 +18,28 @@ Rationale: this is a crypto library — subtle defects are exploitable.
   any other diagnostic output, anywhere in the runtime (not just crypto
   test code). Use structured identifiers (algorithm, key id, provider
   label, stage) for diagnostics instead. See
-  `docs/decisions/crypto/vector-policy.md` for the test-vector-specific
-  application of this rule.
+  `docs/decisions/crypto/private-key-handling.md` for provider, persistence,
+  memory, redaction, and test requirements.
 - Any input crossing a trust boundary (BLE wire payloads, pairing data,
   on-disk config, or other external/untrusted sources) MUST be validated
   and rejected with a typed error on failure — never left to throw an
   unhandled exception, crash, or panic. Prefer sealed result types over
   exceptions for parse failures on untrusted data.
+- MeshLink MUST fail closed by default. When identity, authentication,
+  authorization, integrity, replay status, protocol compatibility,
+  persisted security state, or configuration validity is uncertain, the
+  affected operation MUST be denied, dropped, disconnected, paused, or
+  rolled back to its last known-good state. It MUST NOT silently trust,
+  continue with partially validated state, downgrade security, reuse stale
+  keys, fall back to plaintext, or regenerate identity after unexplained
+  storage corruption. A fallback is permitted only when it is explicitly
+  specified, preserves the required security properties, is observable,
+  and has its own tests. Failure scope SHOULD be the smallest safe unit
+  (frame, transfer, peer, or instance) rather than an unrelated process
+  crash. Every fail-closed branch MUST return or emit a typed, redacted
+  reason and be covered by tests. See
+  `docs/decisions/crypto/identity-binding-and-fail-closed.md` for the
+  project-wide operational interpretation.
 - Detekt MUST pass with zero suppressions. Test-code suppressions MUST
   include an inline justification comment.
 - ktfmt formatting MUST be applied before every commit; no manual style
@@ -125,7 +140,7 @@ Rationale: BLE mesh networking runs under hard power/latency/memory caps.
 | Throughput (1-hop L2CAP) | ≥80 KB/s Android (Pixel 6+), ≥60 KB/s iOS (iPhone 12+) |
 | Latency (1-hop, 256B, p95) | <50 ms after connection established, both platforms |
 | Memory (steady state, 8 peers) | ≤8 MB heap, both platforms |
-| Battery | ≤5% scan duty cycle, ≥500 ms connection interval |
+| Battery (LOW/background idle) | Target ≤5% scan duty cycle; request 500–1000 ms idle connection interval after 5 s without queued work |
 | Cold start | <500 ms from `mesh.start()` to first advertisement, both platforms |
 | Routing convergence | ≤3 s for 10-node topology change (virtual transport) |
 | Wire codec encode/decode | <1 μs/message (JVM benchmark) |
@@ -233,8 +248,9 @@ Every PR MUST, before merge:
   runtime.
 - All crypto goes through `CryptoProvider`, validated against Wycheproof.
   No external crypto library ships in the release artifact.
-- Deployed FlatBuffers wire formats stay backward compatible; breaking
-  changes need a major version bump + migration period.
+- Deployed MeshLink Wire Codec formats stay backward compatible; explicit
+  field/enum codes are never reinterpreted or reused, and breaking changes
+  need a major version bump plus migration period.
 - The shipped `:meshlink` artifact may depend on exactly one runtime
   dependency: `kotlinx-coroutines-core`. Other modules (app/host/proof/
   benchmark/docs) may add their own runtime deps as long as none leak into
@@ -273,4 +289,4 @@ conflict.
 - Anything below constitutional level (day-to-day conventions) belongs in
   `docs/`, not here.
 
-**Version**: 1.19.0 | **Ratified**: 2026-04-30 | **Last Amended**: 2026-07-29
+**Version**: 1.20.0 | **Ratified**: 2026-04-30 | **Last Amended**: 2026-07-31

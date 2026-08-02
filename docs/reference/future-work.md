@@ -11,19 +11,15 @@
 
 **Why not aggressive**: Requires provider maturity and state-machine work beyond first spike.
 
-### 2. Noise IK for E2E Layer
-
-Replace IX with IK when both peers hold pinned keys → mutual 0-RTT E2E authentication.
-
-### 3. Throughput-Based Link Metrics
+### 2. Throughput-Based Link Metrics
 
 Replace RSSI proxy with measured throughput for routing decisions (post-connection refinement).
 
-### 4. Payload Compression
+### 3. Payload Compression
 
 Optional zlib/Brotli/Zstd for large payloads (RFC 1950/1951/1952, RFC 7932, RFC 8878).
 
-### 5. Group Messaging
+### 4. Group Messaging
 
 MLS (RFC 9420) integration for multi-recipient E2E encryption.
 

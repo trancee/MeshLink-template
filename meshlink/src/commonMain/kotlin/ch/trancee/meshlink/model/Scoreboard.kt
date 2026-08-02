@@ -2,7 +2,7 @@ package ch.trancee.meshlink.model
 
 /**
  * Immutable bitfield for selective acknowledgment of received chunks. Bit N = 1 means chunk N is
- * received (standard SACK convention). Length is ceil(totalChunks / 8) bytes derived from
+ * received (standard SACK convention). Length is derived from totalChunks and the byte width.
  * [totalChunks].
  *
  * This class is immutable — [markReceived] and [markMissing] return a new [Scoreboard] instance
@@ -24,31 +24,18 @@ private constructor(
         totalChunks: UInt
     ) : this(
         totalChunks = totalChunks,
-        byteSize = ((totalChunks.toInt() + 7) / 8),
-        bytes = ByteArray(((totalChunks.toInt() + 7) / 8)),
-        received = 0,
-    )
-
-    /**
-     * Pre-allocated for [ScoreboardEncoding.FIXED] — byte array sized for [maxChunksPerSession] but
-     * only bits 0..[totalChunks-1] are meaningful.
-     */
-    public constructor(
-        totalChunks: UInt,
-        maxChunksPerSession: UInt,
-    ) : this(
-        totalChunks = totalChunks,
-        byteSize = ((maxChunksPerSession.toInt() + 7) / 8),
-        bytes = ByteArray(((maxChunksPerSession.toInt() + 7) / 8)),
+        byteSize = ((totalChunks.toInt() + LAST_BIT_INDEX) / BITS_PER_BYTE),
+        bytes = ByteArray(((totalChunks.toInt() + LAST_BIT_INDEX) / BITS_PER_BYTE)),
         received = 0,
     )
 
     public companion object {
         /** Constructs a [Scoreboard] from a raw byte array and chunk count. */
         public fun fromBytes(totalChunks: UInt, bytes: ByteArray): Scoreboard {
-            val expectedSize = ((totalChunks.toInt() + 7) / 8)
+            val expectedSize = ((totalChunks.toInt() + LAST_BIT_INDEX) / BITS_PER_BYTE)
             require(bytes.size == expectedSize) {
-                "Scoreboard byte array size ${bytes.size} does not match expected size $expectedSize for totalChunks=$totalChunks"
+                "Scoreboard byte array size ${bytes.size} does not match " +
+                    "expected size $expectedSize for totalChunks=$totalChunks"
             }
             val maskedBytes = maskBits(totalChunks, bytes)
             return Scoreboard(
@@ -72,8 +59,8 @@ private constructor(
     /** Marks chunk [index] as received. Returns a new [Scoreboard]. */
     public fun markReceived(index: Int): Scoreboard {
         checkIndex(index)
-        val byteIndex = index / 8
-        val bitIndex = index % 8
+        val byteIndex = index / BITS_PER_BYTE
+        val bitIndex = index % BITS_PER_BYTE
         val oldByte = bytes[byteIndex]
         val newBytes = bytes.copyOf()
         newBytes[byteIndex] = oldByte.setBit(bitIndex)
@@ -84,8 +71,8 @@ private constructor(
     /** Marks chunk [index] as missing. Returns a new [Scoreboard]. */
     public fun markMissing(index: Int): Scoreboard {
         checkIndex(index)
-        val byteIndex = index / 8
-        val bitIndex = index % 8
+        val byteIndex = index / BITS_PER_BYTE
+        val bitIndex = index % BITS_PER_BYTE
         val oldByte = bytes[byteIndex]
         val newBytes = bytes.copyOf()
         newBytes[byteIndex] = oldByte.clearBit(bitIndex)
@@ -96,83 +83,13 @@ private constructor(
     /** Returns true if chunk [index] has been received. */
     public fun isReceived(index: Int): Boolean {
         checkIndex(index)
-        return bytes[index / 8].isBitSet(index % 8)
+        return bytes[index / BITS_PER_BYTE].isBitSet(index % BITS_PER_BYTE)
     }
 
     /** Returns true if chunk [index] has not yet been received. */
     public fun isMissing(index: Int): Boolean {
         checkIndex(index)
-        return !bytes[index / 8].isBitSet(index % 8)
-    }
-
-    /**
-     * Returns the list of chunk indices that have not yet been received. Allocates a new list — use
-     * [forEachMissing] for zero-allocation iteration.
-     */
-    public fun missingChunks(): List<Int> = (0 until totalChunks.toInt()).filter { isMissing(it) }
-
-    /**
-     * Lazily iterates missing chunk indices without allocating a list. Prefer over [missingChunks]
-     * when only iterating (no list needed).
-     */
-    public fun missingSequence(): Sequence<Int> =
-        (0 until totalChunks.toInt()).asSequence().filter { isMissing(it) }
-
-    /** Calls [action] for each missing chunk index without allocating a collection. */
-    public inline fun forEachMissing(action: (index: Int) -> Unit) {
-        for (i in 0 until totalChunks.toInt()) {
-            if (isMissing(i)) action(i)
-        }
-    }
-
-    /**
-     * Merges this scoreboard with [other] — a bit N is set in the result if it is set in either
-     * receiver. Useful for combining ACK bitfields from multiple mesh peers. Both scoreboards must
-     * have the same [totalChunks] and byte size.
-     */
-    public fun or(other: Scoreboard): Scoreboard {
-        requireCompatible(other)
-        val merged = ByteArray(byteSize)
-        var mergedReceived = 0
-        for (i in 0 until byteSize) {
-            val mergedByte = this.bytes[i].intOr(other.bytes[i])
-            merged[i] = mergedByte
-            mergedReceived += mergedByte.popcount()
-        }
-        return Scoreboard(totalChunks, byteSize, merged, mergedReceived)
-    }
-
-    /**
-     * Intersects this scoreboard with [other] — a bit N is set in the result only if it is set in
-     * both receivers. Useful for finding chunks all relay peers have confirmed. Both scoreboards
-     * must have the same [totalChunks] and byte size.
-     */
-    public fun and(other: Scoreboard): Scoreboard {
-        requireCompatible(other)
-        val merged = ByteArray(byteSize)
-        var mergedReceived = 0
-        for (i in 0 until byteSize) {
-            val mergedByte = this.bytes[i].intAnd(other.bytes[i])
-            merged[i] = mergedByte
-            mergedReceived += mergedByte.popcount()
-        }
-        return Scoreboard(totalChunks, byteSize, merged, mergedReceived)
-    }
-
-    /**
-     * Symmetric difference of this scoreboard and [other] — bits set in exactly one receiver. Both
-     * scoreboards must have the same [totalChunks] and byte size.
-     */
-    public fun xor(other: Scoreboard): Scoreboard {
-        requireCompatible(other)
-        val merged = ByteArray(byteSize)
-        var mergedReceived = 0
-        for (i in 0 until byteSize) {
-            val mergedByte = this.bytes[i].intXor(other.bytes[i])
-            merged[i] = mergedByte
-            mergedReceived += mergedByte.popcount()
-        }
-        return Scoreboard(totalChunks, byteSize, merged, mergedReceived)
+        return !bytes[index / BITS_PER_BYTE].isBitSet(index % BITS_PER_BYTE)
     }
 
     /** Returns the raw bitfield as a [ByteArray]. */
@@ -189,15 +106,6 @@ private constructor(
             )
         }
     }
-
-    private fun requireCompatible(other: Scoreboard) {
-        require(this.totalChunks == other.totalChunks) {
-            "Scoreboard.or/and/xor require matching totalChunks: ${this.totalChunks} vs ${other.totalChunks}"
-        }
-        require(this.byteSize == other.byteSize) {
-            "Scoreboard.or/and/xor require matching byte sizes: ${this.byteSize} vs ${other.byteSize}"
-        }
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -212,14 +120,14 @@ private constructor(
  * Counts are O(1) — tracked incrementally on each mutation.
  */
 public class MutableScoreboard(public val totalChunks: UInt) {
-    private val bytes = ByteArray(((totalChunks.toInt() + 7) / 8))
+    private val bytes = ByteArray(((totalChunks.toInt() + LAST_BIT_INDEX) / BITS_PER_BYTE))
     private var received: Int = 0
 
     /** Marks chunk [index] as received in-place. */
     public fun markReceived(index: Int) {
         checkIndex(index)
-        val byteIndex = index / 8
-        val bitIndex = index % 8
+        val byteIndex = index / BITS_PER_BYTE
+        val bitIndex = index % BITS_PER_BYTE
         val oldByte = bytes[byteIndex]
         bytes[byteIndex] = oldByte.setBit(bitIndex)
         if (!oldByte.isBitSet(bitIndex)) received++
@@ -228,8 +136,8 @@ public class MutableScoreboard(public val totalChunks: UInt) {
     /** Marks chunk [index] as missing in-place. */
     public fun markMissing(index: Int) {
         checkIndex(index)
-        val byteIndex = index / 8
-        val bitIndex = index % 8
+        val byteIndex = index / BITS_PER_BYTE
+        val bitIndex = index % BITS_PER_BYTE
         val oldByte = bytes[byteIndex]
         bytes[byteIndex] = oldByte.clearBit(bitIndex)
         if (oldByte.isBitSet(bitIndex)) received--
@@ -238,13 +146,13 @@ public class MutableScoreboard(public val totalChunks: UInt) {
     /** Returns true if chunk [index] has been received. */
     public fun isReceived(index: Int): Boolean {
         checkIndex(index)
-        return bytes[index / 8].isBitSet(index % 8)
+        return bytes[index / BITS_PER_BYTE].isBitSet(index % BITS_PER_BYTE)
     }
 
     /** Returns true if chunk [index] has not yet been received. */
     public fun isMissing(index: Int): Boolean {
         checkIndex(index)
-        return !bytes[index / 8].isBitSet(index % 8)
+        return !bytes[index / BITS_PER_BYTE].isBitSet(index % BITS_PER_BYTE)
     }
 
     /** Returns the count of received chunks. O(1). */
@@ -272,35 +180,23 @@ public class MutableScoreboard(public val totalChunks: UInt) {
 // Internal bit manipulation helpers
 // ---------------------------------------------------------------------------
 
-private infix fun Byte.setBit(bit: Int): Byte = (this.toInt() or (1 shl bit)).toByte()
+private infix fun Byte.setBit(bit: Int): Byte = (this.toInt() or (ONE shl bit)).toByte()
 
-private infix fun Byte.clearBit(bit: Int): Byte = (this.toInt() and (1 shl bit).inv()).toByte()
+private infix fun Byte.clearBit(bit: Int): Byte = (this.toInt() and (ONE shl bit).inv()).toByte()
 
 private fun Byte.isBitSet(bit: Int): Boolean = (this.toInt() shr bit) and 1 == 1
-
-/** Counts the number of set bits in this byte (population count). */
-private fun Byte.popcount(): Int = (this.toInt() and 0xFF).countOneBits()
-
-/** Bitwise OR of two bytes, returning a Byte. */
-private fun Byte.intOr(other: Byte): Byte = (this.toInt() or other.toInt()).toByte()
-
-/** Bitwise AND of two bytes, returning a Byte. */
-private fun Byte.intAnd(other: Byte): Byte = (this.toInt() and other.toInt()).toByte()
-
-/** Bitwise XOR of two bytes, returning a Byte. */
-private fun Byte.intXor(other: Byte): Byte = (this.toInt() xor other.toInt()).toByte()
 
 /** Computes the total number of set bits across [bytes] for the first [totalChunks] bits. */
 private fun computePopcount(bytes: ByteArray, totalChunks: UInt): Int {
     var count = 0
-    val fullBytes = totalChunks.toInt() / 8
-    val remainderBits = totalChunks.toInt() % 8
+    val fullBytes = totalChunks.toInt() / BITS_PER_BYTE
+    val remainderBits = totalChunks.toInt() % BITS_PER_BYTE
     for (i in 0 until fullBytes) {
-        count += bytes[i].countOneBits()
+        count += (bytes[i].toInt() and BYTE_MASK).countOneBits()
     }
     if (remainderBits > 0) {
         // Mask off bits beyond totalChunks in the partial byte
-        val mask = (1 shl remainderBits) - 1
+        val mask = (ONE shl remainderBits) - ONE
         count += (bytes[fullBytes].toInt() and mask).countOneBits()
     }
     return count
@@ -313,11 +209,16 @@ private fun computePopcount(bytes: ByteArray, totalChunks: UInt): Int {
  */
 private fun maskBits(totalChunks: UInt, bytes: ByteArray): ByteArray {
     val masked = bytes.copyOf()
-    val remainderBits = totalChunks.toInt() % 8
+    val remainderBits = totalChunks.toInt() % BITS_PER_BYTE
     if (remainderBits > 0) {
-        val mask = (1 shl remainderBits) - 1
-        masked[totalChunks.toInt() / 8] =
-            (masked[totalChunks.toInt() / 8].toInt() and mask).toByte()
+        val mask = (ONE shl remainderBits) - ONE
+        masked[totalChunks.toInt() / BITS_PER_BYTE] =
+            (masked[totalChunks.toInt() / BITS_PER_BYTE].toInt() and mask).toByte()
     }
     return masked
 }
+
+private const val BITS_PER_BYTE: Int = 8
+private const val LAST_BIT_INDEX: Int = 7
+private const val ONE: Int = 1
+private const val BYTE_MASK: Int = 0xFF

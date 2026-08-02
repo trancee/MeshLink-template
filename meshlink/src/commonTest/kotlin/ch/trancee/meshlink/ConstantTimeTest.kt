@@ -33,6 +33,19 @@ class ConstantTimeTest {
     }
 
     @Test
+    fun `constantTimeEquals covers longer left array tail`() {
+        // Arrange
+        val longer = byteArrayOf(1, 2)
+        val shorter = byteArrayOf(1)
+
+        // Act
+        val result = ConstantTime.constantTimeEquals(longer, shorter)
+
+        // Assert
+        assertTrue(result != 0)
+    }
+
+    @Test
     fun `constantTimeEquals handles empty arrays`() {
         assertEquals(0, ConstantTime.constantTimeEquals(ByteArray(0), ByteArray(0)))
     }

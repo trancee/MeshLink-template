@@ -5,7 +5,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class SeqNoWireTest {
     // ---- toByteArray / fromByteArray ----
@@ -119,68 +118,68 @@ class SeqNoWireTest {
         assertFailsWith<IllegalArgumentException> { SeqNo.fromByteArray(fiveBytes) }
     }
 
-    // ---- unsignedDistance ----
+    // ---- distanceFrom ----
 
     @Test
-    fun `unsignedDistance returns 0 for equal values`() {
+    fun `distanceFrom returns 0 for equal values`() {
         // Arrange
         val a = SeqNo(42u)
         val b = SeqNo(42u)
 
         // Act
-        val result = a.unsignedDistance(b)
+        val result = a.distanceFrom(b)
 
         // Assert
         assertEquals(0u, result)
     }
 
     @Test
-    fun `unsignedDistance returns forward distance`() {
+    fun `distanceFrom returns forward distance`() {
         // Arrange
         val newer = SeqNo(20u)
         val older = SeqNo(10u)
 
         // Act
-        val result = newer.unsignedDistance(older)
+        val result = newer.distanceFrom(older)
 
         // Assert
         assertEquals(10u, result)
     }
 
     @Test
-    fun `unsignedDistance handles wrap-around`() {
+    fun `distanceFrom handles wrap-around`() {
         // Arrange — 1 to 0xFFFFFFFE: forward distance wrapping through 0 is 3
         val wrapped = SeqNo(1u)
         val old = SeqNo(0xFFFFFFFEu)
 
         // Act
-        val result = wrapped.unsignedDistance(old)
+        val result = wrapped.distanceFrom(old)
 
         // Assert
         assertEquals(3u, result)
     }
 
     @Test
-    fun `unsignedDistance is not symmetric`() {
+    fun `distanceFrom is not symmetric`() {
         // Arrange
         val a = SeqNo(10u)
         val b = SeqNo(20u)
 
         // Act
-        val dAB = a.unsignedDistance(b)
-        val dBA = b.unsignedDistance(a)
+        val dAB = a.distanceFrom(b)
+        val dBA = b.distanceFrom(a)
 
-        // Assert — a.unsignedDistance(b) = (10 - 20) mod 2^32 wraps to 2^32 - 10
-        // b.unsignedDistance(a) = (20 - 10) = 10
+        // Assert — a.distanceFrom(b) = (10 - 20) mod 2^32 wraps to 2^32 - 10
+        // b.distanceFrom(a) = (20 - 10) = 10
         assertEquals(0xFFFFFFFFu - 9u, dAB)
         assertEquals(10u, dBA)
     }
 
     @Test
-    fun `unsignedDistance from ZERO to MAX_VALUE`() {
+    fun `distanceFrom from ZERO to MAX_VALUE`() {
         // Arrange — ZERO is one increment ahead of MAX_VALUE (wraps)
         // Act
-        val result = SeqNo.ZERO.unsignedDistance(SeqNo.MAX_VALUE)
+        val result = SeqNo.ZERO.distanceFrom(SeqNo.MAX_VALUE)
 
         // Assert
         assertEquals(1u, result)
@@ -195,25 +194,19 @@ class SeqNoWireTest {
         val b = SeqNo(0x80000000u)
 
         // Act
-        val cmp = a.compareTo(b)
-
         // Assert — at boundary, isNewerThan and isOlderThan both return false (ambiguous)
         assertFalse(a.isNewerThan(b))
         assertFalse(b.isNewerThan(a))
-        // compareTo uses signed difference (same as minus): 0 - 0x80000000 = Int.MIN_VALUE < 0.
-        // This gives a deterministic ordering even when newer/older is ambiguous — consistent with
-        // the modular signed comparison semantics used by all comparison methods.
-        assertTrue(cmp < 0)
     }
 
     @Test
-    fun `unsignedDistance for half-window boundary case`() {
+    fun `distanceFrom for half-window boundary case`() {
         // Arrange — distance from 0 to 0x80000000 is exactly 2^31
         val a = SeqNo(0u)
         val b = SeqNo(0x80000000u)
 
         // Act
-        val result = a.unsignedDistance(b)
+        val result = a.distanceFrom(b)
 
         // Assert — modular unsigned distance wraps to half the range
         assertEquals(0x80000000u, result)
