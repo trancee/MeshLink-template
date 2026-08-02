@@ -44,7 +44,7 @@ for file in "${staged_files[@]}"; do
     meshlink-proof/*)
       need_proof=1
       ;;
-    .githooks/*|scripts/install-git-hooks.sh|scripts/bootstrap.sh|scripts/check_markdown.sh)
+    .githooks/*|scripts/install-git-hooks.sh|scripts/bootstrap.sh|scripts/check-markdown.sh)
       need_hook_validation=1
       ;;
     build.gradle.kts|settings.gradle.kts|gradle.properties|gradle/*)
@@ -89,7 +89,7 @@ if [[ "$need_hook_validation" -eq 1 ]]; then
     .githooks/commit-msg \
     scripts/install-git-hooks.sh \
     scripts/bootstrap.sh \
-    scripts/check_markdown.sh
+    scripts/check-markdown.sh
 fi
 
 if [[ "$need_yaml" -eq 1 ]]; then
@@ -105,7 +105,7 @@ fi
 
 if [[ "$need_markdown" -eq 1 ]]; then
   echo "[pre-commit] Running Markdown lint/link check (offline): ${markdown_files[*]}"
-  ./scripts/check_markdown.sh --offline "${markdown_files[@]}"
+  ./scripts/check-markdown.sh --offline "${markdown_files[@]}"
 fi
 
 format_tasks=()

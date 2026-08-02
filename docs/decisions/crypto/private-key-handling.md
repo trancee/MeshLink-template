@@ -2,153 +2,142 @@
 
 **Status:** Locked — 2026-07-31
 
-> This record defines the mandatory boundary for private-key ownership,
-> persistence, memory handling, diagnostics, rotation, and device-lock state.
-> It applies to platform and pure-Kotlin providers.
+> Normative boundary, persistence, memory handling, rotation, and test requirements
+> live in [SPEC.md §7.3](../../../SPEC.md#security-layer) and implementation in
+> crypto/storage modules. This record explains the design rationale.
 
-## Invariant
+## Why private keys never leave the crypto/storage subsystem
 
-Private keys never leave the crypto/storage subsystem through public APIs, wire
-messages, strings, diagnostics, exceptions, logs, crash breadcrumbs, analytics,
-or test reports.
+**Decision:** Private keys never enter public APIs, wire messages, strings,
+diagnostics, exceptions, logs, crash breadcrumbs, analytics, or test reports.
+Public code uses opaque internal handles (`IdentityPrivateKey`,
+`HandshakePrivateKey`, `EphemeralPrivateKey`). Public keys remain serializable
+`IdentityKey`/`HandshakeKey` values.
 
-Shared protocol code uses opaque internal handles:
+**Rationale:** The fundamental security invariant is that private key material is
+never observable outside the crypto subsystem. This prevents accidental logging,
+serialization in crash reports, exposure in analytics, and reflection-based
+extraction. Opaque handles with provider ownership ensure operations fail closed
+when a handle is used with the wrong provider.
 
-```kotlin
-internal sealed interface IdentityPrivateKey
-internal sealed interface HandshakePrivateKey
-internal sealed interface EphemeralPrivateKey
-```
+## Why runtime self-tests with pure-Kotlin fallback
 
-Public keys remain serializable `IdentityKey` and `HandshakeKey` values. Each
-private handle records its owning provider internally; a wrong-provider
-operation fails closed.
+**Decision:** Each platform candidate runs known-answer and negative tests for
+all primitives before advertising. Failing platform primitive selects only that
+primitive's validated pure-Kotlin fallback. Fallback failure blocks startup.
+Self-test keys are ephemeral and never enter installation storage.
 
-## Runtime self-tests
+**Rationale:** Platform crypto implementations can have bugs, be unavailable, or
+be disabled by policy. Self-tests catch these before any protocol traffic.
+Per-primitive fallback means a broken X25519 doesn't force pure-Kotlin Ed25519.
+Ephemeral test keys ensure the tests don't pollute the trust store. The 500 ms
+cold-start budget forces efficient implementation.
 
-Before advertising once per process, each platform candidate runs known-answer
-and negative tests for SHA-256, HMAC-SHA256, HKDF-SHA256,
-ChaCha20-Poly1305, X25519, and Ed25519, plus secure-random availability and a
-private-key generate/store/load/use round trip.
+## Why provider ownership with opaque handles
 
-A failing platform primitive selects only that primitive's validated pure-Kotlin
-fallback. Fallback failure blocks startup. Provider choice is not persisted and
-self-test keys never enter installation storage. Diagnostics expose only
-primitive, provider label, and stage. The complete gate must remain inside the
-500 ms cold-start budget.
+**Decision:** Non-exportable platform keys remain provider-owned by opaque
+alias. Fallback/exportable keys serialized only inside provider/storage bridge
+directly into authenticated encryption or Keychain storage. Handles render only
+redacted metadata (provider label, non-secret key ID). No `toByteArray`,
+encoding, copy, or raw equality.
 
-## Provider ownership
+**Rationale:** Provider ownership ensures the platform's key isolation (StrongBox,
+Secure Enclave) is respected. Opaque handles prevent accidental leakage through
+serialization, reflection, or debug output. The provider/storage bridge is the
+only boundary where exportable keys cross, and it uses authenticated encryption
+with bound AAD.
 
-Non-exportable platform keys remain provider-owned and persist by opaque alias.
-Fallback/exportable keys may be serialized only inside the provider/storage
-bridge and only directly into authenticated encryption or Keychain storage.
+## Why Android persistence uses AES-256-GCM with Keystore wrapping key
 
-Handles render redacted metadata only, for example provider label and a
-non-secret key identifier. No private handle exposes `toByteArray`, encoding,
-copy, reflection-friendly data properties, or meaningful raw equality output.
+**Decision:** Fallback/exportable keys encrypted with AES-256-GCM, wrapping key
+in Android Keystore. Fresh 96-bit nonce per write. AAD binds schema version,
+`appHash`, PeerIdentity, key type, key generation. App-private atomic file,
+excluded from backup. Non-exportable native keys store only provider alias +
+public key.
 
-## Android persistence
+**Rationale:** AES-256-GCM provides authenticated encryption. Keystore-backed
+wrapping key leverages hardware isolation when available. Fresh nonce per write
+prevents nonce reuse. AAD binding ensures ciphertext cannot be replayed across
+different keys, versions, or applications. Atomic file + backup exclusion
+prevents partial writes and backup leakage. Non-exportable keys don't need
+wrapping — they stay in Keystore by alias.
 
-Fallback or exportable private keys are encrypted with AES-256-GCM using a
-wrapping key generated in Android Keystore. Hardware backing is preferred when
-available and verified, but is not claimed solely from API level or provider
-name.
+## Why iOS persistence uses Keychain with AfterFirstUnlockThisDeviceOnly
 
-Every record write uses a fresh 96-bit nonce. AAD binds schema version,
-`appHash`, PeerIdentity, key type, and key generation. Only ciphertext, nonce,
-tag, and non-secret metadata enter an app-private atomic file. The record is
-excluded from Android backup.
+**Decision:** Keychain items with `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`
+and `kSecAttrSynchronizable = false`. Installation marker detects
+deletion/reinstall.
 
-A non-exportable native key record stores only provider alias and public key.
-Plaintext preferences, generic object serialization, external storage, and
-backup-restorable private records are prohibited.
+**Rationale:** `AfterFirstUnlockThisDeviceOnly` ensures keys are only accessible
+after user unlock and never leave the device. Non-synchronizable prevents iCloud
+Keychain sync (which would break device-only security). Installation marker
+handles the case where Keychain items outlive app deletion — a fresh install
+must not inherit stale identity/keys.
 
-## iOS persistence
+## Why MeshLink is inactive before first unlock
 
-CryptoKit/fallback representations use Keychain with:
+**Decision:** After reboot, before first user unlock: no identity material
+load/recreation, no advertisement, no handshake acceptance/initiation, no
+protected routing/transfer work. Reports typed protected-storage unavailability.
 
-```text
-kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-kSecAttrSynchronizable = false
-```
+**Rationale:** Before first unlock, device-only key material is encrypted and
+unavailable. Attempting to use it would either fail or (worse) silently use
+insecure fallback. Inactivity with typed unavailability is honest and fail-closed.
+Behavior is identical on Android and iOS for cross-platform consistency.
 
-An app-container installation marker detects deletion/reinstall because Keychain
-items may outlive the deleted app. Missing marker plus existing MeshLink items
-means stale installation state: delete it before creating a new PeerIdentity and
-keys.
+## Why atomic updates with recoverable transactions
 
-MeshLink does not claim Secure Enclave execution for Ed25519 or X25519.
+**Decision:** Identity/key-generation updates use temporary record → flush →
+atomic replace → commit marker. Crash exposes either complete old or complete
+new generation, never mixed. AAD failure, missing keys under existing marker,
+or rollback ambiguity fails closed. No silent key regeneration under same
+PeerIdentity.
 
-## First unlock
+**Rationale:** Atomic replace ensures the storage is never in a partially
+updated state. The commit marker makes the transition observable. Fail-closed
+on any ambiguity prevents key confusion attacks. No silent regeneration under
+same PeerIdentity preserves the trust model — a corrupted storage means the
+identity is unrecoverable, not silently reset.
 
-After reboot and before the user's first device unlock, MeshLink does not:
+## Why memory handling constraints
 
-- load or recreate identity material;
-- advertise as an operational peer;
-- accept or initiate handshakes; or
-- process protected routing/transfer work.
+**Decision:** Private data uses mutable buffers only. No String, hex, Base64,
+list, or immutable-collection conversion. Copies minimized, temporary arrays
+overwritten in `finally`. Ephemeral handles released when handshake state
+closes. Fallback scalar operations avoid secret-dependent control/data access.
+GC runtimes prevent absolute zeroization guarantee; documentation states best
+effort and prefers non-exportable keys.
 
-It reports typed protected-storage unavailability and resumes only when the
-platform makes device-only key material available. This rule is identical in
-observable behavior on Android and iOS.
+**Rationale:** Immutable collections and Strings can leave copies in GC memory.
+Mutable buffers allow explicit overwrite. Minimizing copies reduces exposure
+surface. `finally` block overwrite ensures cleanup even on exception.
+Non-exportable hardware keys provide genuine isolation; software-only keys are
+best-effort due to GC.
 
-## Atomic updates
+## Why cryptographic erasure on rotation
 
-Identity and key-generation updates use a recoverable transaction:
-
-```text
-write encrypted temporary record
-→ flush
-→ atomically replace committed record
-→ update commit marker
-```
-
-A crash exposes either a complete old generation or complete new generation,
-never a mixed binding. Authentication-tag/AAD failure, missing keys under an
-existing installation marker, or rollback ambiguity fails closed. MeshLink does
-not silently regenerate keys under the same PeerIdentity.
-
-## Memory handling
-
-- Private data uses mutable buffers only.
-- No String, hex, Base64, list, or immutable-collection conversion is allowed.
-- Copies are minimized and temporary arrays are overwritten in `finally`.
-- Ephemeral handles are released when handshake state closes.
-- Fallback scalar operations avoid secret-dependent control/data access.
-- Garbage-collected JVM/Native runtimes prevent an absolute zeroization
-  guarantee; documentation states best effort and prefers genuinely
-  non-exportable keys when supported.
-
-## Rotation and cryptographic erasure
-
-Planned old keys remain encrypted only through the approved grace period.
+**Decision:** Planned old keys remain encrypted through grace period.
 Security-event rotation disables old handles immediately. At grace expiry,
-provider aliases and wrapped records are removed.
+provider aliases and wrapped records removed. Rotation proofs contain only
+public keys/signatures. Wrapping key/alias deletion provides cryptographic
+erasure; physical flash secure erasure not assumed.
 
-Rotation proof chains contain public keys and signatures only. Physical flash
-secure erasure is not assumed; deletion of the wrapping key/alias provides
-cryptographic erasure of remaining ciphertext.
+**Rationale:** Grace period allows in-flight sessions to complete. Security-event
+immediate disable limits exposure window. Deleting the wrapping key renders
+ciphertext undecryptable (cryptographic erasure), which is stronger than file
+deletion and doesn't depend on flash controller behavior. Proofs need only
+public material; private keys never enter proofs.
 
-## Redaction
+## Why redaction in diagnostics and tests
 
-Diagnostics identify only algorithm, provider label, operation stage, public
-key generation, and redacted key ID. Error text never interpolates input key
-bytes. Test vectors use dedicated non-production fixtures and reports never
-capture runtime key records.
+**Decision:** Diagnostics show only algorithm, provider label, stage, public
+generation, redacted key ID. Error text never interpolates input key bytes.
+Test vectors use dedicated non-production fixtures; reports never capture
+runtime key records.
 
-## Required tests
-
-- Platform and fallback known-answer/vector tests
-- Wrong-provider handle rejection
-- Private marker scan across logs, exceptions, reports, and persisted files
-- Corrupted nonce/tag/AAD and rollback failure
-- Process kill at every atomic-persistence step
-- Before-first-unlock startup
-- Android backup exclusion
-- iOS non-synchronizable and reinstall-marker behavior
-- Planned/security rotation deletion
-- Public API/reflection audit proving no private-byte accessor
-- Best-effort temporary-buffer overwrite tests
+**Rationale:** Even in failure, private key material must not leak. Redaction
+rules are enforced at emission point, not by convention. Dedicated test
+fixtures ensure production keys never enter test infrastructure.
 
 ## Related
 
@@ -156,3 +145,4 @@ capture runtime key records.
 - [Peer identity persistence](../storage/persistence-strategy.md)
 - [Crypto design](crypto-design.md)
 - [CONSTITUTION.md Principle I](../../../CONSTITUTION.md#i-rigorous-code-quality)
+- [SPEC.md §7.3](../../../SPEC.md#security-layer)

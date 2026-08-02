@@ -1,77 +1,22 @@
 # Diagnostics & Events
 
 > **Specification**: [SPEC.md §11](../../SPEC.md#diagnostics--events)  
-> **Design rationale**: [Diagnostic Flow Delivery](../decisions/diagnostics/flow-delivery.md), [Public API and Lifecycle](../decisions/api/public-api-and-lifecycle.md)
+> **Design rationale**: [Diagnostic Flow Delivery](../decisions/diagnostics/flow-delivery.md), [Public API and Lifecycle](../decisions/api/public-api-and-lifecycle.md)  
+> **Machine-readable**: [specs/catalogs/diagnostic-events.yaml](../../specs/catalogs/diagnostic-events.yaml), [specs/codecs/enums.yaml](../../specs/codecs/enums.yaml)
 
-## Public Observation
+## Platform-Specific Notes
 
-```kotlin
-val knownPeers: StateFlow<List<KnownPeer>>
-val transfers: StateFlow<List<Transfer>>
-val messages: Flow<Message>
-val diagnostics: Flow<DiagnosticEvent>
-```
+### Android
 
-Peers and transfers expose current snapshots. Messages and diagnostics are
-occurrences and do not accumulate as an unbounded public history.
+- Diagnostic events mirrored to Logcat when `DiagnosticsSettings.emitToLog = true`
+- Log level mapping: `DEBUG`→`Log.d`, `INFO`→`Log.i`, `WARN`→`Log.w`, `ERROR`→`Log.e`
+- No PII, keys, or payloads in logs — redaction enforced at emission point
 
-## Known Peers
+### iOS
 
-`knownPeers` contains peers whose full canonical identity has been learned,
-including unverified, verifying, trusted, mismatched, and revoked peers.
-Advertisement-only candidates are not canonical peers.
-
-- `seenAt` is immutable and records when the full identity was first learned.
-- `verifiedAt` is nullable and records the latest successful authentication.
-- Trusted, mismatched, and revoked records persist as disconnected.
-- Transient unverified/verifying observations do not persist after work ends.
-
-## Peer Lifecycle (Internal)
-
-```text
-CONNECTED (active BLE link)
-    └── BLE link lost → DISCONNECTED (grace period active)
-            ├── BLE reconnects → CONNECTED
-            └── Grace period expires → GONE (ephemeral cleanup; trust retained)
-```
-
-Grace periods: HIGH=15s, MEDIUM=30s, LOW=45s. Internal `GONE` removes transient
-presence; a persisted trusted or revoked identity remains in `knownPeers` as
-unavailable.
-
-## Diagnostic Event Hierarchy
-
-Sealed interface `DiagnosticEvent` has subtypes per layer:
-
-| Category | Event Types |
-|----------|-------------|
-| `route` | `RouteDecryptFailureEvent`, `RouteDigestMismatchEvent` |
-| `transport` | `TransportFallbackEvent` |
-| `transfer` | `TransferDataPlaneBearerEvent`, `TransferSessionTransitionEvent`, `TransferFailureEvent` |
-| `power` | `PowerModeEffectiveEvent` |
-| `handshake` | `HandshakeEvent` |
-| `key_rotation` | `KeyRotationEvent` |
-| `noise` | `NoiseSessionEvent` |
-
-## Severity Levels
-
-`DEBUG`, `INFO`, `WARN`, `ERROR` — mapped to platform logging when enabled.
-
-## Flow Delivery
-
-An internal bounded channel serializes diagnostic producers. Application code
-runs in the collector's coroutine context, never directly on a BLE callback
-thread. A slow collector cannot block protocol work.
-
-On saturation, lower-severity events may be coalesced or dropped, but MeshLink
-retains security/error events ahead of them and emits a summarized overflow
-event when capacity returns.
-
-## Platform Logging
-
-`DiagnosticsSettings.emitToLog` is opt-in and defaults to `false`. Platform
-logging uses Logcat on Android and unified logging on iOS. It follows the same
-secret and payload-redaction rules as the public diagnostic flow.
+- Diagnostic events mirrored to unified logging (`os_log`) when `DiagnosticsSettings.emitToLog = true`
+- Log level mapping: `DEBUG`→`debug`, `INFO`→`info`, `WARN`→`default`, `ERROR`→`error`
+- Uses `os_log_type_t` for efficient filtering in Console.app
 
 ## Quick Links
 
@@ -79,3 +24,4 @@ secret and payload-redaction rules as the public diagnostic flow.
 - [Diagnostic Flow Delivery ADR](../decisions/diagnostics/flow-delivery.md)
 - [Public API and Lifecycle ADR](../decisions/api/public-api-and-lifecycle.md)
 - [Diagnostic Events Spec](../../specs/catalogs/diagnostic-events.yaml)
+- [Enums Spec](../../specs/codecs/enums.yaml)

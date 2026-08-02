@@ -155,7 +155,7 @@ for file in "${pushed_files[@]}"; do
     meshlink-proof/*)
       need_proof=1
       ;;
-    .githooks/*|scripts/install-git-hooks.sh|scripts/bootstrap.sh|scripts/check_markdown.sh)
+    .githooks/*|scripts/install-git-hooks.sh|scripts/bootstrap.sh|scripts/check-markdown.sh)
       need_hook_validation=1
       ;;
     build.gradle.kts|settings.gradle.kts|gradle.properties|gradle/*)
@@ -190,7 +190,7 @@ if [[ "$need_hook_validation" -eq 1 ]]; then
     .githooks/commit-msg \
     scripts/install-git-hooks.sh \
     scripts/bootstrap.sh \
-    scripts/check_markdown.sh
+    scripts/check-markdown.sh
 fi
 
 if [[ -n "$remote_name" || -n "$remote_url" ]]; then
@@ -223,7 +223,7 @@ fi
 
 if [[ "$need_markdown" -eq 1 ]]; then
   echo "[pre-push] Running Markdown lint/link check: ${markdown_files[*]}"
-  ./scripts/check_markdown.sh "${markdown_files[@]}"
+  ./scripts/check-markdown.sh "${markdown_files[@]}"
 fi
 
 check_tasks=()

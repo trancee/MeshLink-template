@@ -4,31 +4,7 @@
 
 > The normative handshake and failure rules live in
 > [SPEC.md §§5 and 7](../../../SPEC.md#trust-model-tofu). This decision record
-> defines MeshLink hash terminology, first-contact identity binding, and the
-> project-wide fail-closed default. Rotating advertisement hints are specified
-> separately because they are not security identity.
-
-## Terminology
-
-MeshLink uses three distinct hashes:
-
-| Name | Size | Meaning |
-|------|------|---------|
-| `meshHash` | 16 bits | FNV-1a advertisement filter derived from `appId`; discovery optimization only |
-| `appHash` | 128 bits | First 128 bits of domain-separated SHA-256 of `appId`; application-isolation value bound into security handshakes |
-| `handshakeHash` | 256 bits | Noise transcript hash `h`; channel-binding value produced by the completed handshake |
-
-`handshakeHash` is reserved for the Noise transcript and never names the
-`appId`-derived value.
-
-The application hash uses exact UTF-8 prefix bytes and concatenation:
-
-```text
-appHash = first128Bits(SHA-256("MeshLink app-id v1" || UTF8(appId)))
-```
-
-The advertisement `peerHint` is an independent rotating CSPRNG value. It is not
-a hash, identity-binding field, or authentication credential.
+> captures the design rationale only.
 
 ## Key generation hint
 
@@ -39,65 +15,10 @@ malformed, or ambiguous value fails closed. It never changes trust, replaces a
 binding, or proves a rotation without the contiguous dual-signed proof chain and
 successful Noise authentication.
 
-## First-contact identity binding
-
-Direct first contact uses `Noise_XX_25519_ChaChaPoly_SHA256`. Each peer carries
-this canonical structure in its encrypted handshake payload:
-
-```text
-IdentityBinding {
-    version
-    appHash
-    peerIdentity
-    ed25519PublicKey
-    x25519PublicKey
-    keyGeneration
-}
-```
-
-The current Ed25519 private key signs the canonical encoding. Acceptance
-requires all of the following:
-
-1. The Ed25519 signature verifies.
-2. The bound X25519 key equals the Noise static key proved by the handshake.
-3. `appHash` and protocol version match the local instance.
-4. Key generation is valid for any existing trust record.
-5. The Noise XX transcript completes and yields `handshakeHash`.
-
-The 128-bit `appHash`, not the collision-prone 16-bit `meshHash`, enforces
-application isolation at the security boundary.
-
-## Automatic TOFU
-
-After the first XX handshake and identity binding fully validate, MeshLink pins
-the identity and keys automatically. `seenAt` records the immutable first
-observation of the full identity; `verifiedAt` records the latest successful
-authentication.
-
-TOFU proves continuity after first contact, not real-world identity before first
-contact. An active attacker present during the first exchange can become the
-pinned identity. MeshLink never represents automatic TOFU as out-of-band user
-verification.
-
-## Fail-closed default
-
-Fail closed means uncertainty cannot become authority or plaintext. MeshLink
-contains the failure at the smallest safe scope while preserving the previous
-known-good state.
-
-| Failure | Required closed behavior |
-|---------|--------------------------|
-| Advertisement or GATT metadata malformed | Ignore candidate or disconnect; do not create peer or trust state |
-| Advertisement and GATT metadata disagree | Emit typed diagnostic and reject trust creation/update |
-| `appHash` or protocol version mismatch | Abort handshake and disconnect |
-| Signature or Noise static-key binding invalid | Abort handshake, discard provisional state, disconnect |
-| Pinned identity/key mismatch | Reject; never retry with first-contact TOFU until explicit reset |
-| Replay or duplicate outside valid transfer state | Drop without state mutation or response amplification |
-| AEAD authentication failure | Drop ciphertext; never parse or retry as plaintext |
-| Unsupported secure provider | Use only a specified, validated secure fallback; otherwise fail startup |
-| Persisted identity/trust corruption | Fail affected startup/storage operation; never silently regenerate under the same installation |
-| Runtime setting application failure | Keep previous effective settings and report a typed failure |
-| Route or transfer invariant violation | Reject the affected update/transfer without corrupting unrelated peers |
+**Rationale:** Separating key generation from identity allows key rotation without
+breaking peer recognition. The hint is untrusted because only the dual-signed
+rotation proof establishes continuity. An attacker could advertise any generation
+value; we only trust it after cryptographic validation.
 
 ## What fail closed does not mean
 
@@ -109,6 +30,12 @@ known-good state.
 - It does not permit availability pressure to weaken authentication, integrity,
   replay protection, or trust continuity.
 
+**Rationale:** Fail closed is about *containment*, not *denial of service*. The
+smallest safe scope principle means a bad frame affects only that frame's
+operation, not the entire mesh. GATT fallback is permitted because it maintains
+identical security properties — it's a transport-layer change, not a security
+downgrade.
+
 ## Fallback requirements
 
 Every fallback must be specified before implementation and must:
@@ -119,8 +46,11 @@ Every fallback must be specified before implementation and must:
 4. Avoid changing trust state merely because the preferred path failed.
 5. Have success, failure, downgrade, and recovery tests.
 
-An undocumented or less-secure alternative is not a fallback; it is a protocol
-violation.
+**Rationale:** Unspecified fallbacks are protocol vulnerabilities. By requiring
+explicit specification, bounded behavior, observability, trust-state preservation,
+and comprehensive testing, we ensure fallbacks don't silently weaken security.
+The "no trust state change on fallback" rule prevents an attacker from forcing
+a downgrade by causing preferred-path failures.
 
 ## Testing requirements
 
@@ -134,6 +64,13 @@ prove:
 - malformed metadata cannot allocate durable trust state;
 - failed runtime reconfiguration preserves previous effective values; and
 - diagnostics contain typed reasons but no secret or plaintext material.
+
+**Rationale:** These tests encode the security invariants. The meshHash/appHash
+boundary test proves the 16-bit filter cannot bypass the 128-bit isolation. The
+rotation test ensures identity stability. The pinned-mismatch test enforces
+fail-closed. The metadata test proves no trust allocation on bad input. The
+reconfiguration test ensures graceful degradation. The diagnostics test proves
+no secret leakage.
 
 ## Related
 

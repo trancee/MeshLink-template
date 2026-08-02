@@ -35,7 +35,7 @@ See [Module Structure](docs/explanation/module-structure.md) for details.
 ./scripts/bootstrap.sh
 
 # Verify tooling installed correctly
-./scripts/check_markdown.sh --offline
+./scripts/check-markdown.sh --offline
 ```
 
 See [Bootstrap Project Tooling](docs/how-to/bootstrap-project-tooling.md) for prerequisites.

@@ -55,7 +55,7 @@ New clone? Run `./scripts/bootstrap.sh` once before anything else — see
 | Full | Every push | `gitleaks detect`, `./gradlew :meshlink:build` |
 | CI (authoritative) | Every PR | Full tier, plus `koverVerify` (100% coverage gate), `apiCheck`, `ktfmtCheck`, and iOS simulator tests |
 
-Both tiers also run `yamllint` and `./scripts/check_markdown.sh` (markdownlint-cli2 +
+Both tiers also run `yamllint` and `./scripts/check-markdown.sh` (markdownlint-cli2 +
 lychee) whenever `.yml`/`.yaml`/`.md` files are touched — see
 [How to bootstrap MeshLink's local tooling](docs/how-to/bootstrap-project-tooling.md)
 for what these tools check and how to install them.

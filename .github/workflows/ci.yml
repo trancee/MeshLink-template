@@ -70,7 +70,7 @@ jobs:
           sudo install -m 0755 /tmp/lychee/lychee-*/lychee /usr/local/bin/lychee
 
       - name: Markdown lint + link check
-        run: ./scripts/check_markdown.sh
+        run: ./scripts/check-markdown.sh
 
       - name: ktfmt format check
         run: ./gradlew --console=plain ktfmtCheck

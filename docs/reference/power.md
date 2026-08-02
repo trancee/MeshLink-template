@@ -1,45 +1,28 @@
 # Power Management
 
 > **Specification**: [SPEC.md §10](../../SPEC.md#power-management)  
-> **Design rationale**: [Power Mode Behavior](../decisions/power/power-mode-behavior.md)
+> **Design rationale**: [Power Mode Behavior](../decisions/power/power-mode-behavior.md)  
+> **Machine-readable**: [specs/catalogs/settings.yaml](../../specs/catalogs/settings.yaml#power_mode_parameter_mapping), [specs/codecs/enums.yaml](../../specs/codecs/enums.yaml#power-mode)
 
-## Power Modes
+## Platform-Specific Notes
 
-| Parameter | HIGH | MEDIUM | LOW |
-|-----------|------|--------|-----|
-| Scan duty cycle | 20% | 10% | 5% |
-| Advertisement interval | 100 ms | 500 ms | 1000 ms |
-| Active connection interval | 7.5–15 ms | 15–30 ms | 30–60 ms |
-| Max concurrent connections | 8 | 4 | 2 |
-| Chunk size | 512 B | 256 B | 128 B |
-| Max retries | 10 | 5 | 3 |
-| Retry budget | 60 s | 30 s | 15 s |
-| Grace period (disconnect→GONE) | 15 s | 30 s | 45 s |
+### Android
 
-## Active and Idle Connections
+- Scan duty cycle implemented via `BluetoothLeScanner.startScan()` with `ScanSettings.setScanMode()` and periodic enable/disable
+- Advertisement interval via `BluetoothLeAdvertiser.startAdvertising()` with `AdvertiseSettings.setInterval()`
+- Connection interval requested via `BluetoothGatt.requestConnectionPriority()` (HIGH/MEDIUM/LOW map to `CONNECTION_PRIORITY_HIGH`/`BALANCED`/`LOW_POWER`)
+- Idle connection interval requested after 5s inactivity via same API
+- Background operation requires `ForegroundService` with `foregroundServiceType="connectedDevice"` and ongoing notification
+- Doze mode: scans suspended; use `PendingIntent` scanning for background discovery
 
-Mode intervals apply during handshakes, urgent control, ACKs, and data. After
-five seconds without queued work, MeshLink requests a 500–1000 ms idle interval.
-New work requests active latency immediately. The 5% battery target applies to
-LOW/background idle operation.
+### iOS
 
-## EU Regulatory Clamping
-
-When `regulatoryRegion = RegulatoryRegion.EU`:
-
-- Advertisement interval **clamped to ≥ 300 ms**
-- Scan duty cycle **clamped to ≤ 70%**
-
-Applied in shared policy code (not platform wrappers).
-
-## Grace Periods
-
-Per-mode grace period controls `PeerLifecycle` transition `DISCONNECTED → GONE`:
-
-- During grace: routes can degrade before full retraction; transfers can pause instead of abandon
-- Host app observes disconnected presence in the `knownPeers` snapshot
-
----
+- Scan duty cycle implemented via `CBCentralManager.scanForPeripherals()` with manual timer-based enable/disable
+- Advertisement interval via `CBPeripheralManager.startAdvertising()` with `CBAdvertisementIntervalKey`
+- Connection interval requested via `CBPeripheral.setNotifyValue()` / L2CAP channel options
+- Idle connection interval requested after 5s inactivity
+- Background operation requires `bluetooth-central` and `bluetooth-peripheral` background modes + state restoration
+- iOS may throttle background scans; `CBCentralManager` restoration handles resume
 
 ## Quick Links
 
@@ -47,3 +30,5 @@ Per-mode grace period controls `PeerLifecycle` transition `DISCONNECTED → GONE
 - [Power Mode Behavior ADR](../decisions/power/power-mode-behavior.md)
 - [SPEC.md §11 — Diagnostics (PowerModeEffectiveEvent)](../../SPEC.md#diagnostics--events)
 - [MTU Negotiation ADR](../decisions/transport/mtu-negotiation.md)
+- [Settings Spec](../../specs/catalogs/settings.yaml)
+- [Enums Spec](../../specs/codecs/enums.yaml)

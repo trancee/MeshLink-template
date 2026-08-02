@@ -27,14 +27,14 @@ installing anything or touching Git config.
 | --- | --- | --- |
 | `git` | everything | version control |
 | `gh` | this script, [AGENTS.md](../../AGENTS.md) workflow | GitHub operations (issues, PRs, releases) and to fetch the other tools' release binaries |
-| `node` / `npm` / `npx` | `scripts/check_markdown.sh` (`npx markdownlint-cli2`) | Markdown style/syntax lint — no separate install needed beyond Node itself (`npm`/`npx` ship with it); `npx` fetches `markdownlint-cli2` on first run |
+| `node` / `npm` / `npx` | `scripts/check-markdown.sh` (`npx markdownlint-cli2`) | Markdown style/syntax lint — no separate install needed beyond Node itself (`npm`/`npx` ship with it); `npx` fetches `markdownlint-cli2` on first run |
 | `python3` / `pip` | `scripts/update_device_test_matrix.py` | regenerates `docs/reference/device-test-matrix.md` from `adb` + catalog data |
 | `pipx` | manual/optional | isolated installs of Python-based CLI tools (e.g. `yamllint`) without touching the system/user site-packages, if you're not using `brew`/`dnf` for it |
 | `gitleaks` | `.githooks/pre-commit`, `.githooks/pre-push`, CI | secret scanning (Quality Gates) |
 | `yamllint` | `.githooks/pre-commit`, `.githooks/pre-push`, CI | YAML/workflow lint |
 | `actionlint` | manual/CI use when editing `.github/workflows/` | GitHub Actions workflow lint |
 | `shellcheck` | manual use when editing `.githooks/*` or `scripts/*.sh` | shell script lint (hooks only run `bash -n`, a syntax check — `shellcheck` catches real bugs `bash -n` misses) |
-| `lychee` | `scripts/check_markdown.sh`, `.githooks/pre-commit`/`pre-push`, CI | verifies Markdown links (relative file paths, anchors, and — outside `--offline` mode — external URLs) actually resolve |
+| `lychee` | `scripts/check-markdown.sh`, `.githooks/pre-commit`/`pre-push`, CI | verifies Markdown links (relative file paths, anchors, and — outside `--offline` mode — external URLs) actually resolve |
 
 `scripts/bootstrap.sh` only hard-checks `git`, `gh`, and `node` itself
 (`npm`/`npx` are bundled with Node; `python3`/`pip`/`pipx` aren't invoked by
@@ -71,8 +71,8 @@ instead of guessing per-OS package names.
 ## Checking Markdown docs
 
 ```sh
-./scripts/check_markdown.sh           # style/syntax (markdownlint-cli2) + all links, including external URLs
-./scripts/check_markdown.sh --offline # same, but skip external URL checks (faster, no network)
+./scripts/check-markdown.sh           # style/syntax (markdownlint-cli2) + all links, including external URLs
+./scripts/check-markdown.sh --offline # same, but skip external URL checks (faster, no network)
 ```
 
 Rules/config live in `.markdownlint-cli2.jsonc` (with inline comments

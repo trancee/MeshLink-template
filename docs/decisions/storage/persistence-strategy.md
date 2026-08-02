@@ -116,4 +116,4 @@ raw stored records, or payload data.
 - [Peer hints and identity races](../discovery/peer-hint-and-identity-races.md)
 - [Background operation](../transport/background-operation.md)
 - [Data model](../model/data-model.md)
-- [Trust model](../../reference/trust-model.md)
+- [Trust model](../../reference/trust.md)

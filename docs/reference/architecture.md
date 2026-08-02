@@ -1,34 +1,32 @@
 # Architecture Overview
 
 > **Specification**: [SPEC.md §2](../../SPEC.md#architecture-overview)  
-> **Design rationale**: [Module Structure](../explanation/module-structure.md)
+> **Design rationale**: [Module Structure](../explanation/module-structure.md)  
+> **Machine-readable**: [meshlink/build.gradle.kts](../../meshlink/build.gradle.kts)
 
-## Module Structure
+## Platform-Specific Notes
 
-| Module | Purpose | Runs On |
-|--------|---------|---------|
-| `meshlink` | Shipped library (public API + implementation) | JVM + Android + iOS |
-| `meshlink-reference` | Reference app (public API only, Compose Multiplatform) | Android + iOS |
-| `meshlink-proof` | Real-device validation (needs internal access) | Real Android/iOS devices |
-| `meshlink-benchmark` | Performance benchmarking | JVM + device fleet |
+### Android
 
-## Source Set Structure
+- `meshlink` module produces AAR with `android` and `jvm` targets
+- `androidMain` contains BLE glue: `BluetoothAdapter`, `BluetoothLeScanner`, `BluetoothGatt`, `BluetoothServerSocket`
+- Fallback crypto for API 26-32 in `androidMain` (pure-Kotlin X25519, Ed25519, ChaCha20-Poly1305, HKDF, HMAC)
+- `androidHostTest` for crypto fallback validation on host JVM
+- Gradle: `com.android.library` + `org.jetbrains.kotlin.multiplatform` plugins
 
-| Source Set | Contents |
-|------------|----------|
-| `commonMain` | Shared business logic (security, routing, transfer, diagnostics) |
-| `androidMain` | BLE glue, fallback crypto for API 26-32 |
-| `iosMain` | BLE glue |
-| `commonTest` | Pure JVM tests (protocol logic, wire codec, crypto) |
-| `androidHostTest` | Host-side Android tests (crypto fallback paths) |
+### iOS
 
-## Platform Minimums
+- `meshlink` module produces XCFramework with `iosArm64`, `iosSimulatorArm64`, `iosX64` targets
+- `iosMain` contains BLE glue: `CBCentralManager`, `CBPeripheralManager`, `CBPeripheral`, `CBL2CAPChannel`
+- Crypto uses CryptoKit / Security.framework; no fallback needed (iOS 14+ has all primitives)
+- Swift interop via SKIE plugin: sealed classes → Swift enums, suspend → async, Flow → AsyncSequence
+- Gradle: `org.jetbrains.kotlin.multiplatform` + `co.touchlab.skie` plugins
 
-- Android API 26 (Android 8.0)
-- iOS 14
-- Higher APIs guarded at runtime
+### Desktop (JVM)
 
----
+- `meshlink` module produces JAR for testing and `meshlink-benchmark`
+- Virtual transport for multi-node integration tests (no BLE hardware)
+- Same `commonMain` business logic; no platform glue needed
 
 ## Quick Links
 

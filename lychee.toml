@@ -1,4 +1,4 @@
-# Config for lychee (link checker) — see scripts/check_markdown.sh and
+# Config for lychee (link checker) — see scripts/check-markdown.sh and
 # docs/how-to/bootstrap-project-tooling.md.
 exclude_path = [
     ".agents/",

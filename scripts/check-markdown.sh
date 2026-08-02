@@ -5,7 +5,7 @@
 #
 # See docs/how-to/bootstrap-project-tooling.md for prerequisites.
 #
-# Usage: ./scripts/check_markdown.sh [--offline] [file ...]
+# Usage: ./scripts/check-markdown.sh [--offline] [file ...]
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

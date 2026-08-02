@@ -138,6 +138,10 @@ class MeshLink(
     suspend fun revokeTrust(peer: PeerIdentity)
     suspend fun resetTrust(peer: PeerIdentity)
 }
+
+```plaintext
+Note: This API is the target design; implementation is in progress via TDD.
+The current meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLink.kt is a placeholder for BCV baseline.
 ```
 
 Platform factory functions create `MeshLinkEnvironment`; Android context and
@@ -293,7 +297,7 @@ data class TransferSession(
 | `COMPLETED` | Yes | All chunks acknowledged and completion confirmed |
 | `CANCELLED` | Yes | Local or remote cancellation completed |
 | `FAILED` | Yes | Rejection, sink, protocol, trust, or unrecoverable failure |
-| `EXPIRED` | Yes | Origin timeToLive exhausted |
+| `EXPIRED` | Yes | Origin's timeToLive exhausted |
 
 ### 3.7 TransferFailureReason (Sealed) {#transfer-failure-reason-model}
 
@@ -373,7 +377,7 @@ RSSI normalization and the quadratic link-cost conversion are specified in §8.
 | `KeyRotationReason` | `PERIODIC`, `MANUAL`, `SECURITY_EVENT` | |
 | `HandshakePattern` | `XX`, `IK` | XX for unpinned contact; IK for trusted pinned reconnect |
 | `Priority` | `HIGH` (10min default timeToLive), `NORMAL` (5min), `LOW` (1min) | Affects delivery scheduling/time, never hop limit |
-| `FrameType` | `MESH_ENVELOPE(0x00)`; routing `0x01`–`0x06`; transfer `0x20`–`0x22`; key/epoch `0x40`–`0x42` | Explicit UByte codes; never enum ordinals |
+| `FrameType` | `MESH_ENVELOPE(0x00)`; routing `0x01`–`0x06`; transfer `0x20`–`0x24`; key/epoch `0x40`–`0x42` | Explicit UByte codes; never enum ordinals |
 | `DecryptFailureReason` | `AUTHENTICATION_TAG_MISMATCH`, `REPLAY_DETECTED`, `SEQUENCE_NUMBER_MISMATCH`, `KEY_UNAVAILABLE`, `MALFORMED_FRAME` | |
 | `TransportFallbackReason` | `L2CAP_UNAVAILABLE`, `L2CAP_CONNECT_FAILED`, `L2CAP_OPEN_TIMEOUT`, `L2CAP_STREAM_ERROR`, `L2CAP_STALLED`, `L2CAP_DROPPED_MID_TRANSFER`, `LOCAL_POLICY` | |
 | `DataPlaneBearer` | `GATT`, `L2CAP` | |
@@ -1053,7 +1057,7 @@ Every finite payload starts with an E2E-encrypted PayloadManifest carrying kind
 timeToLive, totalLength, chunkSize, and chunkCount.
 
 Messages up to 64 KiB auto-accept under a 2 MiB global incomplete-message budget.
-Large transfers require a host TransferSink. At most two offers per peer and
+Large transfers require a host TransferSink. At most three offers per peer and
 eight globally wait up to 30 seconds in AWAITING_DECISION. No chunks transmit
 before PayloadDecision ACCEPTED.
 
@@ -1138,6 +1142,7 @@ representation and host sink policy; SDK memory remains window-bounded.
 | Scan duty cycle | 20% | 10% | 5% |
 | Advertisement interval | 100 ms | 500 ms | 1000 ms |
 | Active connection interval | 7.5–15 ms | 15–30 ms | 30–60 ms |
+| Idle connection interval | 15.0 ms | 30.0 ms | 60.0 ms |
 | Max concurrent connections | 8 | 4 | 2 |
 | Chunk size | 512 B | 256 B | 128 B |
 | Max retries | 10 | 5 | 3 |
@@ -1484,10 +1489,10 @@ tooling must make CI fail when committed projections are stale.
 | §3 Data Models | docs/decisions/model/data-model.md | meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/ |
 | §4 Discovery | docs/decisions/discovery/connectable-advertisement.md, docs/decisions/discovery/mesh-hash-derivation.md | specs/codecs/frames.yaml |
 | §5 Trust/TOFU | docs/decisions/crypto/crypto-design.md | specs/codecs/enums.yaml, specs/protocol/state-machines.yaml |
-| §6 Transport | docs/decisions/transport/mtu-negotiation.md | — |
+| §6 Transport | docs/decisions/transport/mtu-negotiation.md, docs/decisions/transport/gatt-channel-and-framing.md, docs/decisions/transport/background-operation.md | meshlink/src/androidMain/, meshlink/src/iosMain/ (BLE glue) |
 | §7 Security | docs/decisions/crypto/crypto-design.md, identity-binding-and-fail-closed.md, constant-time-policy.md, replay-window.md, key-rotation-propagation.md, error-hierarchy.md | specs/codecs/enums.yaml, specs/protocol/state-machines.yaml |
-| §8 Routing | docs/decisions/routing/routing-design.md | RouteCandidate, LinkQuality, RouteStatement, routing coordinator (planned) |
-| §9 Transfer | docs/decisions/model/data-model.md, docs/decisions/transfer/transfer-identifier.md | TransferSession.kt, Scoreboard.kt, TransferFailureReason.kt |
+| §8 Routing | docs/decisions/routing/routing-design.md | RouteCandidate, LinkQuality, RouteStatement; routing coordinator (planned) |
+| §9 Transfer | docs/decisions/model/data-model.md, docs/decisions/transfer/transfer-identifier.md | TransferSession.kt, Scoreboard.kt, TransferFailureReason.kt; TransferCoordinator (planned) |
 | §10 Power | docs/decisions/power/power-mode-behavior.md | PowerMode.kt |
 | §11 Diagnostics | docs/decisions/diagnostics/flow-delivery.md, docs/decisions/api/public-api-and-lifecycle.md | DiagnosticEvent.kt |
 | §12 Build Quality | — | meshlink/build.gradle.kts |

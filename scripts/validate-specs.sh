@@ -114,7 +114,7 @@ echo "7. Checking reference docs..."
 REF_DOCS=(
     "docs/reference/architecture.md"
     "docs/reference/discovery.md"
-    "docs/reference/trust-model.md"
+    "docs/reference/trust.md"
     "docs/reference/transport.md"
     "docs/reference/security.md"
     "docs/reference/routing.md"

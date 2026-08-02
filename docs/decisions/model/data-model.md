@@ -18,6 +18,8 @@ Machine-readable references:
 
 **Solution:** Generate stable PeerIdentity ONCE at install time (16-byte random). Ensures identity persists across key rotations, TrustStore lookups succeed for old keys, rotation proofs validate against the stable identity.
 
+**Rationale:** Identity must be decoupled from key material to support rotation. A derived identity would require either (a) re-keying the trust store on every rotation, breaking continuity, or (b) accepting identity change, breaking the TOFU model. A random stable ID avoids both problems.
+
 ### PeerHint is a rotating advertisement hint
 
 `peerHint` is a 12-byte CSPRNG value carried only in the dynamic advertisement
@@ -28,6 +30,11 @@ It coalesces ephemeral discovery attempts but is not sent through GATT, signed,
 or used as authentication. Trust, routes, transfers, and public state are keyed
 only by PeerIdentity. See the
 [peer-hint race decision](../discovery/peer-hint-and-identity-races.md).
+
+**Rationale:** PeerHint reduces linkability of discovery attempts without being
+a security identity. It's intentionally excluded from all trust bindings. Rotation
+interval (10–20 min) balances unlinkability against connection churn. It does not
+survive process death, so a restarted app gets a new hint.
 
 ### CryptoKey distinguishes signing from DH keys
 
@@ -40,6 +47,12 @@ sealed interface CryptoKey {
 ```
 
 `diagnosticId` prevents key material leaking into logs. Raw access is `internal` only.
+
+**Rationale:** Ed25519 (signing) and X25519 (DH) keys have different lifecycles,
+rotation triggers, and security properties. A sealed interface with explicit
+`KeyType` prevents accidental misuse. The `diagnosticId` field provides a stable,
+non-secret identifier for logging/tracing without exposing key material. Raw
+bytes are `internal` to enforce the boundary.
 
 ## Routing Model
 
@@ -62,6 +75,12 @@ internal class RouteCandidate(
 identity, sequence, and candidate binding arrive in mandatory signed
 RouteStatement; nextHop is inferred locally from the adjacent sender.
 
+**Rationale:** Route selection needs both path cost (additive, lower is better)
+and local link quality (higher is better, only for the next hop). Separating
+these allows strong multi-hop paths to beat weak direct paths. The signed
+RouteStatement binds destination identity and sequence to the route, preventing
+spoofing. Next-hop is local inference, not carried in the signed statement.
+
 ### SeqNo is an internal modular serial
 
 RFC 8966 §3.7-style comparison interprets the UInt difference as signed within
@@ -73,6 +92,14 @@ It exposes explicit internal operations such as `isNewerThan`,
 `2^31` half-range difference is ambiguous and cannot drive route ordering.
 Destination-owned values persist and advance independently of transport,
 cryptographic keys, and peer hints.
+
+**Rationale:** Sequence numbers wrap at 2^32. Using `Comparable` would give
+incorrect results near the boundary. Explicit modular operations with signed
+comparison handle wrap correctly. The half-range ambiguity is a fundamental
+property of circular sequences — no comparison can resolve it, so we return
+`false` for `isNewerThan` at the boundary (conservative). SeqNo is internal
+because applications shouldn't reason about modular ordering; only the routing
+layer uses it.
 
 ## Transfer Model
 
@@ -87,6 +114,11 @@ unambiguous transfer namespace.
 
 See the [Transfer Identifier ADR](../transfer/transfer-identifier.md) for
 allocation, crash safety, replay retention, and wrap-around rules.
+
+**Rationale:** A 32-bit counter per origin is sufficient for concurrent transfers
+(wrap takes ~4B transfers) and is much smaller on the wire than UUIDs. Origin
+scoping prevents collisions between peers. Durable reservation ensures crash
+safety — allocated IDs are never reused even if the app crashes before sending.
 
 ### Scoreboard: immutable SACK bitfield with O(1) completeness and mesh merge ops
 
@@ -147,11 +179,17 @@ Complete state machine in [SPEC.md §3.4.1](../../../SPEC.md#transfer-session-st
 
 Transition logic lives in `TransferCoordinator.kt`. Scoreboard completeness checked before COMPLETED.
 
+**Rationale:** The state machine separates decision waiting (AWAITING_DECISION) from
+active transfer (TRANSFERRING), with explicit handling for route loss
+(ROUTE_UNAVAILABLE) and retransmission (RETRANSMITTING). Terminal states are
+exhaustive: COMPLETED, CANCELLED, FAILED, EXPIRED. Non-terminal progress is
+represented by state + offset, not a separate delivery outcome.
+
 ## Configuration Model
 
 ### PowerMode maps to concrete BLE parameters
 
-**Full table in [SPEC.md §10.4](../../../SPEC.md#mode-driven-parameters) and [specs/catalogs/settings.yaml](../../../specs/catalogs/settings.yaml#power_mode_parameter_mapping).**
+**Full table in [SPEC.md §10.1](../../../SPEC.md#power-mode-settings) and [specs/catalogs/settings.yaml](../../../specs/catalogs/settings.yaml#power_mode_parameter_mapping).**
 
 Defaults in `MeshLinkSettings` match MEDIUM mode. EU region clamps adv interval floor to 300ms.
 
@@ -161,6 +199,11 @@ Defaults in `MeshLinkSettings` match MEDIUM mode. EU region clamps adv interval 
 - `EU`: Clamp adv interval ≥300ms, scan duty cycle ≤70%
 
 Clamping happens in shared policy code, not platform-specific wrappers.
+
+**Rationale:** Explicit clamping in shared code ensures consistent behavior across
+platforms and makes regulatory requirements testable. EU limits are mandated by
+ETSI EN 300 328. Doing it in shared policy code (not platform wrappers) means
+the logic is testable on JVM and verifiable without device hardware.
 
 ## Diagnostic Events
 
@@ -179,6 +222,11 @@ Machine-readable reference: [specs/catalogs/diagnostic-events.yaml](../../../spe
 
 Events are machine-observable through `MeshLink.diagnostics` and may also be mirrored to platform logging when `DiagnosticsSettings.emitToLog` is enabled.
 
+**Rationale:** Sealed interface hierarchy ensures exhaustive handling. Event codes use
+explicit stable ranges aligned with exception error codes (0x01xx config, 0x04xx
+crypto, 0x05xx routing, 0x06xx transfer, 0x09xx transport). This allows host
+apps to filter by layer. Redaction rules prevent secrets/payloads in events.
+
 ## Testing Matrix
 
 | Type | Test Class | Verifies |
@@ -192,6 +240,11 @@ Events are machine-observable through `MeshLink.diagnostics` and may also be mir
 | TransferFailureReason | `TransferFailureReasonTest` | Sealed type coverage |
 
 All types require 100% line/branch coverage in `:meshlink`.
+
+**Rationale:** The testing matrix ensures every data model type has dedicated tests
+for its core behavior. 100% coverage is required because these types encode
+protocol invariants — untested branches in SeqNo comparison or Scoreboard
+bitwise ops are correctness/security risks.
 
 ## Related
 

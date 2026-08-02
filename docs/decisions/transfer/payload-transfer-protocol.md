@@ -3,65 +3,47 @@
 **Status:** Locked — 2026-07-31
 
 > Normative frame layouts live in
-> [specs/codecs/frames.yaml](../../../specs/codecs/frames.yaml). This record
-> explains manifests, acceptance, chunking, selective acknowledgements, memory,
-> lifetime, and retransmission timeout.
+> [specs/codecs/frames.yaml](../../../specs/codecs/frames.yaml) and
+> [specs/protocol/state-machines.yaml](../../../specs/protocol/state-machines.yaml).
+> This record explains manifests, acceptance, chunking, selective acknowledgements,
+> memory, lifetime, and retransmission timeout.
 
-## Payload kinds and identifiers
+## Why two payload kinds
 
-MeshLink has two finite payload kinds:
+MeshLink has two finite payload kinds: `MESSAGE` (≤64 KiB, in-memory) and
+`TRANSFER` (unbounded, random-access `TransferSource`/`TransferSink`).
 
-```text
-MESSAGE
-TRANSFER
-```
+**Rationale:** Small messages benefit from automatic acceptance and bounded
+memory. Large transfers require explicit host cooperation (source/sink) because
+they exceed automatic budgets and need application-defined storage. The kind
+field in every frame allows unambiguous demultiplexing.
 
-Every payload frame carries `kind`. MessageId and TransferId are independent
-source-owned UInt domains. Complete identity is `(origin, kind, id)`. Unknown
-kind or an ID whose kind conflicts with its accepted manifest fails closed.
+## Why E2E-encrypted manifest with acceptance
 
-## Manifest and acceptance
+Every payload begins with an E2E-encrypted `PayloadManifest` carrying all
+immutable contract fields. Messages up to 64 KiB auto-accept under a 2 MiB
+global incomplete-message budget. Large transfers wait in `AWAITING_DECISION`
+for a host `TransferSink`.
 
-Every payload begins with an E2E-encrypted manifest:
+**Rationale:** The manifest establishes the contract before any data moves —
+chunk size, total length, chunk count, priority, and lifetime. Auto-accept for
+small messages optimizes the common case (notifications, commands). Explicit
+acceptance for large transfers prevents unbounded memory allocation and gives
+the host control over storage.
 
-```text
-PayloadManifest {
-    kind
-    id
-    origin
-    destination
-    priority
-    timeToLive
-    totalLength
-    chunkSize
-    chunkCount
-}
-```
+## Why concurrency bounds
 
-Messages up to 64 KiB are automatically accepted when memory/capacity allows.
-Large transfers appear as `IncomingTransfer` and require a host-provided
-TransferSink before chunks may start.
+`maxTransfersPerPeer` defaults to three (accepted or outgoing in
+`AWAITING_DECISION`, `TRANSFERRING`, `ROUTE_UNAVAILABLE`, `RETRANSMITTING`).
+Pending incoming offers additionally capped at two per peer, eight globally.
+`RECEIVER_BUSY` rejection on overflow.
 
-```text
-maximum pending offers per peer = 2
-maximum pending offers globally = 8
-acceptance timeout              = 30 seconds
-```
+**Rationale:** Per-peer limit prevents a single malicious/broken peer from
+consuming all transfer slots. Global limit bounds total concurrent operations.
+The 30-second acceptance timeout ensures stalled offers don't block slots
+indefinitely. Terminal operations don't count because they're being cleaned up.
 
-`PayloadDecision` communicates ACCEPTED or REJECTED with a typed reason. The
-sender transmits no chunks before acceptance. Duplicate identical manifests
-join one pending operation; a conflicting manifest for the same identity fails
-closed.
-
-## Concurrency bounds
-
-`TransferSettings.maxTransfersPerPeer` defaults to three and includes accepted or
-outgoing MESSAGE and TRANSFER operations in AWAITING_DECISION, TRANSFERRING,
-ROUTE_UNAVAILABLE, or RETRANSMITTING. Terminal operations do not count. Pending
-incoming offers additionally obey two per peer and eight globally. Capacity
-rejection uses RECEIVER_BUSY.
-
-## Memory bounds
+## Why memory bounds
 
 ```text
 maximumMessageSize             = 64 KiB
@@ -69,172 +51,101 @@ incomplete-message global budget = 2 MiB
 large-transfer in-flight window  = 256 chunks
 ```
 
-Messages use an internal bounded sink and are emitted only after complete E2E
-authentication/reassembly. Larger payloads require TransferSource/TransferSink.
-Incoming oversized manifests are rejected before payload allocation. Defensive
-copies count against delivery-queue memory.
+Messages use an internal bounded sink; large transfers require host
+`TransferSource`/`TransferSink`. Oversized manifests rejected before allocation.
 
-## Origin-owned lifetime
+**Rationale:** 64 KiB covers typical application messages (JSON, protobuf, CBOR).
+2 MiB global budget bounds peak memory from inbound messages. 256-chunk window
+bounds sender-side retransmission state. These are hard caps, not soft limits.
 
-The origin starts a monotonic timer when send is accepted. The manifest carries
-`timeToLive: UInt` in milliseconds, not a wall-clock timestamp. Priority defaults
-are HIGH 10 minutes, NORMAL 5 minutes, and LOW 1 minute.
+## Why origin-owned monotonic lifetime
 
-Destination acceptance/receive timers start on manifest receipt and never
-exceed the advertised duration. Origin expiry is final: late acknowledgements
-cannot resurrect work, and best-effort PayloadCancellation is sent.
+The origin starts a monotonic timer on send acceptance. `timeToLive: UInt`
+milliseconds (not wall-clock). Priority defaults: HIGH 10 min, NORMAL 5 min,
+LOW 1 min. Relays forward cut-through with bounded queues; they do not persist
+payloads, restart lifetime, or own retransmission state.
 
-Relays forward cut-through with bounded current-frame queues. They do not
-persist payloads, restart lifetime, own retransmission state, or reassemble E2E
-content. Route loss returns control to the origin, which enters ROUTE_UNAVAILABLE.
+**Rationale:** Monotonic lifetime avoids clock sync issues across offline
+devices. Priority defaults trade latency for battery. Cut-through relaying
+minimizes latency and relay memory — relays forward frames without reassembly.
+Origin expiry is final because late acknowledgements cannot resurrect work
+after the sender has released resources.
 
-## Minimal chunks
-
-```text
-PayloadChunk {
-    kind
-    id
-    index
-    payload
-}
-```
-
-Offset, length, and finality derive from manifest fields:
+## Why minimal chunks with derived offset/length/finality
 
 ```text
-offset = index × chunkSize
-length = payload.size
-isLast = index == chunkCount - 1
+PayloadChunk { kind, id, index, payload }
 ```
 
-Non-final chunks have exact chunkSize; final length equals remaining totalLength.
-Duplicate authenticated identical chunks are idempotent. Conflicting duplicate
-content fails the payload. Chunks before accepted manifest are rejected without
-allocation.
+Offset = `index × chunkSize`, length = `payload.size`, `isLast = index == chunkCount - 1`. Non-final chunks have exact `chunkSize`; final length equals remaining `totalLength`.
 
-## Sliding selective acknowledgement
+**Rationale:** Carrying only `index` minimizes per-chunk overhead (4 bytes vs
+12+ for offset/length/finality). Derivation from manifest eliminates
+inconsistency. Exact chunk size enables the fixed 256-chunk ACK window
+structure.
+
+## Why sliding selective acknowledgement with fixed 256-bit window
 
 ```text
-PayloadAcknowledgement {
-    kind
-    id
-    start
-    bitmap: Byte[32]
-}
+PayloadAcknowledgement { kind, id, start, bitmap: Byte[32] }
 ```
 
-All chunk indices below `start` are cumulatively acknowledged. Bit `n`
-acknowledges `start + n`. Bits beyond chunkCount are zero. Sender keeps at most
-256 chunks in flight and rereads missing chunks through TransferSource.
+All indices below `start` are cumulatively acknowledged. Bit `n` acknowledges
+`start + n`. Sender keeps at most 256 chunks in flight.
 
-ACK emits after 32 newly received chunks or the power-aware maximum delay:
+**Rationale:** SACK (RFC 2018) enables selective retransmission of only missing
+chunks. Fixed 32-byte bitmap bounds wire size and processing. Cumulative `start`
+plus bitmap allows both cumulative and selective ACK in one structure. 256-chunk
+window matches the in-flight limit.
 
-```text
-HIGH    100 ms
-MEDIUM  250 ms
-LOW     500 ms
-```
+## Why adaptive RTO with Karn's rule
 
-It emits immediately on gap detection, full receive window, final chunk, or
-retransmission probe.
+Initial RTO: `clamp(1s + hopCount×250ms + powerAckDelay, 1s, 10s)`. Updates use
+α=1/8, β=1/4 for smoothed RTT and variation: `RTO = smoothedRtt + max(4×rttVariation, 250ms)`, clamped 1–30 s. Karn's rule excludes retransmitted samples.
+Unsuccessful timeout doubles RTO to cap.
 
-## Retransmission timeout
+**Rationale:** Initial RTO accounts for hop count and power-mode ACK delay.
+Adaptive RTO converges to actual path RTT. Karn's rule prevents retransmission
+ambiguity from corrupting estimates. Exponential backoff on persistent timeout
+prevents congestion collapse. Clamping bounds RTO between reasonable minimum
+and maximum.
 
-RTO means **retransmission timeout**: how long the sender waits without adequate
-acknowledgement before deciding that one or more in-flight chunks may be lost.
-It is not the transfer timeToLive, route expiry, acceptance timeout, or GATT
-fragment timeout.
-
-Initial value:
-
-```text
-initialRto = clamp(
-    1 second + hopCount × 250 ms + powerModeAckDelay,
-    1 second,
-    10 seconds,
-)
-```
-
-For the first valid non-retransmitted RTT sample `R`:
-
-```text
-smoothedRtt = R
-rttVariation = R / 2
-```
-
-For later samples (integer-duration equivalents of α=1/8 and β=1/4):
-
-```text
-rttVariation = 3/4 × rttVariation + 1/4 × abs(smoothedRtt - R)
-smoothedRtt  = 7/8 × smoothedRtt  + 1/8 × R
-rto = smoothedRtt + max(4 × rttVariation, 250 ms)
-```
-
-Clamp RTO to 1–30 seconds. Do not sample retransmitted chunks (Karn's rule).
-Each unsuccessful timeout doubles the current RTO up to 30 seconds. A valid
-non-retransmitted ACK updates estimates.
-
-Gap ACK may retransmit selectively before RTO. The transfer coordinator
-serializes gap and timeout events so one chunk is not redundantly scheduled by
-both. Route/next-hop change discards or heavily penalizes the old estimator;
-L2CAP-to-GATT fallback resets bearer-specific estimates. RTO never extends
-remaining timeToLive.
-
-## Status and retry semantics
-
-Public `TransferStatus` contains immutable `state`, `offset`, `total`,
-`retryCount`, and nullable `deliveryOutcome`. `offset` is the highest
-contiguous payload boundary credited by acknowledgement or sink acceptance;
-out-of-order progress remains in SACK state.
-`retryCount` counts payload-level retransmission rounds, where one round may
-send multiple missing chunks. It excludes GATT operation retries, Noise
-handshake retries, route-sequence advancement, L2CAP circuit-breaker attempts,
-and platform retries. It is monotonic for one payload operation and remains
-readable through its handle after terminal collection removal.
-
-## Delivery semantics
+## Why at-least-once delivery with tombstones
 
 Receiver emits/completes at most once per `(origin, kind, id)`. Completed-ID
-tombstones suppress duplicate delivery while duplicate manifests/chunks remain
-idempotent. Sender reports SUCCESS only after an acknowledgement proves every
-chunk received.
+tombstones suppress duplicate delivery. Sender reports SUCCESS only after full
+acknowledgement. TIMEOUT means confirmation unknown, not proof of non-delivery.
 
-TIMEOUT means confirmation was not obtained before timeToLive; it does not prove
-the receiver never completed delivery. Lost final ACK causes probe/retransmit
-and repeated final ACK without redelivery. Durable business-level exactly-once
-processing requires an application identifier inside the payload.
+**Rationale:** Exactly-once at the transport layer requires consensus, which is
+impractical for offline mesh. At-least-once with idempotent application
+processing is the standard model. Tombstones bound duplicate suppression
+memory. TIMEOUT ≠ non-delivery because the final ACK could be lost; the
+receiver may have completed but the ACK didn't reach the sender.
 
-## Transfer size
+## Why checked arithmetic for transfer size
 
-Protocol representation permits totalLength 1..Long.MAX_VALUE, chunkSize
-1..UShort.MAX_VALUE, and chunkCount 1..UInt.MAX_VALUE. Checked arithmetic must
-prove `ceil(totalLength / chunkSize) == chunkCount`; overflow or inconsistency
-rejects before allocation.
+`totalLength` 1..`Long.MAX_VALUE`, `chunkSize` 1..`UShort.MAX_VALUE`,
+`chunkCount` 1..`UInt.MAX_VALUE`. Checked arithmetic must prove
+`ceil(totalLength / chunkSize) == chunkCount`; overflow/inconsistency rejects
+before allocation.
 
-No buffer scales with totalLength. The host TransferSink may reject for
-insufficient storage or policy, while the SDK retains only bounded metadata and
-the 256-chunk window.
+**Rationale:** Protocol permits large transfers but implementation must reject
+impossible combinations. Checked arithmetic prevents allocation attacks and
+integer overflow bugs. The host `TransferSink` may apply additional policy
+limits; the SDK only enforces wire representability.
 
-## Cancellation and process behavior
+## Why process death discards payloads but preserves trust
 
-PayloadCancellation applies to messages and transfers and is idempotent. Process
-death discards active payloads, handles, timers, windows, and scoreboards. Trust
-persists, but payload transfer does not resume after restoration.
+Active payloads, handles, timers, windows, and scoreboards are discarded on
+process death. Trust persists. Payload transfer does not resume after
+restoration.
 
-## Required tests
-
-- Message 0/1/64 KiB boundaries and oversized rejection
-- Offer per-peer/global limits, timeout, absent handler, and sink failure
-- Manifest duplicate/conflict and kind mismatch
-- Every chunk length/index/final-boundary case
-- 256-bit ACK window shifts, cumulative start, tail bits, and duplicate ACKs
-- ACK emission by count, power delay, gap, full window, final, and probe
-- Initial RTO by hop/power boundaries
-- Smoothed RTT/variation exact integer vectors
-- Karn behavior, exponential cap, route/bearer reset, and TTL bound
-- Simultaneous gap/timeout race
-- Route loss, L2CAP fallback, process death, cancellation, and late ACK
-- Bounded memory under maximum peers/transfers
+**Rationale:** Payload state (scoreboards, retransmission timers, in-flight
+windows) is complex and tied to specific Noise sessions and transport bearers.
+Restoring it correctly across process death is extremely difficult and
+error-prone. Trust is simple (identity + keys + timestamps) and essential for
+reconnection. New transfers can start immediately after restart; resumption
+would add significant complexity for marginal benefit.
 
 ## Related
 
@@ -242,3 +153,5 @@ persists, but payload transfer does not resume after restoration.
 - [GATT channel and framing](../transport/gatt-channel-and-framing.md)
 - [Routing design](../routing/routing-design.md)
 - [Public API and lifecycle](../api/public-api-and-lifecycle.md)
+- [specs/codecs/frames.yaml](../../../specs/codecs/frames.yaml)
+- [specs/protocol/state-machines.yaml](../../../specs/protocol/state-machines.yaml)

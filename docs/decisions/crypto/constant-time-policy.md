@@ -1,108 +1,56 @@
 # Constant-Time Crypto Policy
 
-**Status:** Locked — 2026-07-27 (Updated 2026-07-27 — improved `constantTimeEquals` for size mismatch, fixed negative-condition handling in `constantTimeSelect`/`constantTimeSwap`)
+**Status:** Locked — 2026-07-27 (Updated 2026-07-27)
 
-## Context
+> Normative requirements and algorithm list live in [SPEC.md §7.4](../../../SPEC.md#constant-time) and implementation in [ConstantTime.kt](../../../meshlink/src/commonMain/kotlin/ch/trancee/meshlink/util/ConstantTime.kt). This record explains the design rationale.
 
-CONSTITUTION.md §I requires: "All cryptographic field operations and comparisons MUST implement constant-time algorithms to prevent timing side-channel attacks."
+## Why per-platform constant-time guarantees differ
 
-However, Kotlin/JVM does not provide native constant-time byte array operations. The JVM's JIT compiler can optimize array accesses in data-dependent ways, and garbage collection can introduce timing variations. This creates a conflict between the constitutional requirement and platform reality.
+**Decision:** Platform guarantees vary: Android StrongBox/Secure Enclave/iOS hardware = guaranteed constant-time; Android API 26-32 without StrongBox / JVM desktop = best-effort pure-Kotlin.
 
-## Decision
+**Rationale:** Hardware-backed keystores (StrongBox, Secure Enclave) execute crypto operations in isolated TEE/hardware with constant-time execution as a hardware property. Pure-Kotlin on JVM cannot guarantee constant-time because the JIT compiler may optimize array accesses in data-dependent ways and garbage collection introduces timing variations. The policy honestly documents these differences rather than claiming false guarantees.
 
-### Policy per Platform
+## Why pure-Kotlin ConstantTime utility with specific primitives
 
-| Platform | Constant-Time Guarantee | Mechanism |
-|----------|------------------------|-----------|
-| **Android API 23+ (Secure Element / StrongBox)** | ✅ Hardware constant-time | `AndroidKeyStore` keys — all crypto operations are offloaded to a hardware-backedTEE/StrongBox with constant-time execution |
-| **Android API 18-22** | ⚠️ Best-effort | Pure-Kotlin constant-time comparison + `javax.crypto` with `SecretKeySpec` (JIT-dependent, not guaranteed) |
-| **Android API 26-32 (no StrongBox)** | ⚠️ Best-effort | Pure-Kotlin constant-time comparison + `javax.crypto.Cipher` with AndroidOpenSSL provider |
-| **iOS (Secure Enclave)** | ✅ Hardware constant-time | `Security framework` / `Secure Enclave` — all private key operations are hardware constant-time |
-| **JVM (tests/desktop)** | ⚠️ Best-effort | Pure-Kotlin constant-time comparison |
-| **Kotlin/Native (iOS target)** | ✅ Hardware constant-time | Compiles to native code, no JIT — array access patterns are determined by source code |
+**Decision:** Provide `constantTimeEquals`, `constantTimeSelect`, `constantTimeSwap`, `constantTimeIsZero` as the core constant-time primitives.
 
-### Constant-Time Primitives (Pure Kotlin)
+**Rationale:** These four primitives cover all crypto algorithm needs:
 
-All pure-Kotlin implementations MUST use `ConstantTime` — a utility providing constant-time comparison, selection, swap, and zero-check operations:
+- Comparison (MAC verification, key equality)
+- Selection (constant-time branch-free conditional)
+- Swap (constant-time conditional exchange)
+- Zero check (constant-time secret clearing)
 
-```kotlin
-object ConstantTime {
-    /**
-     * Constant-time comparison of two byte arrays.
-     * Returns 0 if equal, non-zero if different.
-     * Execution time is proportional to max(a.size, b.size) — no early exit
-     * on length mismatch, so timing does not leak the shared prefix length.
-     */
-    fun constantTimeEquals(a: ByteArray, b: ByteArray): Int { ... }
+The `mask = -(condition or -condition ushr 31)` pattern produces `0xFFFFFFFF` for any non-zero condition and `0` for zero, handling positive, negative, and large-magnitude conditions branch-free. Size-mismatch handling in `constantTimeEquals` iterates both arrays to the longer length, folding size XOR into the result so timing depends only on `max(a.size, b.size)`.
 
-    /**
-     * Constant-time selection: returns [a] if condition is 0, [b] otherwise.
-     * Both branches are fully computed; only the selection output depends on condition.
-     * Uses arithmetic branch-free normalization to handle any non-zero condition value,
-     * including negative values.
-     */
-    fun constantTimeSelect(condition: Int, a: ByteArray, b: ByteArray): ByteArray { ... }
+## Why best-effort on JVM with documented limitations
 
-    /** Constant-time byte array comparison returning a Boolean. */
-    fun constantTimeEqualsBoolean(a: ByteArray, b: ByteArray): Boolean =
-        constantTimeEquals(a, b) == 0
+**Decision:** Pure-Kotlin on JVM is documented as "best-effort" constant-time, not guaranteed.
 
-    /** Constant-time zero check: returns true if all bytes are zero. */
-    fun constantTimeIsZero(a: ByteArray): Boolean { ... }
+**Rationale:** The JVM JIT can reintroduce data-dependent timing through branch prediction, loop unrolling, and escape analysis. The policy does not claim false guarantees. Instead it mandates: (1) algorithm designed as constant-time (no secret-dependent branches/indices), (2) implementation resists timing attacks on target platform, (3) no silent degradation — platforms without constant-time support fail closed rather than silently using vulnerable implementations.
 
-    /** Constant-time conditional swap: swaps arrays when condition is non-zero. */
-    fun constantTimeSwap(condition: Int, a: ByteArray, b: ByteArray): Pair<ByteArray, ByteArray> { ... }
-}
-```
+## Why JIT mitigations are best-practice, not requirements
 
-### Key Implementation Details
+**Decision:** Mitigations (`@JvmStatic`, `final`, preferring `javax.crypto` on Android) are recommended, not required.
 
-1. **`constantTimeEquals` handles size mismatch without early return** — both arrays are fully iterated (up to the longer length). The size XOR is folded into the result, so timing depends only on `max(a.size, b.size)`, not on where the arrays diverge.
+**Rationale:** These mitigations reduce but don't eliminate JIT timing variation. They're best-practice because they help without adding complexity. The fundamental limitation (JIT unpredictability) remains; mitigations are a layer of defense, not a solution.
 
-2. **`constantTimeSelect` and `constantTimeSwap` normalize the condition arithmetically**:
+## Why verification by code review, not automated tests
 
-   ```kotlin
-   val mask = -(condition or -condition ushr 31)
-   ```
+**Decision:** Constant-time behavior MUST be validated by code review; Wycheproof validates correctness only.
 
-   This produces `0xFFFFFFFF` (all bits set) for any non-zero `condition` and `0` for `condition == 0`, covering positive, negative, and large-magnitude conditions branch-free.
+**Rationale:** Automated timing tests on JVM are unreliable due to JIT/GC noise. A custom Detekt rule flags secret-dependent patterns (`if (secretByte == expectedByte)`), but this is a static analysis aid, not a proof. Code review by security-aware engineers is the only practical validation.
 
-3. **`constantTimeSelect` and `constantTimeSwap` validate equal array sizes** via `require()` — calling them with mismatched arrays throws `IllegalArgumentException`.
+## Why fail closed on unsupported platforms
 
-### JIT Mitigation
+**Decision:** If a platform doesn't support constant-time for a required primitive, the operation fails closed.
 
-The JVM's JIT compiler can optimize constant-time loops in ways that reintroduce data-dependent timing (e.g., branch prediction on array indices). Mitigations:
-
-1. **Use `@Suppress("OPT_IN_IS_NOT_ENABLED")` and `kotlin.contracts`** — not sufficient alone
-2. **Mark hotspot crypto methods with `@JvmStatic` and `final`** — reduces inlining of data-sensitive paths
-3. **Prefer `javax.crypto.Cipher` and `Mac` for Android when available** — these use native OpenSSL/BoringSSL implementations that are constant-time
-4. **For Android API 23+ with StrongBox**, private key operations never touch application memory — timing attacks are infeasible
-5. **Document the limitation**: Pure-Kotlin constant-time on JVM is "best-effort" and should not be relied upon for high-security applications where the JVM JIT is not under the developer's control
-
-### Verification
-
-- Wycheproof test vectors validate **correctness**, not constant-time behavior
-- Constant-time behavior MUST be validated by code review, not by automated tests
-- The ADR `android-crypto-fallback-proof.md` should include a review checklist item for constant-time verification
-- CI `detekt` rules should flag any `if (secretByte == expectedByte)` pattern in crypto code (use a custom Detekt rule)
-
-### Why This Policy
-
-The constitutional requirement is "MUST implement constant-time algorithms." This policy interprets that requirement as:
-
-1. **The algorithm must be designed as constant-time** — no secret-dependent branches, no secret-dependent array indices
-2. **The implementation must resist timing attacks on the target platform** — hardware-backed platforms get guaranteed constant-time; pure-Kotlin on JVM gets best-effort with documented limitations
-3. **The implementation must not silently degrade** — if a platform doesn't support constant-time, it must fail closed rather than silently use a vulnerable implementation
-
-### When to Revisit
-
-- If a Kotlin/Native JIT or runtime improvement guarantees constant-time array operations
-- If a new Android API level provides a constant-time crypto API
-- If a formal timing analysis tool becomes available for Kotlin/JVM
+**Rationale:** Silent fallback to variable-time implementation is a security vulnerability. Explicit failure forces the developer to address the gap (use hardware-backed keys, upgrade platform, or accept the risk with informed consent).
 
 ## Related
 
-- [CONSTITUTION.md §I](../../../CONSTITUTION.md) — Rigorous Code Quality
-- [CONSTITUTION.md Naming Rules](../../../CONSTITUTION.md#i-rigorous-code-quality) — no invented abbreviations
+- [CONSTITUTION.md §I](../../../CONSTITUTION.md#i-rigorous-code-quality) — Rigorous Code Quality
 - [Crypto Design ADR](crypto-design.md) — fail-closed rules
 - [Wycheproof integration](../../../.agents/skills/wycheproof/SKILL.md) — test vector validation
+- [SPEC.md §7.4](../../../SPEC.md#constant-time)
+- [ConstantTime.kt](../../../meshlink/src/commonMain/kotlin/ch/trancee/meshlink/util/ConstantTime.kt)
