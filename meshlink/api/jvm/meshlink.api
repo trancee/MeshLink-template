@@ -792,7 +792,6 @@ public final class ch/trancee/meshlink/model/SeqNo$Companion {
 
 public final class ch/trancee/meshlink/model/TransferDeliveryOutcome : java/lang/Enum {
 	public static final field CANCELLED Lch/trancee/meshlink/model/TransferDeliveryOutcome;
-	public static final field REJECTED Lch/trancee/meshlink/model/TransferDeliveryOutcome;
 	public static final field SUCCESS Lch/trancee/meshlink/model/TransferDeliveryOutcome;
 	public static final field TIMEOUT Lch/trancee/meshlink/model/TransferDeliveryOutcome;
 	public static final field TRUST_FAILURE Lch/trancee/meshlink/model/TransferDeliveryOutcome;

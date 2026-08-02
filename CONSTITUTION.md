@@ -116,13 +116,13 @@ Rationale: MeshLink promises one library, not two loosely aligned ports.
 
 - Public API (`MeshLink`) MUST be identical in shape on Android and iOS.
   Platform differences hide behind `expect`/`actual`, invisible to callers.
-- One config DSL (`meshLinkConfig`) for both platforms; inject
+- One config DSL (`meshLinkSettings`) for both platforms; inject
   platform-specific inputs via factory functions, not DSL branches.
 - One shared diagnostic-event catalog, same severity tiers and payload
   shapes everywhere. Platform-only codes need a constitutional amendment.
 - Errors use sealed exception hierarchies in `commonMain`. Platform
   exceptions get wrapped and MUST NOT leak to consumers.
-- State machine (Uninitialized → Running → Paused/Stopped) MUST behave
+- State machine (UNINITIALIZED → CONFIGURED → RUNNING → PAUSED/STOPPED) MUST behave
   and emit events identically on both platforms.
 - Docs parity: an Android doc change for a public API or cross-platform
   workflow MUST ship the matching iOS doc update in the same change set.

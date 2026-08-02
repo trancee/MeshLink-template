@@ -181,7 +181,6 @@ public enum class TransferDeliveryOutcome {
     SUCCESS,
     CANCELLED,
     TIMEOUT,
-    REJECTED,
     UNRECOVERABLE_FAILURE,
     TRUST_FAILURE,
 }

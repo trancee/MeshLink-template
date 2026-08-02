@@ -37,7 +37,10 @@ confirmed before Noise begins.
 | Reason | Description |
 |--------|-------------|
 | `L2CAP_UNAVAILABLE` | No usable L2CAP capability/PSM after metadata validation |
-| `L2CAP_CONNECT_FAILED` | CoC connection failed |
+| `L2CAP_CONNECT_FAILED` | CoC connection failed at the BLE link layer |
+| `L2CAP_OPEN_TIMEOUT` | L2CAP channel open attempt timed out before connection completed |
+| `L2CAP_STREAM_ERROR` | L2CAP CoC stream error (EOF or channel-level stream failure) |
+| `L2CAP_STALLED` | L2CAP CoC stream stalled — no progress within partial-frame timeout |
 | `L2CAP_DROPPED_MID_TRANSFER` | CoC channel dropped during transfer |
 | `LOCAL_POLICY` | Local configuration disabled CoC |
 

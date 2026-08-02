@@ -16,6 +16,17 @@ diagnostic_code_ranges:
   trust: "0x0Axx"
   internal: "0x0Fxx"
 
+event_category_to_code_range:
+  description: "Maps conceptual per-event category to wire diagnostic code range. Conceptual categories classify event types for host-side filtering; code ranges are the fixed 0x01–0x0F wire catalog."
+  mapping:
+    route: routing        # 0x05xx
+    transfer: transfer    # 0x06xx
+    transport: transport  # 0x09xx
+    power: configuration  # 0x01xx (power mode changes are configuration events)
+    handshake: crypto     # 0x04xx (Noise handshake is crypto-layer)
+    key_rotation: crypto  # 0x04xx (key rotation is crypto-layer)
+    noise: crypto         # 0x04xx (Noise session is crypto-layer)
+
 common_event_fields:
   - name: code
     type: DiagnosticCode
@@ -147,6 +158,9 @@ diagnostic_events:
       - name: newGeneration
         type: UInt
         description: "Candidate generation after processing"
+      - name: reason
+        type: KeyRotationReason
+        description: "PERIODIC, MANUAL, or SECURITY_EVENT"
       - name: continuityVerified
         type: Boolean
         description: "Whether the contiguous dual-signed proof chain validated to the existing pin"
@@ -156,9 +170,6 @@ diagnostic_events:
       - name: propagationDeadlineMet
         type: Boolean
         description: "True when the key rotation announcement reached all direct neighbors within the deadline"
-      - name: reason
-        type: KeyRotationReason
-        description: "PERIODIC, MANUAL, or SECURITY_EVENT"
       - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
@@ -195,10 +206,10 @@ diagnostic_events:
         type: PeerIdentity
         description: "Peer from whom mismatched digest was received"
       - name: localDigest
-        type: UInt
-        description: "Local route table FNV-1a 32-bit hash"
+        type: ULong
+        description: "Local route table FNV-1a 64-bit hash"
       - name: remoteDigest
-        type: UInt
+        type: ULong
         description: "Remote peer's advertised route table hash"
       - name: occurredAt
         type: Instant
@@ -246,7 +257,7 @@ diagnostic_events:
       - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
-error_codes:
+exception_error_codes:
   encoding: UShort
   ranges:
     configuration: "0x01xx"
@@ -278,18 +289,15 @@ error_codes:
 delivery_outcomes:
   description: "Terminal outcomes only. Non-terminal progress is represented by TransferState; TransferStatus.deliveryOutcome remains null until terminal. Maps to TransferDeliveryOutcome enum and TransferOutcomeMapper."
   outcomes:
-    - name: success
+    - name: SUCCESS
       source_state: COMPLETED
-    - name: cancelled
+    - name: CANCELLED
       source_state: CANCELLED
-    - name: timeout
+    - name: TIMEOUT
       source_state: EXPIRED
-    - name: rejected
-      source_state: FAILED
-      failure_reason: TransferFailureReason
-    - name: unrecoverable-failure
+    - name: UNRECOVERABLE_FAILURE
       source_state: FAILED
       failure_reason: Unrecoverable
-    - name: trust-failure
+    - name: TRUST_FAILURE
       source_state: FAILED
       failure_reason: TrustFailure

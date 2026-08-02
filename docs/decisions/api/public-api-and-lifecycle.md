@@ -39,10 +39,11 @@ rolling back a failed start releases the lease.
 
 ### Lifecycle
 
-The public states are `UNINITIALIZED`, `RUNNING`, `PAUSED`, and `STOPPED`.
+The public states are `UNINITIALIZED`, `CONFIGURED`, `RUNNING`, `PAUSED`, and `STOPPED`.
 Lifecycle commands are suspending, serialized, restartable after stop, and
-idempotent when already at their target state. Internal transitional states do
-not expand the public state machine.
+idempotent when already at their target state. The constructor transitions
+`UNINITIALIZED` to `CONFIGURED`; `start()` transitions `CONFIGURED` to `RUNNING`.
+Internal transitional states do not expand the public state machine.
 
 Pause retains the environment lease and in-memory protocol state while stopping
 new discovery and transfer admission. Stop releases radio resources, clears

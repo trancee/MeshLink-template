@@ -58,6 +58,6 @@ class EnumCoverageTest {
         // Assert
         names.forEach { assertNotNull(it) }
         assertEquals(5, PeerTrust.entries.size)
-        assertEquals(6, TransferDeliveryOutcome.entries.size)
+        assertEquals(5, TransferDeliveryOutcome.entries.size)
     }
 }

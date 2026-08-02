@@ -48,7 +48,7 @@ Mobile devices need to communicate securely without internet, backend servers, o
 | Offline operation | Zero connectivity required once permissions granted |
 | Persisted state | Only trust pin (identity material + first/verified instants); no plaintext or full identifiers cached |
 | Pending state | In-memory only; does not survive process restart |
-| Delivery outcomes | Explicit terminal: `success`, `cancelled`, `timeout`, `rejected`, `trust-failure`, `unrecoverable-failure`; non-terminal progress is `null` (see §3.6 TransferState, §11.4) |
+| Delivery outcomes | Explicit terminal: `SUCCESS`, `CANCELLED`, `TIMEOUT`, `UNRECOVERABLE_FAILURE`, `TRUST_FAILURE`; non-terminal progress is `null` (see §3.6 TransferState, §11.4) |
 | Wire compatibility | Backward-compatible evolution; breaking changes require major version bump + migration |
 | Performance budgets | See [§12](#12-build--quality-constraints) |
 | Runtime dependency | Maximum one Maven artifact: `kotlinx-coroutines-core`. Crypto uses platform APIs or pure-Kotlin fallbacks |
@@ -150,7 +150,8 @@ peerHint, TransportHandle, keys, key generations, proof chains, Noise epochs,
 and route next hops remain internal; valid rotations and reconnects never make
 the application replace identity or key material.
 
-Lifecycle states are `UNINITIALIZED`, `RUNNING`, `PAUSED`, and `STOPPED`.
+Lifecycle states are `UNINITIALIZED`, `CONFIGURED`, `RUNNING`, `PAUSED`, and `STOPPED`. The
+constructor transitions `UNINITIALIZED` → `CONFIGURED`; `start()` transitions `CONFIGURED` → `RUNNING`.
 Commands are serialized, idempotent at their target state, and restartable after
 stop. Immediate failures use `MeshLinkException`; transfer failures use terminal
 outcomes. The public API lives in `ch.trancee.meshlink`, with platform
@@ -298,6 +299,7 @@ data class TransferSession(
 
 ```kotlin
 sealed interface TransferFailureReason {
+    data class Unrecoverable(val message: String) : TransferFailureReason
     data class TrustFailure(val peerIdentity: PeerIdentity) : TransferFailureReason
 }
 ```
@@ -382,11 +384,13 @@ RSSI normalization and the quadratic link-cost conversion are specified in §8.
 | `NoiseFailureReason` | `HANDSHAKE_TIMEOUT`, `HANDSHAKE_MESSAGE_MALFORMED`, `HANDSHAKE_MESSAGE_OUT_OF_ORDER`, `REMOTE_STATIC_KEY_MISMATCH`, `REMOTE_STATIC_KEY_UNKNOWN`, `REKEY_REJECTED`, `TRANSPORT_CLOSED`, `MAX_RETRIES_EXCEEDED`, `INTERNAL_ERROR` | |
 | `PowerMode` | `HIGH`, `MEDIUM`, `LOW` | See §10 for parameters |
 | `VerificationLevel` | `FULL`, `TOFU_PIN`, `NONE` | Handshake verification achieved |
-| `TransferDeliveryOutcome` | `SUCCESS`, `CANCELLED`, `TIMEOUT`, `REJECTED`, `UNRECOVERABLE_FAILURE`, `TRUST_FAILURE` | Terminal outcome; non-terminal progress is TransferState |
+| `TransferDeliveryOutcome` | `SUCCESS`, `CANCELLED`, `TIMEOUT`, `UNRECOVERABLE_FAILURE`, `TRUST_FAILURE` | Terminal outcome; non-terminal progress is TransferState |
 | `PeerState` | `CONNECTED`, `DISCONNECTED` | Public API |
 | `PeerLifecycle` (internal) | `CONNECTED`, `DISCONNECTED`, `GONE` | Internal runtime tracking |
-| `TrustState` | `INITIATED`, `TRUSTED`, `REVOKED` | TOFU lifecycle |
+| `PeerTrust` | `UNVERIFIED`, `VERIFYING`, `TRUSTED`, `MISMATCHED`, `REVOKED` | Trust classification per known peer |
 | `KeyRotationState` (internal) | `CURRENT`, `GRACE_PERIOD`, `REVOKED` | Per-peer key status |
+| `MeshLinkState` | `UNINITIALIZED`, `CONFIGURED`, `RUNNING`, `PAUSED`, `STOPPED` | Instance lifecycle (see §2.3) |
+| `DiagnosticSeverity` | `DEBUG`, `INFO`, `WARN`, `ERROR` | Severity for diagnostic events (see §11) |
 
 **SPEC-ANCHOR**: `type-model`
 

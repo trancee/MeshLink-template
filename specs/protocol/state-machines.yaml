@@ -4,7 +4,7 @@
 
 state_machines:
   - name: TransferState
-    package: ch.trancee.meshlink.transfer
+    package: ch.trancee.meshlink.model
     description: "Lifecycle shared by finite MESSAGE and TRANSFER payload operations."
     initial: AWAITING_DECISION
     terminal_states:
@@ -283,7 +283,7 @@ state_machines:
     failure_behavior: "Stop new L2CAP assignment, discard partial frame, continue control/data over GATT, preserve route/trust/E2E/transfer state, and recover missing chunks through SACK"
 
   - name: PeerLifecycle
-    package: ch.trancee.meshlink
+    package: ch.trancee.meshlink.model
     description: "Internal runtime tracking type driving peer lifecycle (CONNECTED → DISCONNECTED → GONE). Not exposed publicly — only PeerState (CONNECTED, DISCONNECTED) is visible to host apps."
     initial: CONNECTED
     terminal_states:
@@ -307,27 +307,43 @@ state_machines:
         event: "Grace period expires (mode-dependent: HIGH=15s, MEDIUM=30s, LOW=45s)"
         to: GONE
 
-  - name: TrustState
+  - name: PeerTrust
     package: ch.trancee.meshlink.model
-    description: "Trust record state in the TrustStore. Tracks TOFU pinning lifecycle."
-    initial: INITIATED
+    description: "Trust classification of a known peer. Tracks TOFU pinning and verification lifecycle."
+    initial: UNVERIFIED
     states:
-      - name: INITIATED
+      - name: UNVERIFIED
+        description: "Identity discovered but not yet authenticating or verified"
+      - name: VERIFYING
         description: "Handshake in progress, not yet verified"
       - name: TRUSTED
         description: "TOFU-pinned identity (first successful handshake)"
+      - name: MISMATCHED
+        description: "Identity mismatch detected — remote key does not match existing pin"
       - name: REVOKED
         description: "Explicitly revoked by user/application"
     transitions:
-      - from: INITIATED
+      - from: UNVERIFIED
+        event: "Discovery triggers handshake authentication"
+        to: VERIFYING
+      - from: VERIFYING
         event: "Handshake verified successfully"
         to: TRUSTED
+      - from: VERIFYING
+        event: "Handshake failed or timed out"
+        to: UNVERIFIED
       - from: TRUSTED
+        event: "Identity mismatch detected on reconnection"
+        to: MISMATCHED
+      - from: TRUSTED
+        event: "Explicit revocation via API"
+        to: REVOKED
+      - from: MISMATCHED
         event: "Explicit revocation via API"
         to: REVOKED
       - from: REVOKED
         event: "Explicit reset via API"
-        to: INITIATED
+        to: UNVERIFIED
 
   - name: KeyRotationState
     package: ch.trancee.meshlink.model
@@ -345,25 +361,22 @@ state_machines:
     description: "Explicit, enumerated delivery outcomes surfaced to host apps. Non-terminal TransferStates return null (no outcome)."
     mapping:
       - transfer_state: COMPLETED
-        outcome: success
+        outcome: SUCCESS
       - transfer_state: CANCELLED
-        outcome: cancelled
+        outcome: CANCELLED
       - transfer_state: EXPIRED
-        outcome: timeout
-      - transfer_state: FAILED
-        failure_reason: TransferFailureReason
-        outcome: rejected
+        outcome: TIMEOUT
       - transfer_state: FAILED
         failure_reason: Unrecoverable
-        outcome: unrecoverable-failure
+        outcome: UNRECOVERABLE_FAILURE
       - transfer_state: FAILED
         failure_reason: TrustFailure
-        outcome: trust-failure
+        outcome: TRUST_FAILURE
       - transfer_state: TRANSFERRING
       - transfer_state: ROUTE_UNAVAILABLE
       - transfer_state: RETRANSMITTING
       - transfer_state: AWAITING_DECISION
-        outcome: null  // non-terminal; deliveryOutcome is null until terminal state
+        outcome: null  # non-terminal; deliveryOutcome is null until terminal state
 
   - name: RoutingUpdateTrigger
     package: ch.trancee.meshlink.routing

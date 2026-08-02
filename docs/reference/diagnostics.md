@@ -43,15 +43,15 @@ unavailable.
 
 Sealed interface `DiagnosticEvent` has subtypes per layer:
 
-| Layer | Event Types |
-|-------|-------------|
-| Route | `RouteDecryptFailureEvent`, `RouteDigestMismatchEvent` |
-| Transport | `TransportFallbackEvent` |
-| Transfer | `TransferDataPlaneBearerEvent`, `TransferSessionTransitionEvent`, `TransferFailureEvent` |
-| Power | `PowerModeEffectiveEvent` |
-| Handshake | `HandshakeEvent` |
-| Key Rotation | `KeyRotationEvent` |
-| Noise | `NoiseSessionEvent` |
+| Category | Event Types |
+|----------|-------------|
+| `route` | `RouteDecryptFailureEvent`, `RouteDigestMismatchEvent` |
+| `transport` | `TransportFallbackEvent` |
+| `transfer` | `TransferDataPlaneBearerEvent`, `TransferSessionTransitionEvent`, `TransferFailureEvent` |
+| `power` | `PowerModeEffectiveEvent` |
+| `handshake` | `HandshakeEvent` |
+| `key_rotation` | `KeyRotationEvent` |
+| `noise` | `NoiseSessionEvent` |
 
 ## Severity Levels
 
