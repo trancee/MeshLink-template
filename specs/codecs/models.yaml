@@ -105,34 +105,10 @@ data_models:
             type: SeqNo
         return_type: Boolean
         description: "Returns true if this seqno is older than or equal to other. Symmetric to isNewerThanOrEqualTo."
-      - name: minus
-        params:
-          - name: other
-            type: SeqNo
-        return_type: Int
-        description: "Signed difference for modular arithmetic comparison. (this - other) interpreted as signed 32-bit integer"
-      - name: compareTo
-        params:
-          - name: other
-            type: SeqNo
-        return_type: Int
-        description: "Comparable<SeqNo> implementation using the same modular signed comparison. Enables sorted() and min()/max() on collections of SeqNo values."
-      - name: operator inc
+      - name: inc
         return_type: SeqNo
-        description: "Increments seqno by 1 with modular wrap at 2^32. Operator form enables idiomatic 'seqNo++' syntax."
-      - name: max
-        params:
-          - name: other
-            type: SeqNo
-        return_type: SeqNo
-        description: "Returns the newer of this and other using modular comparison. When equal, returns other."
-      - name: min
-        params:
-          - name: other
-            type: SeqNo
-        return_type: SeqNo
-        description: "Returns the older of this and other using modular comparison. When equal, returns other."
-      - name: unsignedDistance
+        description: "Increments seqno by 1 with modular wrap at 2^32. Operator form enables idiomatic seqNo++ syntax."
+      - name: distanceFrom
         params:
           - name: other
             type: SeqNo
@@ -142,7 +118,7 @@ data_models:
   - name: Scoreboard
     package: ch.trancee.meshlink.model
     type: class
-    description: "Internal bounded-message/test scoreboard. Large-transfer wire ACK uses the fixed 256-chunk PayloadAcknowledgment window; this model is not a configurable wire encoding."
+    description: "Internal bounded-message/test scoreboard. Large-transfer wire ACK uses the fixed 256-chunk PayloadAcknowledgement window; this model is not a configurable wire encoding."
     constructors:
       - name: Scoreboard(totalChunks: UInt)
         description: "Dynamic bitfield sized for the actual chunk count."
@@ -309,7 +285,7 @@ data_models:
     type: data_class
     description: "Drives chunked transfer with selective ACK and cut-through relay support. Chunk size is selected by the local PowerMode at session start and bounded by the peer's advertised MTU. Scoreboard uses a dynamic bitfield whose length is derived from totalChunks — bit N = 1 means chunk N is received (standard SACK)."
     fields:
-      - name: transferId
+      - name: id
         type: TransferId
         description: "Source-owned 32-bit identifier; unique within the authenticated origin PeerIdentity namespace"
       - name: destination
@@ -341,7 +317,7 @@ data_models:
         description: "When this transfer session was started"
       - name: expiresAt
         type: "Instant?"
-        description: "Deadline for WAITING_FOR_ROUTE state; null when in-progress or retrying"
+        description: "Deadline for ROUTE_UNAVAILABLE state; null when transferring or retransmitting"
       - name: retryCount
         type: Int
         description: "Number of retransmit attempts made so far"

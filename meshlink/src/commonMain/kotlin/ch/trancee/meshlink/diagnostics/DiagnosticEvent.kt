@@ -30,7 +30,7 @@ import kotlin.time.Instant
 
 public object DiagnosticCodes {
     public val ROUTE_DECRYPTION_FAILED: DiagnosticCode = DiagnosticCode(0x0501u)
-    public val TRANSPORT_FALLBACK: DiagnosticCode = DiagnosticCode(0x0301u)
+    public val TRANSPORT_FALLBACK: DiagnosticCode = DiagnosticCode(0x0901u)
     public val TRANSFER_BEARER: DiagnosticCode = DiagnosticCode(0x0601u)
     public val POWER_MODE_EFFECTIVE: DiagnosticCode = DiagnosticCode(0x0101u)
     public val HANDSHAKE: DiagnosticCode = DiagnosticCode(0x0401u)

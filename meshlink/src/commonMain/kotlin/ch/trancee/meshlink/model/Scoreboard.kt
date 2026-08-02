@@ -1,7 +1,7 @@
 package ch.trancee.meshlink.model
 
 /**
- * Immutable bitfield for selective acknowledgment of received chunks. Bit N = 1 means chunk N is
+ * Immutable bitfield for selective acknowledgement of received chunks. Bit N = 1 means chunk N is
  * received (standard SACK convention). Length is derived from totalChunks and the byte width.
  * [totalChunks].
  *

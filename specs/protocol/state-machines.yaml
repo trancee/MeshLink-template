@@ -11,16 +11,16 @@ state_machines:
       - COMPLETED
       - CANCELLED
       - FAILED
-      - TIMED_OUT
+      - EXPIRED
     states:
       - name: AWAITING_DECISION
         description: "Validated manifest is awaiting automatic message capacity or host TransferSink decision"
-      - name: IN_PROGRESS
+      - name: TRANSFERRING
         description: "Accepted payload is actively transferring"
-      - name: WAITING_FOR_ROUTE
+      - name: ROUTE_UNAVAILABLE
         description: "Origin retains operation while routing recovers within timeToLive"
-      - name: RETRYING
-        description: "Missing chunks are selectively retransmitting under adaptive RTO"
+      - name: RETRANSMITTING
+        description: "Missing chunks are selectively retransmitted under adaptive RTO"
       - name: COMPLETED
         description: "All payload chunks acknowledged and terminal completion confirmed"
         terminal: true
@@ -30,66 +30,53 @@ state_machines:
       - name: FAILED
         description: "Rejected, unrecoverable, sink, protocol, or trust failure"
         terminal: true
-      - name: TIMED_OUT
+      - name: EXPIRED
         description: "Origin-owned monotonic timeToLive exhausted"
         terminal: true
     transitions:
       - from: AWAITING_DECISION
         event: "PayloadDecision ACCEPTED"
-        to: IN_PROGRESS
+        to: TRANSFERRING
       - from: AWAITING_DECISION
         event: "Rejected, receiver unavailable/busy, sink failure, invalid manifest, or acceptance timeout"
         to: FAILED
       - from: AWAITING_DECISION
         event: "Cancellation"
         to: CANCELLED
-      - from: IN_PROGRESS
+      - from: TRANSFERRING
         event: "All chunks acknowledged"
         to: COMPLETED
-      - from: IN_PROGRESS
+      - from: TRANSFERRING
         event: "Route lost"
-        to: WAITING_FOR_ROUTE
-      - from: IN_PROGRESS
+        to: ROUTE_UNAVAILABLE
+      - from: TRANSFERRING
         event: "Gap ACK or retransmission timeout schedules missing chunks"
-        to: RETRYING
-      - from: IN_PROGRESS
+        to: RETRANSMITTING
+      - from: TRANSFERRING
         event: "Cancellation"
         to: CANCELLED
-      - from: IN_PROGRESS
+      - from: TRANSFERRING
         event: "Protocol, sink, or trust failure"
         to: FAILED
-      - from: WAITING_FOR_ROUTE
+      - from: ROUTE_UNAVAILABLE
         event: "Route and required E2E session recovered"
-        to: IN_PROGRESS
-      - from: RETRYING
+        to: TRANSFERRING
+      - from: RETRANSMITTING
         event: "Selective retransmission resumes normal window"
-        to: IN_PROGRESS
-      - from: WAITING_FOR_ROUTE
+        to: TRANSFERRING
+      - from: ROUTE_UNAVAILABLE
         event: "timeToLive exhausted"
-        to: TIMED_OUT
-      - from: RETRYING
+        to: EXPIRED
+      - from: RETRANSMITTING
         event: "timeToLive exhausted"
-        to: TIMED_OUT
-      - from: WAITING_FOR_ROUTE
+        to: EXPIRED
+      - from: ROUTE_UNAVAILABLE
         event: "Cancellation"
         to: CANCELLED
-      - from: RETRYING
+      - from: RETRANSMITTING
         event: "Cancellation"
         to: CANCELLED
     protocol_limits:
-      maximum_message_size_bytes: 65536
-      incomplete_message_budget_bytes: 2097152
-      pending_offers_per_peer: 2
-      pending_offers_global: 8
-      acceptance_timeout_seconds: 30
-      sack_window_chunks: 256
-      acknowledgment_chunk_trigger: 32
-      acknowledgment_delay_ms:
-        HIGH: 100
-        MEDIUM: 250
-        LOW: 500
-      rto_minimum_ms: 1000
-      rto_maximum_ms: 30000
 
   - name: NoiseSessionState
     package: ch.trancee.meshlink.model
@@ -355,24 +342,28 @@ state_machines:
 
   - name: TransferDeliveryOutcome
     package: ch.trancee.meshlink
-    description: "Explicit, enumerated delivery outcomes surfaced to host apps (not a state machine but a result mapping)."
+    description: "Explicit, enumerated delivery outcomes surfaced to host apps. Non-terminal TransferStates return null (no outcome)."
     mapping:
       - transfer_state: COMPLETED
         outcome: success
-      - transfer_state: IN_PROGRESS
-        outcome: in-progress
-      - transfer_state: RETRYING
-        outcome: retrying
-      - transfer_state: WAITING_FOR_ROUTE
-        outcome: route-waiting
-      - transfer_state: TIMED_OUT
+      - transfer_state: CANCELLED
+        outcome: cancelled
+      - transfer_state: EXPIRED
         outcome: timeout
+      - transfer_state: FAILED
+        failure_reason: TransferFailureReason
+        outcome: rejected
       - transfer_state: FAILED
         failure_reason: Unrecoverable
         outcome: unrecoverable-failure
       - transfer_state: FAILED
         failure_reason: TrustFailure
         outcome: trust-failure
+      - transfer_state: TRANSFERRING
+      - transfer_state: ROUTE_UNAVAILABLE
+      - transfer_state: RETRANSMITTING
+      - transfer_state: AWAITING_DECISION
+        outcome: null  // non-terminal; deliveryOutcome is null until terminal state
 
   - name: RoutingUpdateTrigger
     package: ch.trancee.meshlink.routing

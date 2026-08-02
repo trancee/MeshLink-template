@@ -27,7 +27,7 @@ public enum class TransferState {
  */
 public data class TransferSession(
     /** Origin-scoped 32-bit identifier identifying this finite payload. */
-    public val transferId: TransferId,
+    public val id: TransferId,
     /** Final destination peer for this transfer. */
     public val destination: PeerIdentity,
     /** QoS priority inherited from the originating RoutingMessage. */
@@ -46,7 +46,7 @@ public data class TransferSession(
     public val offset: Long,
     /** When this transfer session was started. */
     public val startedAt: Instant,
-    /** Deadline for WAITING_FOR_ROUTE state; null when in-progress or retrying. */
+    /** Deadline for ROUTE_UNAVAILABLE state; null when transferring or retransmitting. */
     public val expiresAt: Instant?,
     /** Number of retransmit attempts made so far. */
     public val retryCount: Int,

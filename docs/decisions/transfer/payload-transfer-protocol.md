@@ -56,8 +56,8 @@ closed.
 ## Concurrency bounds
 
 `TransferSettings.maxTransfersPerPeer` defaults to three and includes accepted or
-outgoing MESSAGE and TRANSFER operations in AWAITING_DECISION, IN_PROGRESS,
-WAITING_FOR_ROUTE, or RETRYING. Terminal operations do not count. Pending
+outgoing MESSAGE and TRANSFER operations in AWAITING_DECISION, TRANSFERRING,
+ROUTE_UNAVAILABLE, or RETRANSMITTING. Terminal operations do not count. Pending
 incoming offers additionally obey two per peer and eight globally. Capacity
 rejection uses RECEIVER_BUSY.
 
@@ -86,7 +86,7 @@ cannot resurrect work, and best-effort PayloadCancellation is sent.
 
 Relays forward cut-through with bounded current-frame queues. They do not
 persist payloads, restart lifetime, own retransmission state, or reassemble E2E
-content. Route loss returns control to the origin, which enters route-waiting.
+content. Route loss returns control to the origin, which enters ROUTE_UNAVAILABLE.
 
 ## Minimal chunks
 
@@ -115,7 +115,7 @@ allocation.
 ## Sliding selective acknowledgement
 
 ```text
-PayloadAcknowledgment {
+PayloadAcknowledgement {
     kind
     id
     start

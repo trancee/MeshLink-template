@@ -51,7 +51,7 @@ Sealed interface `DiagnosticEvent` has subtypes per layer:
 | Power | `PowerModeEffectiveEvent` |
 | Handshake | `HandshakeEvent` |
 | Key Rotation | `KeyRotationEvent` |
-| Noise | `NoiseSessionTransitionEvent` |
+| Noise | `NoiseSessionEvent` |
 
 ## Severity Levels
 

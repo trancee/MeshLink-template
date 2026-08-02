@@ -61,7 +61,7 @@ No chunk is sent before PayloadDecision ACCEPTED.
 PayloadChunk contains only kind, id, index, and payload. Offset, length, and
 finality derive from manifest totalLength/chunkSize/chunkCount.
 
-PayloadAcknowledgment uses `start` plus a fixed 32-byte bitmap. All lower chunk
+PayloadAcknowledgement uses `start` plus a fixed 32-byte bitmap. All lower chunk
 indices are cumulatively acknowledged; bit n represents start+n. Sender keeps at
 most 256 chunks in flight.
 
@@ -95,9 +95,9 @@ change resets the relevant estimator.
 ## Lifecycle
 
 ```text
-AWAITING_DECISION → IN_PROGRESS
-IN_PROGRESS ↔ WAITING_FOR_ROUTE / RETRYING
-IN_PROGRESS → COMPLETED / CANCELLED / FAILED / TIMED_OUT
+AWAITING_DECISION → TRANSFERRING
+TRANSFERRING ↔ ROUTE_UNAVAILABLE / RETRANSMITTING
+TRANSFERRING → COMPLETED / CANCELLED / FAILED / EXPIRED
 ```
 
 Process death discards active payloads. Persisted trust allows fresh sessions,
@@ -110,7 +110,7 @@ not transfer resumption.
 | `PAYLOAD_MANIFEST` | `0x20` |
 | `PAYLOAD_DECISION` | `0x21` |
 | `PAYLOAD_CHUNK` | `0x22` |
-| `PAYLOAD_ACKNOWLEDGMENT` | `0x23` |
+| `PAYLOAD_ACKNOWLEDGEMENT` | `0x23` |
 | `PAYLOAD_CANCELLATION` | `0x24` |
 
 All are E2E Noise records inside hop-encrypted MESH_ENVELOPE.

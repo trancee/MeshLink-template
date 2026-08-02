@@ -35,11 +35,11 @@ class SeqNoComparisonTest {
 
         // Act
         val isNewerOrEqual = newer.isNewerThanOrEqualTo(older)
-        val difference = newer - older
+        val difference = newer.distanceFrom(older)
 
         // Assert
         assertTrue(isNewerOrEqual)
-        assertEquals(1, difference)
+        assertEquals(1u, difference)
     }
 
     @Test

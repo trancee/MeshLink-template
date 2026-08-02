@@ -154,7 +154,7 @@ connection_interval_adaptation:
   idle_after_seconds: 5
   idle_interval_min_ms: 500
   idle_interval_max_ms: 1000
-  active_trigger: "Handshake, urgent control, acknowledgment, or data queued"
+  active_trigger: "Handshake, urgent control, acknowledgement, or data queued"
   battery_scope: "LOW/background idle"
 
 power_mode_parameter_mapping:

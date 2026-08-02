@@ -776,7 +776,6 @@ public final class ch/trancee/meshlink/model/SeqNo {
 	public static final fun isOlderThan-4x_Q2Qc (II)Z
 	public static final fun isOlderThanOrEqualTo-4x_Q2Qc (II)Z
 	public static final fun isZero-impl (I)Z
-	public static final fun minus-4x_Q2Qc (II)I
 	public static final fun toByteArray-impl (I)[B
 	public fun toString ()Ljava/lang/String;
 	public static fun toString-impl (I)Ljava/lang/String;
@@ -873,6 +872,7 @@ public final class ch/trancee/meshlink/model/TransferSession {
 	public final fun getDestination-jkpD0pM ()Lkotlin/Pair;
 	public final fun getExpiresAt ()Lkotlin/time/Instant;
 	public final fun getFailureReason ()Lch/trancee/meshlink/model/TransferFailureReason;
+	public final fun getId-O05vZdo ()I
 	public final fun getOffset ()J
 	public final fun getPriority ()Lch/trancee/meshlink/model/Priority;
 	public final fun getRetryCount ()I
@@ -881,7 +881,6 @@ public final class ch/trancee/meshlink/model/TransferSession {
 	public final fun getState ()Lch/trancee/meshlink/model/TransferState;
 	public final fun getTotal ()J
 	public final fun getTotalChunks-pVg5ArA ()I
-	public final fun getTransferId-O05vZdo ()I
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }

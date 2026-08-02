@@ -120,7 +120,7 @@ Routing sequence and key generation are independent.
 
 `SeqNo` is internal and deliberately not `Comparable`. Modular serial ordering
 is not a global total order. It exposes only explicit operations such as
-`isNewerThan`, `isOlderThan`, `isNewerThanOrEqualTo`, `distanceFrom`, and `next`.
+`isNewerThan`, `isOlderThan`, `isNewerThanOrEqualTo`, `distanceFrom`, and `inc`.
 An exact half-range difference is ambiguous and cannot authorize an ordering
 decision.
 
@@ -153,7 +153,7 @@ peer may trigger at most three destination sequence-advancement attempts per
 minute. The destination coalesces older/equal requirements, persists a newer
 sequence, and advertises immediately without normal update jitter. Failed
 attempts retry with exponential backoff and full jitter while application
-traffic remains route-waiting.
+traffic remains in ROUTE_UNAVAILABLE.
 
 ## Route statement and mutable advertisement
 
@@ -308,7 +308,7 @@ cooldown are mandatory and have no public disable/tuning settings.
 Delivery time-to-live and routing hop limit are independent:
 
 - `TransferOptions.timeToLive` is elapsed time during which a message/transfer
-  may remain active or route-waiting. Priority supplies defaults of 10, 5, and 1
+  may remain active or in ROUTE_UNAVAILABLE. Priority supplies defaults of 10, 5, and 1
   minutes for HIGH, NORMAL, and LOW.
 - `maximumHopCount` is the fixed number of relays a routed envelope/control
   operation may traverse. It is 16 for every priority and is not configurable.

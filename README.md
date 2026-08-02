@@ -22,7 +22,7 @@ See [Module Structure](docs/explanation/module-structure.md) for details.
 - **Zero-infrastructure trust** — TOFU model with explicit revocation
 - **Two-layer encryption** — Hop-by-hop link encryption + end-to-end Noise handshakes
 - **Proactive multi-hop routing** — Distance-vector protocol adapted from RFC 8966 (Babel)
-- **Reliable large-payload transfer** — Selective acknowledgment over small-frame BLE
+- **Reliable large-payload transfer** — Selective acknowledgement over small-frame BLE
 - **Power-aware operation** — Discrete modes governing scan/conn/transfer parameters
 - **Cross-platform parity** — Identical public API and sealed exception hierarchies
 
@@ -97,7 +97,7 @@ MeshLink implements against these RFC standards:
 - **RFC 2104** — HMAC for diagnostics
 - **RFC 6234** — SHA-256 for hashing
 - **RFC 8966** — Babel routing for seqno/feasibility
-- **RFC 2018** — TCP SACK for selective acknowledgment
+- **RFC 2018** — TCP SACK for selective acknowledgement
 
 Crypto implementations are validated against Wycheproof test vectors.
 

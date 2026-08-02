@@ -51,16 +51,23 @@ outcome. Coroutine `CancellationException` remains normal cancellation.
 
 ## ErrorCode Design
 
-**Categories** use explicit UShort ranges (never enum ordinals): configuration 0x01xx, permission/lifecycle 0x02xx, Bluetooth/transport 0x03xx, storage 0x04xx, crypto/trust 0x05xx, routing 0x06xx, transfer 0x07xx, and internal 0x0Fxx.
+**Categories** use explicit UShort ranges (never enum ordinals): configuration 0x01xx,
+permission 0x02xx, bluetooth 0x03xx, crypto 0x04xx, routing 0x05xx, transfer 0x06xx,
+storage 0x07xx, lifecycle 0x08xx, transport 0x09xx, trust 0x0Axx, and internal 0x0Fxx.
 
 **Categories** (reflected in enum grouping):
 
-- **Trust/Security**: `PEER_NOT_FOUND`, `KEY_UNKNOWN`, `TRUST_VIOLATION`, `SIGNATURE_VERIFICATION_FAILED`, `REPLAY_DETECTED`
+- **Configuration**: `INVALID_PARAMETER`, `INVALID_STATE`
+- **Permission**: `PERMISSION_DENIED`
+- **Bluetooth**: `BLUETOOTH_DISABLED`, `COC_NOT_SUPPORTED`, `CONNECTION_FAILED`, `GATT_OPERATION_FAILED`, `L2CAP_CHANNEL_FAILED`
+- **Storage**: `STORAGE_UNAVAILABLE`, `STORAGE_CORRUPTED`
+- **Crypto**: `CRYPTO_OPERATION_FAILED`, `SIGNATURE_VERIFICATION_FAILED`, `REPLAY_DETECTED`
 - **Routing**: `NO_ROUTE`, `ROUTE_ADVERTISEMENT_FAILED`, `ROUTE_LOOP_DETECTED`
 - **Transfer**: `TRANSFER_TIMEOUT`, `TRANSFER_CANCELLED`, `TRANSFER_CORRUPTED`, `SESSION_NOT_FOUND`, `CHUNK_OUT_OF_BOUNDS`
-- **Transport**: `BLUETOOTH_DISABLED`, `CONNECTION_FAILED`, `COC_NOT_SUPPORTED`, `GATT_OPERATION_FAILED`, `L2CAP_CHANNEL_FAILED`
-- **Configuration**: `INVALID_PARAMETER`, `INVALID_STATE`, `PERMISSION_DENIED`
-- **Internal**: `INTERNAL_ERROR`, `CRYPTO_OPERATION_FAILED`, `SERIALIZATION_FAILED`
+- **Lifecycle**: *(reserved for future LifecycleException codes)*
+- **Transport**: *(reserved for future transport-specific codes)*
+- **Trust**: `PEER_NOT_FOUND`, `KEY_UNKNOWN`, `TRUST_VIOLATION`
+- **Internal**: `INTERNAL_ERROR`, `SERIALIZATION_FAILED`
 
 **Why `ErrorCode` not `errorCode: Int`?**
 

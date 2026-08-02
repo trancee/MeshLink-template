@@ -96,12 +96,6 @@ public value class SeqNo(private val value: UInt) {
     public fun isOlderThanOrEqualTo(other: SeqNo): Boolean = other.isNewerThanOrEqualTo(this)
 
     /**
-     * Signed difference for modular arithmetic comparison. `(this - other)` interpreted as signed
-     * 32-bit integer.
-     */
-    public operator fun minus(other: SeqNo): Int = (value - other.value).toInt()
-
-    /**
      * Increments this seqno by 1, wrapping at 2^32. Operator form for idiomatic `seqNo++` usage.
      */
     public operator fun inc(): SeqNo = SeqNo(value + SEQNO_INCREMENT)
@@ -121,8 +115,8 @@ public value class SeqNo(private val value: UInt) {
      * determining how far behind a peer's seqno is relative to the local value, and for route
      * staleness diagnostics.
      *
-     * Example: `SeqNo(1u).unsignedDistance(SeqNo(0xFFFFFFFEu))` returns `3u` (three forward steps
-     * from 0xFFFFFFFE through zero to 1).
+     * Example: `SeqNo(1u).distanceFrom(SeqNo(0xFFFFFFFEu))` returns `3u` (three forward steps from
+     * 0xFFFFFFFE through zero to 1).
      */
     public fun distanceFrom(other: SeqNo): UInt = value - other.value
 }

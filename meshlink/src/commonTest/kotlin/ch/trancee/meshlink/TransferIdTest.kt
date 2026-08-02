@@ -53,7 +53,7 @@ class TransferIdTest {
         // Arrange
         val session =
             TransferSession(
-                transferId = TransferId.fromHex("1"),
+                id = TransferId.fromHex("1"),
                 destination = ch.trancee.meshlink.model.PeerIdentity.ZERO,
                 priority = Priority.NORMAL,
                 state = TransferState.TRANSFERRING,
@@ -71,7 +71,7 @@ class TransferIdTest {
         // Act
         val actual =
             listOf(
-                session.transferId,
+                session.id,
                 session.destination,
                 session.priority,
                 session.state,

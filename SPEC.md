@@ -37,7 +37,7 @@ Mobile devices need to communicate securely without internet, backend servers, o
 | 1 | **Zero-infrastructure trust** | Trust On First Use (TOFU): first mutually-authenticated handshake pins peer identity keys; subsequent mismatches require explicit reset/revocation |
 | 2 | **Two-layer encryption** | Hop-by-hop link encryption (relays forward without reading) layered under end-to-end encryption (origin/destination only) |
 | 3 | **Proactive multi-hop routing** | Distance-vector-style routing control plane maintaining live route tables; host app never selects intermediate hops manually |
-| 4 | **Reliable large-payload transfer** | Chunked transfer with selective acknowledgment (SACK), retransmission, and reassembly over small-frame BLE radio |
+| 4 | **Reliable large-payload transfer** | Chunked transfer with selective acknowledgement (SACK), retransmission, and reassembly over small-frame BLE radio |
 | 5 | **Power-aware operation** | Discrete power modes governing scan duty cycle, advertisement interval, connection interval, concurrent connections, and transfer chunk size |
 | 6 | **Deterministic cross-platform parity** | Identical lifecycle states, sealed error hierarchies, and diagnostic codes across Android and iOS |
 
@@ -48,7 +48,7 @@ Mobile devices need to communicate securely without internet, backend servers, o
 | Offline operation | Zero connectivity required once permissions granted |
 | Persisted state | Only trust pin (identity material + first/verified instants); no plaintext or full identifiers cached |
 | Pending state | In-memory only; does not survive process restart |
-| Delivery outcomes | Explicit: `success`, `in-progress`, `retrying`, `route-waiting`, `unreachable`, `trust-failure`, `timeout`, `unrecoverable-failure` |
+| Delivery outcomes | Explicit terminal: `success`, `cancelled`, `timeout`, `rejected`, `trust-failure`, `unrecoverable-failure`; non-terminal progress is `null` (see §3.6 TransferState, §11.4) |
 | Wire compatibility | Backward-compatible evolution; breaking changes require major version bump + migration |
 | Performance budgets | See [§12](#12-build--quality-constraints) |
 | Runtime dependency | Maximum one Maven artifact: `kotlinx-coroutines-core`. Crypto uses platform APIs or pure-Kotlin fallbacks |
@@ -188,10 +188,10 @@ differences hidden behind the environment factories and internal
 
 ### 3.2 SeqNo {#seqno-model}
 
-**Unsigned 32-bit sequence number with safe wrap-around comparison.** Per RFC 8966 §3.7, comparisons use signed interpretation. Implements [Comparable] for sorting and standard ordering utilities.
+**Unsigned 32-bit sequence number with safe wrap-around comparison.** Per RFC 8966 §3.7, comparisons use signed interpretation. SeqNo is internal and deliberately NOT `Comparable` — modular serial ordering is not a globally transitive total order. Explicit operations (`isNewerThan`, `isOlderThan`, `distanceFrom`, `inc`) handle wrap-around safely.
 
 ```kotlin
-@JvmInline value class SeqNo(private val value: UInt) : Comparable<SeqNo> {
+@JvmInline value class SeqNo(private val value: UInt) {
     companion object {
         val ZERO: SeqNo = SeqNo(0u)
         val MAX_VALUE: SeqNo = SeqNo(UInt.MAX_VALUE)
@@ -205,12 +205,8 @@ differences hidden behind the environment factories and internal
     fun isNewerThanOrEqualTo(other: SeqNo): Boolean = (value - other.value).toInt() >= 0
     fun isOlderThan(other: SeqNo): Boolean = other.isNewerThan(this)
     fun isOlderThanOrEqualTo(other: SeqNo): Boolean = other.isNewerThanOrEqualTo(this)
-    operator fun minus(other: SeqNo): Int = (value - other.value).toInt()
-    override fun compareTo(other: SeqNo): Int = minus(other)
     operator fun inc(): SeqNo = SeqNo(value + 1u)  // wraps at 2^32
-    fun max(other: SeqNo): SeqNo
-    fun min(other: SeqNo): SeqNo
-    fun unsignedDistance(other: SeqNo): UInt         // modular forward distance, UInt wraparound
+    fun distanceFrom(other: SeqNo): UInt         // modular unsigned forward distance
 }
 ```
 
@@ -219,14 +215,12 @@ differences hidden behind the environment factories and internal
 - `toUInt()`/`fromUInt()` for logical wire serialization (value extraction)
 - `toByteArray()`/`fromByteArray()` for 4-byte big-endian byte-level wire serialization
 - `isNewerThanOrEqualTo` used by Babel feasibility condition (RFC 8966 §3.7)
-- `max`/`min` for route table merges
-- `compareTo` enables `sortedBy()`, `min()`, `max()` on `Iterable<SeqNo>`
-- `unsignedDistance` for route staleness diagnostics and gap analysis
+- `distanceFrom` for route staleness diagnostics and gap analysis
 - **SPEC-ANCHOR**: `seqno-model`
 
 ### 3.3 Scoreboard (Immutable) & MutableScoreboard {#scoreboard-model}
 
-**Immutable bitfield for selective acknowledgment (SACK).** Bit N = 1 means chunk N received. Length = `ceil(totalChunks / 8)` bytes.
+**Immutable bitfield for selective acknowledgement (SACK).** Bit N = 1 means chunk N received. Length = `ceil(totalChunks / 8)` bytes.
 
 ```kotlin
 class Scoreboard(totalChunks: UInt) {
@@ -277,9 +271,9 @@ data class TransferSession(
     val totalChunks: UInt,
     val scoreboard: Scoreboard,
     val total: Long,
-    val bytes: Long,
+    val offset: Long,
     val startedAt: Instant,
-    val expiresAt: Instant?,            // Deadline for WAITING_FOR_ROUTE
+    val expiresAt: Instant?,            // Deadline for ROUTE_UNAVAILABLE
     val retryCount: Int,
     val failureReason: TransferFailureReason?
 )
@@ -292,24 +286,28 @@ data class TransferSession(
 | State | Terminal | Description |
 |-------|----------|-------------|
 | `AWAITING_DECISION` | No | Manifest validated; awaiting automatic capacity or host sink decision |
-| `IN_PROGRESS` | No | Actively transferring |
-| `WAITING_FOR_ROUTE` | No | Route lost, waiting for recovery |
-| `RETRYING` | No | Selectively retransmitting missing chunks under adaptive RTO |
-| `COMPLETED` | **Yes** | All chunks acknowledged and completion confirmed |
-| `CANCELLED` | **Yes** | Local or remote cancellation completed |
-| `FAILED` | **Yes** | Rejection, sink, protocol, trust, or unrecoverable failure |
-| `TIMED_OUT` | **Yes** | Origin timeToLive exhausted |
+| `TRANSFERRING` | No | Actively transferring |
+| `ROUTE_UNAVAILABLE` | No | Route lost, waiting for recovery |
+| `RETRANSMITTING` | No | Selectively retransmitting missing chunks under adaptive RTO |
+| `COMPLETED` | Yes | All chunks acknowledged and completion confirmed |
+| `CANCELLED` | Yes | Local or remote cancellation completed |
+| `FAILED` | Yes | Rejection, sink, protocol, trust, or unrecoverable failure |
+| `EXPIRED` | Yes | Origin timeToLive exhausted |
 
 ### 3.7 TransferFailureReason (Sealed) {#transfer-failure-reason-model}
 
 ```kotlin
 sealed interface TransferFailureReason {
-    data class Unrecoverable(val message: String) : TransferFailureReason
     data class TrustFailure(val peerIdentity: PeerIdentity) : TransferFailureReason
 }
 ```
 
-### 3.8 TransferId {#transfer-id-model}
+### 3.8 TransferId and MessageId {#transfer-id-model}
+
+A payload is identified by `(authenticated origin PeerIdentity, PayloadKind, id)`,
+where `id` is a `TransferId` for `TRANSFER` payloads or `MessageId` for `MESSAGE`
+payloads. Both share the same 32-bit `UInt` wire slot; `kind` determines
+interpretation and zero is reserved as invalid for either.
 
 A transfer is identified by `(authenticated origin PeerIdentity, TransferId)`.
 The origin allocates values from a durably reserved, monotonically increasing
@@ -583,7 +581,7 @@ authentication succeeds.
 Applications continue using the same PeerIdentity and never manage keys,
 generations, or proof chains.
 
-**ADR**: docs/decisions/discovery/peer-hint-and-identity-races.md
+**ADR**: docs/decisions/crypto/key-rotation-propagation.md
 
 ### 5.5 E2E Handshake Routing Over Mesh {#trust-record}
 
@@ -878,12 +876,12 @@ MeshLinkException
 
 All public immediate command failures use typed `MeshLinkException` subtypes
 with explicit stable UShort `ErrorCode` values grouped by category: 0x01xx
-configuration, 0x02xx permission/lifecycle, 0x03xx Bluetooth/transport, 0x04xx
-storage, 0x05xx crypto/trust, 0x06xx routing, 0x07xx transfer, and 0x0Fxx
-internal. Codes never use enum ordinals or carry sensitive context. Platform exceptions are wrapped and
-never leak. Untrusted parsing uses sealed internal results; long-running payload
-failures use terminal status/outcome. `CancellationException` remains normal
-coroutine cancellation.
+configuration, 0x02xx permission, 0x03xx bluetooth, 0x04xx crypto, 0x05xx routing,
+0x06xx transfer, 0x07xx storage, 0x08xx lifecycle, 0x09xx transport, 0x0Axx trust,
+and 0x0Fxx internal. Codes never use enum ordinals or carry sensitive context.
+Platform exceptions are wrapped and never leak. Untrusted parsing uses sealed
+internal results; long-running payload failures use terminal status/outcome.
+`CancellationException` remains normal coroutine cancellation.
 
 **ADR**: docs/decisions/model/error-hierarchy.md
 
@@ -1059,20 +1057,20 @@ before PayloadDecision ACCEPTED.
 
 ```text
 AWAITING_DECISION
-    ├── accepted → IN_PROGRESS
+    ├── accepted → TRANSFERRING
     ├── rejected/timeout → FAILED
     └── cancelled → CANCELLED
 
-IN_PROGRESS
+TRANSFERRING
     ├── all chunks acknowledged → COMPLETED
-    ├── route lost → WAITING_FOR_ROUTE
-    ├── missing chunks → RETRYING
+    ├── route lost → ROUTE_UNAVAILABLE
+    ├── missing chunks → RETRANSMITTING
     ├── error/trust failure → FAILED
     └── cancelled → CANCELLED
 
-WAITING_FOR_ROUTE / RETRYING
-    ├── recovered → IN_PROGRESS
-    ├── timeToLive exhausted → TIMED_OUT
+ROUTE_UNAVAILABLE / RETRANSMITTING
+    ├── recovered → TRANSFERRING
+    ├── timeToLive exhausted → EXPIRED
     └── cancelled → CANCELLED
 ```
 
@@ -1085,7 +1083,7 @@ and own no persistent payload/retry state.
 PayloadChunk contains only kind, id, index, and payload. Offset, length, and
 finality derive from the manifest.
 
-PayloadAcknowledgment contains kind, id, `start`, and a fixed 32-byte bitmap.
+PayloadAcknowledgement contains kind, id, `start`, and a fixed 32-byte bitmap.
 All indices below start are cumulative; bit n acknowledges start+n. Sender keeps
 at most 256 chunks in flight and rereads missing data through TransferSource.
 
@@ -1110,7 +1108,7 @@ remaining timeToLive.
 | `PAYLOAD_MANIFEST` | `0x20` | Offer and immutable chunk/lifetime contract |
 | `PAYLOAD_DECISION` | `0x21` | Accepted or typed rejection |
 | `PAYLOAD_CHUNK` | `0x22` | Minimal indexed payload bytes |
-| `PAYLOAD_ACKNOWLEDGMENT` | `0x23` | 256-chunk sliding SACK window |
+| `PAYLOAD_ACKNOWLEDGEMENT` | `0x23` | 256-chunk sliding SACK window |
 | `PAYLOAD_CANCELLATION` | `0x24` | Idempotent message/transfer cancellation |
 
 Every frame repeats kind; identity is `(origin, kind, id)`. All are E2E Noise
@@ -1219,30 +1217,29 @@ val severity: DiagnosticSeverity
 val occurredAt: Instant
 ```
 
-`occurredAt` names the event instant. Diagnostic codes use explicit ranges:
-0x01xx lifecycle/configuration, 0x02xx discovery/peer, 0x03xx transport/BLE,
-0x04xx crypto/trust, 0x05xx routing, 0x06xx transfer, 0x07xx storage, and
-0x0Fxx internal. Events may include redacted PeerIdentity, MessageId/TransferId,
-frame code, provider label, and error code, but never raw handles, addresses,
-keys, ciphertext, payloads, or platform exception text.
+`occurredAt` names the event instant. Diagnostic codes use explicit stable ranges
+aligned with the Exception `ErrorCode` ranges (see §7.6): 0x01xx configuration,
+0x02xx permission, 0x03xx bluetooth, 0x04xx crypto, 0x05xx routing, 0x06xx transfer,
+0x07xx storage, 0x08xx lifecycle, 0x09xx transport, 0x0Axx trust, and 0x0Fxx
+internal. Events may include redacted PeerIdentity, MessageId/TransferId, frame
+code, provider label, and error code, but never raw handles, addresses, keys,
+ciphertext, payloads, or platform exception text.
 
 ### 11.4 Diagnostic Event Hierarchy
 
 ```kotlin
 sealed interface DiagnosticEvent {
-    data class NoiseSessionTransition(...) : DiagnosticEvent
-    data class RouteAdvertisementReceived(...) : DiagnosticEvent
-    data class RouteDigestMismatch(...) : DiagnosticEvent
-    data class TransferProgress(...) : DiagnosticEvent
-    data class TransferCompleted(...) : DiagnosticEvent
-    data class TransferFailed(...) : DiagnosticEvent
-    data class KeyRotationAnnounced(...) : DiagnosticEvent
-    data class CryptoOperation(...) : DiagnosticEvent
-    data class PeerDiscovered(...) : DiagnosticEvent
-    data class PeerConnected(...) : DiagnosticEvent
-    data class PeerDisconnected(...) : DiagnosticEvent
-    data class ConfigChanged(...) : DiagnosticEvent
-    // ... extensible
+    data class PowerModeEffectiveEvent(...) : DiagnosticEvent    // 0x01xx configuration
+    data class HandshakeEvent(...) : DiagnosticEvent              // 0x04xx crypto
+    data class KeyRotationEvent(...) : DiagnosticEvent            // 0x04xx crypto
+    data class NoiseSessionEvent(...) : DiagnosticEvent           // 0x04xx crypto
+    data class RouteDecryptFailureEvent(...) : DiagnosticEvent   // 0x05xx routing
+    data class RouteDigestMismatchEvent(...) : DiagnosticEvent   // 0x05xx routing
+    data class TransferDataPlaneBearerEvent(...) : DiagnosticEvent  // 0x06xx transfer
+    data class TransferSessionTransitionEvent(...) : DiagnosticEvent // 0x06xx transfer
+    data class TransferFailureEvent(...) : DiagnosticEvent      // 0x06xx transfer
+    data class TransportFallbackEvent(...) : DiagnosticEvent    // 0x09xx transport
+    // ... extensible per diagnostic-events.yaml catalog
 }
 ```
 

@@ -47,7 +47,7 @@ internal enum class FrameType(public val code: UByte) {
     PAYLOAD_MANIFEST(FrameCode.PAYLOAD_MANIFEST),
     PAYLOAD_DECISION(FrameCode.PAYLOAD_DECISION),
     PAYLOAD_CHUNK(FrameCode.PAYLOAD_CHUNK),
-    PAYLOAD_ACKNOWLEDGMENT(FrameCode.PAYLOAD_ACKNOWLEDGMENT),
+    PAYLOAD_ACKNOWLEDGEMENT(FrameCode.PAYLOAD_ACKNOWLEDGEMENT),
     PAYLOAD_CANCELLATION(FrameCode.PAYLOAD_CANCELLATION),
     KEY_ROTATION(FrameCode.KEY_ROTATION),
     EPOCH_COMMIT(FrameCode.EPOCH_COMMIT),
@@ -65,7 +65,7 @@ private object FrameCode {
     const val PAYLOAD_MANIFEST: UByte = 0x20u
     const val PAYLOAD_DECISION: UByte = 0x21u
     const val PAYLOAD_CHUNK: UByte = 0x22u
-    const val PAYLOAD_ACKNOWLEDGMENT: UByte = 0x23u
+    const val PAYLOAD_ACKNOWLEDGEMENT: UByte = 0x23u
     const val PAYLOAD_CANCELLATION: UByte = 0x24u
     const val KEY_ROTATION: UByte = 0x40u
     const val EPOCH_COMMIT: UByte = 0x41u

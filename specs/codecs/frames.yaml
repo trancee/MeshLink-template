@@ -138,7 +138,7 @@ wire_frames:
         type: PayloadDecision
         size_bytes: 1
       - name: reason
-        type: PayloadRejectionReason
+        type: TransferFailureReason
         size_bytes: 1
         presence: "decision == REJECTED"
 
@@ -160,9 +160,9 @@ wire_frames:
         type: ByteArray
         description: "Exact manifest chunkSize except final remaining length"
 
-  - name: PAYLOAD_ACKNOWLEDGMENT
+  - name: PAYLOAD_ACKNOWLEDGEMENT
     frame_type: "0x23"
-    description: "Fixed 256-chunk sliding selective acknowledgment"
+    description: "Fixed 256-chunk sliding selective acknowledgement"
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
       - name: kind
@@ -512,7 +512,7 @@ frame_type_enum:
     code: "0x21"
   - name: PAYLOAD_CHUNK
     code: "0x22"
-  - name: PAYLOAD_ACKNOWLEDGMENT
+  - name: PAYLOAD_ACKNOWLEDGEMENT
     code: "0x23"
   - name: PAYLOAD_CANCELLATION
     code: "0x24"
@@ -530,4 +530,4 @@ notes:
   - "All routing control (advertisement, withdrawal, digest, sequence advancement, synchronization, snapshot) is hop-AEAD protected after adjacent Noise authentication; no plaintext mode exists."
   - "KEY_ROTATION is hop-encrypted and dual-signed; routing SeqNo remains independent and never resets during key rotation."
   - "Payload identity is (authenticated origin PeerIdentity, kind, UInt id); kind appears in every payload frame and must match the accepted manifest."
-  - "PayloadAcknowledgment uses a fixed 32-byte bitmap: all indices below start are cumulative, bit n represents start+n."
+  - "PayloadAcknowledgement uses a fixed 32-byte bitmap: all indices below start are cumulative, bit n represents start+n."

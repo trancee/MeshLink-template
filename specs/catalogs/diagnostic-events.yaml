@@ -4,13 +4,16 @@
 # SPEC-ANCHOR: diagnostic-event
 
 diagnostic_code_ranges:
-  lifecycle_configuration: "0x01xx"
-  discovery_peer: "0x02xx"
-  transport_ble: "0x03xx"
-  crypto_trust: "0x04xx"
+  configuration: "0x01xx"
+  permission: "0x02xx"
+  bluetooth: "0x03xx"
+  crypto: "0x04xx"
   routing: "0x05xx"
   transfer: "0x06xx"
   storage: "0x07xx"
+  lifecycle: "0x08xx"
+  transport: "0x09xx"
+  trust: "0x0Axx"
   internal: "0x0Fxx"
 
 common_event_fields:
@@ -203,7 +206,7 @@ diagnostic_events:
 
   - name: TransferSessionTransitionEvent
     category: transfer
-    description: "Logical transfer state transition. Includes priority inherited from originating RoutingMessage for QoS monitoring and resource allocation decisions."
+    description: "Logical transfer state transition with highest contiguous boundary and optional failure reason."
     fields:
       - name: id
         type: TransferId
@@ -211,10 +214,7 @@ diagnostic_events:
       - name: peerIdentity
         type: PeerIdentity
         description: "Destination peer for this transfer"
-      - name: fromState
-        type: TransferState
-        description: "Previous transfer state"
-      - name: toState
+      - name: state
         type: TransferState
         description: "New transfer state"
       - name: offset
@@ -223,6 +223,9 @@ diagnostic_events:
       - name: total
         type: Long
         description: "Total payload size in bytes"
+      - name: reason
+        type: "TransferFailureReason?"
+        description: "Why this session reached a terminal failure state; null for non-terminal transitions"
       - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
@@ -243,42 +246,47 @@ diagnostic_events:
       - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
-
 error_codes:
   encoding: UShort
   ranges:
     configuration: "0x01xx"
-    permission_lifecycle: "0x02xx"
-    bluetooth_transport: "0x03xx"
-    storage: "0x04xx"
-    crypto_trust: "0x05xx"
-    routing: "0x06xx"
-    transfer: "0x07xx"
+    permission: "0x02xx"
+    bluetooth: "0x03xx"
+    crypto: "0x04xx"
+    routing: "0x05xx"
+    transfer: "0x06xx"
+    storage: "0x07xx"
+    lifecycle: "0x08xx"
+    transport: "0x09xx"
+    trust: "0x0Axx"
     internal: "0x0Fxx"
+
   rule: "Explicit stable values; never enum ordinals; error text is redacted"
   categories:
     configuration: [INVALID_PARAMETER, INVALID_STATE]
     permission: [PERMISSION_DENIED]
-    bluetooth: [BLUETOOTH_DISABLED, CONNECTION_FAILED, GATT_OPERATION_FAILED, L2CAP_CHANNEL_FAILED]
+    bluetooth: [BLUETOOTH_DISABLED, COC_NOT_SUPPORTED, CONNECTION_FAILED, GATT_OPERATION_FAILED, L2CAP_CHANNEL_FAILED]
     storage: [STORAGE_UNAVAILABLE, STORAGE_CORRUPTED]
     crypto: [CRYPTO_OPERATION_FAILED, SIGNATURE_VERIFICATION_FAILED, REPLAY_DETECTED]
     trust: [PEER_NOT_FOUND, KEY_UNKNOWN, TRUST_VIOLATION]
     routing: [NO_ROUTE, ROUTE_ADVERTISEMENT_FAILED, ROUTE_LOOP_DETECTED]
-    transfer: [TRANSFER_TIMEOUT, TRANSFER_CANCELLED, TRANSFER_CORRUPTED, CHUNK_OUT_OF_BOUNDS]
-    internal: [INTERNAL_ERROR]
+    transfer: [TRANSFER_TIMEOUT, TRANSFER_CANCELLED, TRANSFER_CORRUPTED, SESSION_NOT_FOUND, CHUNK_OUT_OF_BOUNDS]
+    lifecycle: []
+    transport: []
+    internal: [INTERNAL_ERROR, SERIALIZATION_FAILED]
 
 delivery_outcomes:
-  description: "Terminal outcomes only. Non-terminal progress is represented by TransferState; TransferStatus.deliveryOutcome remains null until terminal."
+  description: "Terminal outcomes only. Non-terminal progress is represented by TransferState; TransferStatus.deliveryOutcome remains null until terminal. Maps to TransferDeliveryOutcome enum and TransferOutcomeMapper."
   outcomes:
     - name: success
       source_state: COMPLETED
     - name: cancelled
       source_state: CANCELLED
     - name: timeout
-      source_state: TIMED_OUT
+      source_state: EXPIRED
     - name: rejected
       source_state: FAILED
-      failure_reason: PayloadRejected
+      failure_reason: TransferFailureReason
     - name: unrecoverable-failure
       source_state: FAILED
       failure_reason: Unrecoverable

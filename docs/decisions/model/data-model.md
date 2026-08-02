@@ -69,7 +69,7 @@ the half-range window. `SeqNo` is not Comparable because modular serial ordering
 is not a globally transitive total order.
 
 It exposes explicit internal operations such as `isNewerThan`,
-`isNewerThanOrEqualTo`, `isOlderThan`, `distanceFrom`, and `next`. The exact
+`isNewerThanOrEqualTo`, `isOlderThan`, `distanceFrom`, and `inc`. The exact
 `2^31` half-range difference is ambiguous and cannot drive route ordering.
 Destination-owned values persist and advance independently of transport,
 cryptographic keys, and peer hints.
@@ -131,7 +131,7 @@ seen); `and` gives the intersection (chunks all peers confirmed); `xor` highligh
 previous unchecked array access.
 
 **Wire boundary:** Large-transfer acknowledgements use the fixed 256-chunk
-PayloadAcknowledgment window. Whole-transfer Scoreboard serialization is not a
+PayloadAcknowledgement window. Whole-transfer Scoreboard serialization is not a
 publicly configurable wire strategy.
 
 **Why O(1) completeness:** The state machine transition "All chunks received +
@@ -175,7 +175,7 @@ Machine-readable reference: [specs/catalogs/diagnostic-events.yaml](../../../spe
 | power | `PowerModeEffectiveEvent` |
 | handshake | `HandshakeEvent` |
 | key_rotation | `KeyRotationEvent` |
-| noise | `NoiseSessionTransitionEvent` |
+| noise | `NoiseSessionEvent` |
 
 Events are machine-observable through `MeshLink.diagnostics` and may also be mirrored to platform logging when `DiagnosticsSettings.emitToLog` is enabled.
 

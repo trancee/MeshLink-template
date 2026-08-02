@@ -63,16 +63,22 @@ MeshLink remains inactive rather than weakening key protection.
 ## Error Hierarchy (Sealed, commonMain)
 
 ```kotlin
-sealed class MeshLinkError : Exception()
-sealed class SecurityError : MeshLinkError()
-sealed class TrustError : SecurityError()
-sealed class CryptoError : SecurityError()
-sealed class TransportError : MeshLinkError()
-sealed class RoutingError : MeshLinkError()
-sealed class TransferError : MeshLinkError()
+sealed class MeshLinkException : Exception() {
+    class ConfigurationException : MeshLinkException()
+    class LifecycleException : MeshLinkException()
+    class PermissionException : MeshLinkException()
+    class BluetoothException : MeshLinkException()
+    class StorageException : MeshLinkException()
+    class CryptoException : MeshLinkException()
+    class TrustException : MeshLinkException()
+    class RoutingException : MeshLinkException()
+    class TransferException : MeshLinkException()
+}
 ```
 
-Platform exceptions wrapped at boundary — never leak to consumers.
+All public immediate command failures use typed `MeshLinkException` subtypes with
+explicit stable `ErrorCode` values (see SPEC §7.6). Platform exceptions are
+wrapped at the boundary and never leak to consumers.
 
 ---
 

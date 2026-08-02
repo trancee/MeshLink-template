@@ -84,7 +84,7 @@ enums:
       - name: PAYLOAD_CHUNK
         code: "0x22"
         encryption: "E2E Noise inside hop AEAD"
-      - name: PAYLOAD_ACKNOWLEDGMENT
+      - name: PAYLOAD_ACKNOWLEDGEMENT
         code: "0x23"
         encryption: "E2E Noise inside hop AEAD"
       - name: PAYLOAD_CANCELLATION
@@ -122,11 +122,10 @@ enums:
       - name: REJECTED
         code: "0x01"
 
-  - name: PayloadRejectionReason
-    package: ch.trancee.meshlink.transfer
+  - name: TransferFailureReason
+    package: ch.trancee.meshlink.model
     visibility: internal
     storage: UByte
-    unknown: reject
     values:
       - name: ACCEPTANCE_TIMEOUT
         code: "0x00"
@@ -316,19 +315,19 @@ enums:
         grace_period_seconds: 45
 
   - name: TransferState
-    package: ch.trancee.meshlink
+    package: ch.trancee.meshlink.model
     description: "Public finite payload operation state."
     values:
       - name: AWAITING_DECISION
         ordinal: 0
         terminal: false
-      - name: IN_PROGRESS
+      - name: TRANSFERRING
         ordinal: 1
         terminal: false
-      - name: WAITING_FOR_ROUTE
+      - name: ROUTE_UNAVAILABLE
         ordinal: 2
         terminal: false
-      - name: RETRYING
+      - name: RETRANSMITTING
         ordinal: 3
         terminal: false
       - name: COMPLETED
@@ -340,7 +339,7 @@ enums:
       - name: FAILED
         ordinal: 6
         terminal: true
-      - name: TIMED_OUT
+      - name: EXPIRED
         ordinal: 7
         terminal: true
 
