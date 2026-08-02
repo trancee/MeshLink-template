@@ -2,6 +2,12 @@ package ch.trancee.meshlink
 
 import ch.trancee.meshlink.model.MutableScoreboard
 import ch.trancee.meshlink.model.Scoreboard
+import ch.trancee.meshlink.model.and
+import ch.trancee.meshlink.model.forEachMissing
+import ch.trancee.meshlink.model.missingChunks
+import ch.trancee.meshlink.model.missingSequence
+import ch.trancee.meshlink.model.or
+import ch.trancee.meshlink.model.xor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -324,17 +330,19 @@ class ScoreboardTest {
         assertFailsWith<IllegalArgumentException> { sb1.xor(sb2) }
     }
 
-    @Test
-    fun `Scoreboard or fails when byteSize mismatch`() {
-        // Arrange
-        val sbDynamic = Scoreboard(5u).markReceived(0) // byteSize=1
-        val sbFixed = Scoreboard(5u, 100u).markReceived(0) // byteSize=13
-
-        // Act & Assert
-        assertFailsWith<IllegalArgumentException> { sbDynamic.or(sbFixed) }
-    }
-
     // ---- fromBytes and byteSize tests ----
+
+    @Test
+    fun `Scoreboard fromBytes counts set bits`() {
+        // Arrange
+        val bytes = byteArrayOf(0xFF.toByte())
+
+        // Act
+        val scoreboard = Scoreboard.fromBytes(8u, bytes)
+
+        // Assert
+        assertEquals(8, scoreboard.receivedCount())
+    }
 
     @Test
     fun `Scoreboard fromBytes deserializes correctly`() {
@@ -367,33 +375,6 @@ class ScoreboardTest {
         assertEquals(1, Scoreboard(1u).byteSize) // 1 chunk → 1 byte
         assertEquals(1, Scoreboard(8u).byteSize) // 8 chunks → 1 byte
         assertEquals(2, Scoreboard(9u).byteSize) // 9 chunks → 2 bytes
-    }
-
-    // ---- FIXED encoding tests ----
-
-    @Test
-    fun `Scoreboard FIXED constructor pre-allocates for maxChunks`() {
-        // Arrange & Act
-        val sb = Scoreboard(5u, 100u)
-
-        // Assert — ceil(100 / 8) = 13
-        assertEquals(13, sb.byteSize)
-        assertEquals(0, sb.receivedCount())
-        assertFalse(sb.isComplete())
-    }
-
-    @Test
-    fun `Scoreboard FIXED constructor with all chunks received`() {
-        // Arrange
-        val sb = Scoreboard(5u, 100u)
-
-        // Act
-        val full =
-            sb.markReceived(0).markReceived(1).markReceived(2).markReceived(3).markReceived(4)
-
-        // Assert
-        assertTrue(full.isComplete())
-        assertEquals(5, full.receivedCount())
     }
 
     // ---- Bounds checking tests ----
@@ -516,6 +497,41 @@ class ScoreboardTest {
 
         // Assert
         assertFalse(complete)
+    }
+
+    @Test
+    fun `Scoreboard bounds reject negative and upper indexes`() {
+        // Arrange
+        val scoreboard = Scoreboard(2u)
+
+        // Act / Assert
+        assertFailsWith<IndexOutOfBoundsException> { scoreboard.isReceived(-1) }
+        assertFailsWith<IndexOutOfBoundsException> { scoreboard.isReceived(2) }
+    }
+
+    @Test
+    fun `MutableScoreboard duplicate marks preserve counts`() {
+        // Arrange
+        val scoreboard = MutableScoreboard(2u)
+
+        // Act
+        scoreboard.markReceived(0)
+        scoreboard.markReceived(0)
+        scoreboard.markMissing(0)
+        scoreboard.markMissing(0)
+
+        // Assert
+        assertEquals(0, scoreboard.receivedCount())
+    }
+
+    @Test
+    fun `MutableScoreboard bounds reject negative and upper indexes`() {
+        // Arrange
+        val scoreboard = MutableScoreboard(2u)
+
+        // Act / Assert
+        assertFailsWith<IndexOutOfBoundsException> { scoreboard.markReceived(-1) }
+        assertFailsWith<IndexOutOfBoundsException> { scoreboard.markMissing(2) }
     }
 
     @Test

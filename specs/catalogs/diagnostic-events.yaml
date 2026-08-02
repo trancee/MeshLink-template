@@ -33,12 +33,12 @@ diagnostic_events:
         type: PeerIdentity
         description: "Peer from whom the frame was received"
       - name: frameType
-        type: FrameType
+        type: UByte
         description: "Type of frame that failed decryption"
       - name: failureReason
         type: DecryptFailureReason
         description: "Specific reason for decryption failure"
-      - name: timestamp
+      - name: occurredAt
         type: Instant
         description: "When the event occurred"
         default: "Clock.System.now()"
@@ -53,7 +53,7 @@ diagnostic_events:
       - name: reason
         type: TransportFallbackReason
         description: "Machine-observable reason for fallback"
-      - name: timestamp
+      - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
 
@@ -61,13 +61,13 @@ diagnostic_events:
     category: transfer
     description: "Data plane bearer selected for a logical transfer."
     fields:
-      - name: transferId
+      - name: id
         type: TransferId
-        description: "Source-owned 32-bit transfer identifier, scoped by authenticated origin"
+        description: "Contextual finite-payload identifier"
       - name: bearer
         type: DataPlaneBearer
         description: "GATT or L2CAP bearer in use"
-      - name: timestamp
+      - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
 
@@ -84,16 +84,34 @@ diagnostic_events:
       - name: regulatoryRegion
         type: RegulatoryRegion
         description: "Regulatory region in effect"
-      - name: scanDutyCyclePercent
+      - name: scanDutyCycle
         type: Int
+        unit: percent
         description: "Effective scan duty cycle percentage"
-      - name: advertisementIntervalMs
+      - name: advertisementInterval
+        type: Duration
+        description: "Effective advertisement interval"
+      - name: activeConnectionInterval
+        type: Duration
+        description: "Effective active connection interval"
+      - name: idleConnectionInterval
+        type: Duration
+        description: "Effective idle connection interval"
+      - name: idleTransitionDelay
+        type: Duration
+        description: "Idle interval transition delay"
+      - name: concurrentConnectionLimit
         type: Int
-        description: "Effective advertisement interval in milliseconds"
-      - name: connectionIntervalMs
-        type: Double
-        description: "Effective connection interval in milliseconds"
-      - name: timestamp
+      - name: chunkSize
+        type: Int
+        unit: bytes
+      - name: retryLimit
+        type: Int
+      - name: retryBudget
+        type: Duration
+      - name: disconnectGracePeriod
+        type: Duration
+      - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
 
@@ -101,19 +119,15 @@ diagnostic_events:
     category: handshake
     description: "End-to-end or link-layer handshake completed or failed."
     fields:
-      - name: sessionId
-        type: SessionId
-        description: "Handshake session identifier"
+      - name: id
+        type: HandshakeId
       - name: pattern
         type: HandshakePattern
-        description: "Noise pattern selected from trust state: XX without a trusted pin, IK with a trusted current pin"
       - name: verificationLevel
         type: VerificationLevel
-        description: "Verification level achieved: FULL, TOFU_PIN, or NONE"
       - name: nonceReplayDetected
         type: Boolean
-        description: "True if nonce replay was detected during handshake"
-      - name: timestamp
+      - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
 
@@ -142,36 +156,31 @@ diagnostic_events:
       - name: reason
         type: KeyRotationReason
         description: "PERIODIC, MANUAL, or SECURITY_EVENT"
-      - name: timestamp
+      - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
 
-  - name: NoiseSessionTransitionEvent
+  - name: NoiseSessionEvent
     category: noise
     description: "Noise session state transition."
     fields:
+      - name: id
+        type: NoiseSessionId
       - name: peerIdentity
         type: PeerIdentity
-        description: "Peer for this Noise session"
       - name: layer
         type: NoiseLayer
-        description: "HOP_BY_HOP or END_TO_END"
-      - name: fromState
-        type: NoiseSessionState
-        description: "Previous session state"
-      - name: toState
-        type: NoiseSessionState
-        description: "New session state"
       - name: role
         type: NoiseRole
-        description: "INITIATOR or RESPONDER"
-      - name: handshakePattern
+      - name: pattern
         type: HandshakePattern
-        description: "Pattern used for this handshake"
+      - name: fromState
+        type: NoiseSessionState
+      - name: toState
+        type: NoiseSessionState
       - name: failureReason
         type: "NoiseFailureReason?"
-        description: "Failure reason if transition is to FAILED; null otherwise"
-      - name: timestamp
+      - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
 
@@ -188,7 +197,7 @@ diagnostic_events:
       - name: remoteDigest
         type: UInt
         description: "Remote peer's advertised route table hash"
-      - name: timestamp
+      - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
 
@@ -196,9 +205,9 @@ diagnostic_events:
     category: transfer
     description: "Logical transfer state transition. Includes priority inherited from originating RoutingMessage for QoS monitoring and resource allocation decisions."
     fields:
-      - name: transferId
+      - name: id
         type: TransferId
-        description: "Source-owned 32-bit transfer identifier, scoped by authenticated origin"
+        description: "Contextual finite-payload identifier"
       - name: peerIdentity
         type: PeerIdentity
         description: "Destination peer for this transfer"
@@ -214,7 +223,7 @@ diagnostic_events:
       - name: total
         type: Long
         description: "Total payload size in bytes"
-      - name: timestamp
+      - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
 
@@ -222,16 +231,16 @@ diagnostic_events:
     category: transfer
     description: "Logical transfer reached a terminal failure state."
     fields:
-      - name: transferId
+      - name: id
         type: TransferId
-        description: "Source-owned 32-bit transfer identifier, scoped by authenticated origin"
+        description: "Contextual finite-payload identifier"
       - name: peerIdentity
         type: PeerIdentity
         description: "Destination peer for this transfer"
       - name: reason
         type: TransferFailureReason
         description: "Unrecoverable (generic) or TrustFailure (identity mismatch/revocation)"
-      - name: timestamp
+      - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
 

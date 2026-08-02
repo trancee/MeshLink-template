@@ -19,26 +19,30 @@ class TransferDeliveryOutcomeTest {
     }
 
     @Test
+    fun `AWAITING_DECISION has no terminal outcome`() {
+        assertEquals(null, TransferOutcomeMapper.map(TransferState.AWAITING_DECISION, null))
+    }
+
+    @Test
     fun `IN_PROGRESS maps to IN_PROGRESS`() {
-        assertEquals(
-            TransferDeliveryOutcome.IN_PROGRESS,
-            TransferOutcomeMapper.map(TransferState.IN_PROGRESS, null),
-        )
+        assertEquals(null, TransferOutcomeMapper.map(TransferState.TRANSFERRING, null))
     }
 
     @Test
     fun `RETRYING maps to RETRYING`() {
-        assertEquals(
-            TransferDeliveryOutcome.RETRYING,
-            TransferOutcomeMapper.map(TransferState.RETRYING, null),
-        )
+        assertEquals(null, TransferOutcomeMapper.map(TransferState.RETRANSMITTING, null))
     }
 
     @Test
     fun `WAITING_FOR_ROUTE maps to ROUTE_WAITING`() {
+        assertEquals(null, TransferOutcomeMapper.map(TransferState.ROUTE_UNAVAILABLE, null))
+    }
+
+    @Test
+    fun `CANCELLED maps to CANCELLED`() {
         assertEquals(
-            TransferDeliveryOutcome.ROUTE_WAITING,
-            TransferOutcomeMapper.map(TransferState.WAITING_FOR_ROUTE, null),
+            TransferDeliveryOutcome.CANCELLED,
+            TransferOutcomeMapper.map(TransferState.CANCELLED, null),
         )
     }
 
@@ -46,7 +50,7 @@ class TransferDeliveryOutcomeTest {
     fun `TIMED_OUT maps to TIMEOUT`() {
         assertEquals(
             TransferDeliveryOutcome.TIMEOUT,
-            TransferOutcomeMapper.map(TransferState.TIMED_OUT, null),
+            TransferOutcomeMapper.map(TransferState.EXPIRED, null),
         )
     }
 

@@ -1,3 +1,6 @@
+import dev.detekt.gradle.Detekt
+import kotlinx.kover.gradle.plugin.dsl.AggregationType
+import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
 import org.gradle.api.GradleException
 import org.jetbrains.kotlin.konan.target.HostManager
 
@@ -74,9 +77,33 @@ kotlin {
 
 detekt { buildUponDefaultConfig = true }
 
+tasks.withType<Detekt>().configureEach {
+    setSource(files("src/commonMain/kotlin", "src/commonTest/kotlin"))
+    include("**/*.kt")
+}
+
 ktfmt { kotlinLangStyle() }
 
-kover { reports { verify { rule { minBound(100) } } } }
+kover {
+    reports {
+        verify {
+            rule("line coverage") {
+                bound {
+                    aggregationForGroup = AggregationType.COVERED_PERCENTAGE
+                    coverageUnits = CoverageUnit.LINE
+                    minValue = 100
+                }
+            }
+            rule("branch coverage") {
+                bound {
+                    aggregationForGroup = AggregationType.COVERED_PERCENTAGE
+                    coverageUnits = CoverageUnit.BRANCH
+                    minValue = 100
+                }
+            }
+        }
+    }
+}
 
 skie {
     isEnabled.set(true)

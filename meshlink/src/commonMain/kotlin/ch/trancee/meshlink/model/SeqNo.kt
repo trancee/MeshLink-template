@@ -16,9 +16,6 @@ import kotlin.jvm.JvmInline
  * comparison is ambiguous (the two values are equidistant on the circle); `isNewerThan` returns
  * false at the boundary, matching RFC 8966's conservative interpretation.
  *
- * Implements [Comparable] using the same modular signed comparison so seqnos can be sorted and used
- * in standard Kotlin ordering utilities (`sorted()`, `min()`, `max()` on collections).
- *
  * See SPEC.md §3.2 and
  * [destination-sourced seqno design](docs/decisions/routing/routing-design.md).
  *
@@ -26,7 +23,7 @@ import kotlin.jvm.JvmInline
  */
 @JvmInline
 @Suppress("TooManyFunctions")
-public value class SeqNo(private val value: UInt) : Comparable<SeqNo> {
+public value class SeqNo(private val value: UInt) {
     /** Returns the decimal string representation of this sequence number. */
     override fun toString(): String = value.toString()
 
@@ -105,27 +102,6 @@ public value class SeqNo(private val value: UInt) : Comparable<SeqNo> {
     public operator fun minus(other: SeqNo): Int = (value - other.value).toInt()
 
     /**
-     * Returns the newer of this seqno and [other], using modular comparison.
-     *
-     * When equal, returns [other]. Useful for route table merges where the newer seqno wins.
-     */
-    public fun max(other: SeqNo): SeqNo = if (isNewerThan(other)) this else other
-
-    /**
-     * Returns the older of this seqno and [other], using modular comparison.
-     *
-     * When equal, returns [other].
-     */
-    public fun min(other: SeqNo): SeqNo = if (isOlderThan(other)) this else other
-
-    /**
-     * Returns the [compareTo] ordering based on the same modular signed comparison used by all
-     * other comparison methods. Enables `sorted()`, `min()`, `max()` on collections of [SeqNo]
-     * values.
-     */
-    public override fun compareTo(other: SeqNo): Int = minus(other)
-
-    /**
      * Increments this seqno by 1, wrapping at 2^32. Operator form for idiomatic `seqNo++` usage.
      */
     public operator fun inc(): SeqNo = SeqNo(value + SEQNO_INCREMENT)
@@ -148,7 +124,7 @@ public value class SeqNo(private val value: UInt) : Comparable<SeqNo> {
      * Example: `SeqNo(1u).unsignedDistance(SeqNo(0xFFFFFFFEu))` returns `3u` (three forward steps
      * from 0xFFFFFFFE through zero to 1).
      */
-    public fun unsignedDistance(other: SeqNo): UInt = value - other.value
+    public fun distanceFrom(other: SeqNo): UInt = value - other.value
 }
 
 /** Number of bytes in wire representation of SeqNo (4 bytes = 32 bits). */

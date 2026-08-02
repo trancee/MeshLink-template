@@ -1,6 +1,5 @@
 package ch.trancee.meshlink
 
-import ch.trancee.meshlink.model.LinkMetric
 import ch.trancee.meshlink.model.Priority
 import ch.trancee.meshlink.model.RoutingPolicy
 import kotlin.test.Test
@@ -9,27 +8,24 @@ import kotlin.time.Duration.Companion.minutes
 
 class RoutingPolicyTest {
     @Test
-    fun `TTL values`() {
-        assertEquals(10.minutes, RoutingPolicy.ttlFor(Priority.HIGH))
-        assertEquals(5.minutes, RoutingPolicy.ttlFor(Priority.NORMAL))
-        assertEquals(1.minutes, RoutingPolicy.ttlFor(Priority.LOW))
+    fun `priority supplies elapsed delivery lifetime`() {
+        // Arrange
+
+        // Act
+        val lifetimes = Priority.entries.map(RoutingPolicy::ttlFor)
+
+        // Assert
+        assertEquals(listOf(10.minutes, 5.minutes, 1.minutes), lifetimes)
     }
 
     @Test
-    fun `MAX_HOPS is 32`() {
-        assertEquals(32, RoutingPolicy.MAX_HOPS)
-    }
+    fun `routing hop limit is sixteen`() {
+        // Arrange
 
-    @Test
-    fun `LinkMetric composite combines rssi and flags`() {
-        val metric =
-            LinkMetric(
-                rssiNormalized = 100u,
-                supportsL2CAP = true,
-                lowLatency = false,
-                highPower = true,
-            )
-        // flags bits 8-10 shl 8 = (256 | 0 | 1024) shl 8 = 327680, or rssiNormalized 100 = 327780
-        assertEquals(327780u, metric.composite)
+        // Act
+        val actual = RoutingPolicy.MAX_HOPS
+
+        // Assert
+        assertEquals(16, actual)
     }
 }

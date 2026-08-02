@@ -14,6 +14,7 @@ public object MeshHash {
 
     private const val FNV_OFFSET_BASIS: UInt = 0x811c9dc5u
     private const val FNV_PRIME: UInt = 0x01000193u
+    private const val MESH_HASH_MASK: UInt = 0xFFFFu
 
     /**
      * Derives a 16-bit mesh hash from an application ID using FNV-1a 32-bit.
@@ -26,6 +27,6 @@ public object MeshHash {
         for (byte in appId.encodeToByteArray()) {
             hash = (hash xor byte.toUInt()) * FNV_PRIME
         }
-        return hash and 0xFFFFu
+        return hash and MESH_HASH_MASK
     }
 }

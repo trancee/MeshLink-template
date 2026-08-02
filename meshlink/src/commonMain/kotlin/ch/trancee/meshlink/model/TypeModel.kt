@@ -1,76 +1,76 @@
 package ch.trancee.meshlink.model
 
-// ---------------------------------------------------------------------------
-// Common enums shared across layers.  These live in model/ so they are not
-// co-located with the diagnostic event hierarchy.
-// ---------------------------------------------------------------------------
 // SPEC-ANCHOR: type-model
 
 /** Verification level achieved during handshake. */
 public enum class VerificationLevel {
-    /** Full 64-byte public key verified against routing table. */
     FULL,
-    /** TOFU-first-contact: key pinned on first successful handshake. */
     TOFU_PIN,
-    /** NX fallback: key verified via payload but not pre-known. */
-    NX_VERIFIED,
-    /** No verification — handshake failed or was rejected. */
     NONE,
 }
 
-/** Distinguishes Ed25519 (identity/signing) keys from X25519 (DH) keys. */
+/** Distinguishes Ed25519 identity/signing keys from X25519 DH keys. */
 public enum class KeyType {
     ED25519,
     X25519,
 }
 
-/** Reason a key rotation was triggered. */
+/** Reason a long-term key rotation was triggered. */
 public enum class KeyRotationReason {
     PERIODIC,
     MANUAL,
     SECURITY_EVENT,
 }
 
-/** Noise handshake pattern used for link-layer and end-to-end sessions. */
+/** Noise pattern selected by trust state. */
 public enum class HandshakePattern {
     XX,
     IK,
-    IX,
-    NX,
 }
 
-/** Scoreboard bitfield encoding strategy for selective acknowledgment. */
-public enum class ScoreboardEncoding {
-    DYNAMIC,
-    FIXED,
-}
-
-/** Message priority that affects routing behavior and TTL. */
+/** Message priority affecting delivery scheduling and default timeToLive. */
 public enum class Priority {
     HIGH,
     NORMAL,
     LOW,
 }
 
-// ---------------------------------------------------------------------------
-// Wire-layer types
-// ---------------------------------------------------------------------------
-
-/** Frame type that appears on the wire. */
-public enum class FrameType {
-    MESH_ENVELOPE,
-    ROUTE_UPDATE,
-    ROUTE_WITHDRAWAL,
-    ROUTE_DIGEST,
-    TRANSFER_CHUNK,
-    TRANSFER_ACKNOWLEDGMENT,
-    TRANSFER_CANCEL,
-    KEY_ROTATION,
+/** Explicit internal MeshLink Wire Codec frame codes. */
+internal enum class FrameType(public val code: UByte) {
+    MESH_ENVELOPE(FrameCode.MESH_ENVELOPE),
+    ROUTE_ADVERTISEMENT(FrameCode.ROUTE_ADVERTISEMENT),
+    ROUTE_WITHDRAWAL(FrameCode.ROUTE_WITHDRAWAL),
+    ROUTE_DIGEST(FrameCode.ROUTE_DIGEST),
+    ROUTE_SEQUENCE_ADVANCEMENT(FrameCode.ROUTE_SEQUENCE_ADVANCEMENT),
+    ROUTE_SYNCHRONIZATION(FrameCode.ROUTE_SYNCHRONIZATION),
+    ROUTE_SNAPSHOT(FrameCode.ROUTE_SNAPSHOT),
+    PAYLOAD_MANIFEST(FrameCode.PAYLOAD_MANIFEST),
+    PAYLOAD_DECISION(FrameCode.PAYLOAD_DECISION),
+    PAYLOAD_CHUNK(FrameCode.PAYLOAD_CHUNK),
+    PAYLOAD_ACKNOWLEDGMENT(FrameCode.PAYLOAD_ACKNOWLEDGMENT),
+    PAYLOAD_CANCELLATION(FrameCode.PAYLOAD_CANCELLATION),
+    KEY_ROTATION(FrameCode.KEY_ROTATION),
+    EPOCH_COMMIT(FrameCode.EPOCH_COMMIT),
+    EPOCH_ACKNOWLEDGEMENT(FrameCode.EPOCH_ACKNOWLEDGEMENT),
 }
 
-// ---------------------------------------------------------------------------
-// Security / crypto types
-// ---------------------------------------------------------------------------
+private object FrameCode {
+    const val MESH_ENVELOPE: UByte = 0x00u
+    const val ROUTE_ADVERTISEMENT: UByte = 0x01u
+    const val ROUTE_WITHDRAWAL: UByte = 0x02u
+    const val ROUTE_DIGEST: UByte = 0x03u
+    const val ROUTE_SEQUENCE_ADVANCEMENT: UByte = 0x04u
+    const val ROUTE_SYNCHRONIZATION: UByte = 0x05u
+    const val ROUTE_SNAPSHOT: UByte = 0x06u
+    const val PAYLOAD_MANIFEST: UByte = 0x20u
+    const val PAYLOAD_DECISION: UByte = 0x21u
+    const val PAYLOAD_CHUNK: UByte = 0x22u
+    const val PAYLOAD_ACKNOWLEDGMENT: UByte = 0x23u
+    const val PAYLOAD_CANCELLATION: UByte = 0x24u
+    const val KEY_ROTATION: UByte = 0x40u
+    const val EPOCH_COMMIT: UByte = 0x41u
+    const val EPOCH_ACKNOWLEDGEMENT: UByte = 0x42u
+}
 
 /** Why a routed frame failed to decrypt at the link layer. */
 public enum class DecryptFailureReason {
@@ -81,59 +81,48 @@ public enum class DecryptFailureReason {
     MALFORMED_FRAME,
 }
 
-// ---------------------------------------------------------------------------
-// Transport types
-// ---------------------------------------------------------------------------
-
-/** Why the data plane fell back from L2CAP CoC to GATT. */
+/** Why data fell back from L2CAP to GATT. */
 public enum class TransportFallbackReason {
-    NO_PSM_ADVERTISED,
+    L2CAP_UNAVAILABLE,
     L2CAP_CONNECT_FAILED,
+    L2CAP_OPEN_TIMEOUT,
+    L2CAP_STREAM_ERROR,
+    L2CAP_STALLED,
     L2CAP_DROPPED_MID_TRANSFER,
     LOCAL_POLICY,
 }
 
-/** Data plane bearer in use for a transfer session. */
+/** Data-plane bearer in use for a payload operation. */
 public enum class DataPlaneBearer {
     GATT,
     L2CAP,
 }
 
-/** Regulatory region controlling BLE radio policy clamping. */
+/** Regulatory region controlling BLE policy clamping. */
 public enum class RegulatoryRegion {
     DEFAULT,
     EU,
 }
 
-// ---------------------------------------------------------------------------
-// Peer lifecycle types
-// ---------------------------------------------------------------------------
-
-/** Public peer connection states exposed to host apps. */
-public enum class PeerConnectionState {
+/** Public peer connection state. */
+public enum class PeerState {
     CONNECTED,
     DISCONNECTED,
 }
 
-// ---------------------------------------------------------------------------
-// Noise session state-machine types
-// ---------------------------------------------------------------------------
-
-/** Which layer of the mesh a Noise session belongs to. */
+/** Noise layer for a hop or E2E session. */
 public enum class NoiseLayer {
     HOP_BY_HOP,
     END_TO_END,
 }
 
-/** Noise session states. Applies to both hop-by-hop (XX/IK) and end-to-end (IX/NX) layers. */
+/** Noise session states for hop and E2E layers. */
 public enum class NoiseSessionState {
     DISCONNECTED,
     HANDSHAKING_XX,
     HANDSHAKING_IK,
-    HANDSHAKING_IX,
-    HANDSHAKING_NX,
     ESTABLISHED,
-    REKEYING,
+    RENEWING,
     FAILED,
 }
 
@@ -156,43 +145,28 @@ public enum class NoiseFailureReason {
     INTERNAL_ERROR,
 }
 
-// ---------------------------------------------------------------------------
-// Trust & identity types
-// ---------------------------------------------------------------------------
-
-/** Trust record state in the TrustStore. Tracks TOFU pinning lifecycle. */
-public enum class TrustState {
-    /** Handshake in progress, not yet verified. */
-    INITIATED,
-    /** TOFU-pinned identity (first successful handshake). */
+/** Trust classification of a known peer. */
+public enum class PeerTrust {
+    UNVERIFIED,
+    VERIFYING,
     TRUSTED,
-    /** Explicitly revoked by user/application. */
+    MISMATCHED,
     REVOKED,
 }
 
 /** Internal per-peer key rotation status. */
 internal enum class KeyRotationState {
-    /** Key is active and current. */
     CURRENT,
-    /** Old key retained for grace period after rotation. */
     GRACE_PERIOD,
-    /** Key fully revoked, no longer accepted. */
     REVOKED,
 }
 
-/** Internal peer lifecycle tracking type. Not exposed publicly. */
-internal enum class PeerLifecycleState {
-    /** Active BLE link. */
+/** Internal peer lifecycle used for grace-period cleanup. */
+internal enum class PeerLifecycle {
     CONNECTED,
-    /** BLE link lost, grace period active. */
     DISCONNECTED,
-    /** Grace period expired, ephemeral state cleaned up. */
     GONE,
 }
-
-// ---------------------------------------------------------------------------
-// Diagnostic types
-// ---------------------------------------------------------------------------
 
 /** Severity level for diagnostic events. */
 public enum class DiagnosticSeverity {
@@ -202,17 +176,12 @@ public enum class DiagnosticSeverity {
     ERROR,
 }
 
-// ---------------------------------------------------------------------------
-// Delivery outcome types
-// ---------------------------------------------------------------------------
-
-/** Explicit delivery outcomes surfaced to host apps. Maps from TransferState. */
+/** Terminal payload delivery outcomes. */
 public enum class TransferDeliveryOutcome {
     SUCCESS,
-    IN_PROGRESS,
-    RETRYING,
-    ROUTE_WAITING,
+    CANCELLED,
     TIMEOUT,
+    REJECTED,
     UNRECOVERABLE_FAILURE,
     TRUST_FAILURE,
 }
