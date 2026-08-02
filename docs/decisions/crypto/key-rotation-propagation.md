@@ -1,8 +1,8 @@
 # Key Rotation Propagation Deadlines — Rationale
 
-**Status:** Locked — 2025-07-28
+**Status:** Locked — 2026-07-31
 
-> **Implementation details** (code, timer logic, diagnostic event schema) live in [SPEC.md §5.6](../../../SPEC.md#key-rotation-protocol). This ADR captures the *why*.
+> **Implementation details** (proof chain, timer logic, recovery, and diagnostics) live in [SPEC.md §5.4](../../../SPEC.md#key-rotation-protocol). This ADR captures the *why*.
 
 ---
 
@@ -26,10 +26,13 @@
 | No deadline tracking | No observability; silent failures |
 | Full mesh broadcast on every rotation | O(n²) traffic; unnecessary for stable mesh |
 
-**Design**: Fire-and-forget broadcast + deadline timer + diagnostic on miss. Relies on:
+**Design**: Broadcast the hop-encrypted, dual-signed proof, track the deadline,
+and retain the proof in the installation-lifetime continuity chain. A missed
+broadcast is recoverable through later synchronization or rotation-recovery XX.
+Relies on:
 
-- Periodic full table sync (5 min, `RoutingSettings.fullTableSyncInterval`)
-- RouteDigest mismatch → full resync (Routing Design ADR §3)
+- Periodic per-neighbor RouteDigest (`RoutingSettings.routeDigestInterval`)
+- Digest mismatch → RouteSynchronization → RouteSnapshot
 
 ---
 
@@ -48,6 +51,8 @@
 - `compromiseGracePeriod = ZERO` → old key rejected immediately
 - Propagation still must meet deadlines for mesh consistency
 - Diagnostic `propagationDeadlineMet` distinguishes "verified but late" from "never received"
+- Routing SeqNo remains independent and never resets
+- A forked generation fails closed rather than selecting one proof
 
 ---
 
@@ -61,4 +66,5 @@
 
 - [Crypto Design ADR](crypto-design.md#key-rotation-protocol)
 - [Routing Design ADR](../routing/routing-design.md#routedigest-on-mismatch-push-full-table)
-- [SPEC.md §5.6](../../../SPEC.md#key-rotation-protocol)
+- [Peer Hint and Identity Races](../discovery/peer-hint-and-identity-races.md)
+- [SPEC.md §5.4](../../../SPEC.md#key-rotation-protocol)

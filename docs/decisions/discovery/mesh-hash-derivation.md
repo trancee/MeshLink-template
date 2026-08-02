@@ -28,13 +28,14 @@
 
 ## AppId Format Rationale
 
-**Recommended**: Reverse DNS (`com.example.myapp`) + optional suffix (`.dev`, `.test`)
+**Required shape**: non-empty normalized UTF-8, at most 255 bytes. Reverse DNS (`com.example.myapp`) with an optional profile suffix (`.dev`, `.test`) is recommended.
 
 **Rules**:
 
 - Stable across app updates (not per-install)
-- Unique per application
+- Unique per application/profile
 - ASCII printable recommended (UTF-8 encoded for hash)
+- Changing it creates a new MeshLink application/profile namespace
 
 ---
 
@@ -48,9 +49,10 @@
 | 256 | ~12% |
 | 500 | ~39% |
 
-**Mitigation**: Collisions only cause cross-discovery (peers see each other but fail handshake due to different identity keys). Not a security issue — just wasted radio time.
-
-**If collision detected**: Handshake fails verification → `DiagnosticEvent.HandshakeEvent.verificationLevel = NONE` → peer ignored.
+**Mitigation**: Collisions only cause cross-discovery. The 128-bit truncated
+SHA-256 `appHash` is bound into the security handshake, so a colliding 16-bit filter
+cannot create cross-application trust. A mismatch fails closed and wastes only
+the attempted discovery/connection work.
 
 ---
 
@@ -62,7 +64,7 @@
 
 ## Wire Encoding Rationale
 
-**16 bits, little-endian** — consistent with all other multi-byte fields in advertisement. Fits in 31-byte BLE ad packet alongside UUID, version, platform, power mode, PSM hint, PeerFingerprint.
+**16 bits, little-endian** — consistent with all other multi-byte fields in advertisement. Fits in the 31-byte BLE advertisement alongside UUID, version, platform, power mode, capability flags, and peerHint.
 
 ---
 

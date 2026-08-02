@@ -1,6 +1,6 @@
-# MeshLink Enum Definitions
-# Machine-readable reference for all public enums in the codebase.
-# Source of truth: meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TypeModel.kt
+# MeshLink Wire Codec — Enum Contracts
+# Authored normative source for storage widths, explicit codes, reserved ranges, and unknown handling.
+# Enum declaration ordinal is never a wire value.
 # SPEC-ANCHOR: type-model
 
 enums:
@@ -26,70 +26,126 @@ enums:
 
   - name: HandshakePattern
     package: ch.trancee.meshlink.model
-    description: "Noise handshake pattern used for link-layer and end-to-end sessions."
+    description: "Noise handshake pattern selected by trust state for link-layer and end-to-end sessions."
     values:
       - name: XX
         ordinal: 0
+        description: "First contact when no trusted destination pin exists"
       - name: IK
         ordinal: 1
-      - name: IX
-        ordinal: 2
-      - name: NX
-        ordinal: 3
-
-  - name: ScoreboardEncoding
-    package: ch.trancee.meshlink.model
-    description: "Scoreboard bitfield encoding strategy for selective acknowledgment."
-    values:
-      - name: DYNAMIC
-        ordinal: 0
-        description: "Dynamic bitfield size = ceil(totalChunks / 8) bytes. Saves memory for small transfers. Used when totalChunks is known upfront."
-      - name: FIXED
-        ordinal: 1
-        description: "Fixed pre-allocated bitfield = ceil(maxChunksPerSession / 8) bytes. Predictable memory footprint and no reallocation when transfer size exceeds initial estimate. Used when totalChunks is unknown upfront but maxChunksPerSession provides a safe upper bound. Requires maxChunksPerSession > 0."
+        description: "Reconnect when a trusted current destination pin exists"
 
   - name: Priority
     package: ch.trancee.meshlink.model
-    description: "Message priority affecting routing behavior and TTL."
+    description: "Delivery scheduling priority and default elapsed timeToLive. Priority never changes maximumHopCount."
     values:
       - name: HIGH
         ordinal: 0
-        ttl_minutes: 10
+        default_time_to_live_minutes: 10
       - name: NORMAL
         ordinal: 1
-        ttl_minutes: 5
+        default_time_to_live_minutes: 5
       - name: LOW
         ordinal: 2
-        ttl_minutes: 1
+        default_time_to_live_minutes: 1
 
   - name: FrameType
-    package: ch.trancee.meshlink.model
-    description: "Frame type that appears on the wire."
+    package: ch.trancee.meshlink.wire
+    visibility: internal
+    description: "Explicit UByte wire codes grouped by protocol area; encoding never uses enum ordinal."
     values:
       - name: MESH_ENVELOPE
-        ordinal: 0
-        encryption: "Link-layer AEAD per hop"
-      - name: ROUTE_UPDATE
-        ordinal: 1
-        encryption: "Always AEAD-encrypted"
+        code: "0x00"
+        encryption: "Hop AEAD per relay path"
+      - name: ROUTE_ADVERTISEMENT
+        code: "0x01"
+        encryption: "Hop AEAD plus destination-signed RouteStatement"
       - name: ROUTE_WITHDRAWAL
-        ordinal: 2
-        encryption: "Always AEAD-encrypted"
+        code: "0x02"
+        encryption: "Hop AEAD"
       - name: ROUTE_DIGEST
-        ordinal: 3
-        encryption: "Plaintext (digest only)"
-      - name: TRANSFER_CHUNK
-        ordinal: 4
-        encryption: "Link-layer AEAD per hop"
-      - name: TRANSFER_ACKNOWLEDGMENT
-        ordinal: 5
-        encryption: "Link-layer AEAD per hop"
-      - name: TRANSFER_CANCEL
-        ordinal: 6
-        encryption: "Link-layer AEAD per hop"
+        code: "0x03"
+        encryption: "Hop AEAD"
+      - name: ROUTE_SEQUENCE_ADVANCEMENT
+        code: "0x04"
+        encryption: "Hop AEAD"
+      - name: ROUTE_SYNCHRONIZATION
+        code: "0x05"
+        encryption: "Hop AEAD"
+      - name: ROUTE_SNAPSHOT
+        code: "0x06"
+        encryption: "Hop AEAD"
+      - name: PAYLOAD_MANIFEST
+        code: "0x20"
+        encryption: "E2E Noise inside hop AEAD"
+      - name: PAYLOAD_DECISION
+        code: "0x21"
+        encryption: "E2E Noise inside hop AEAD"
+      - name: PAYLOAD_CHUNK
+        code: "0x22"
+        encryption: "E2E Noise inside hop AEAD"
+      - name: PAYLOAD_ACKNOWLEDGMENT
+        code: "0x23"
+        encryption: "E2E Noise inside hop AEAD"
+      - name: PAYLOAD_CANCELLATION
+        code: "0x24"
+        encryption: "E2E Noise inside hop AEAD"
       - name: KEY_ROTATION
-        ordinal: 7
-        encryption: "Plaintext (signature verifiable)"
+        code: "0x40"
+        encryption: "Hop AEAD plus end-to-end dual signatures"
+      - name: EPOCH_COMMIT
+        code: "0x41"
+        encryption: "Pending new-epoch AEAD"
+      - name: EPOCH_ACKNOWLEDGEMENT
+        code: "0x42"
+        encryption: "Pending new-epoch AEAD"
+
+  - name: PayloadKind
+    package: ch.trancee.meshlink.transfer
+    visibility: internal
+    storage: UByte
+    unknown: reject
+    values:
+      - name: MESSAGE
+        code: "0x00"
+      - name: TRANSFER
+        code: "0x01"
+
+  - name: PayloadDecision
+    package: ch.trancee.meshlink.transfer
+    visibility: internal
+    storage: UByte
+    unknown: reject
+    values:
+      - name: ACCEPTED
+        code: "0x00"
+      - name: REJECTED
+        code: "0x01"
+
+  - name: PayloadRejectionReason
+    package: ch.trancee.meshlink.transfer
+    visibility: internal
+    storage: UByte
+    unknown: reject
+    values:
+      - name: ACCEPTANCE_TIMEOUT
+        code: "0x00"
+      - name: RECEIVER_BUSY
+        code: "0x01"
+      - name: RECEIVER_UNAVAILABLE
+        code: "0x02"
+      - name: SINK_UNAVAILABLE
+        code: "0x03"
+      - name: MESSAGE_TOO_LARGE
+        code: "0x04"
+      - name: TRUST_FAILURE
+        code: "0x05"
+      - name: INVALID_MANIFEST
+        code: "0x06"
+      - name: INSUFFICIENT_STORAGE
+        code: "0x07"
+      - name: POLICY_REJECTED
+        code: "0x08"
 
   - name: DecryptFailureReason
     package: ch.trancee.meshlink.model
@@ -110,14 +166,20 @@ enums:
     package: ch.trancee.meshlink.model
     description: "Why the data plane fell back from L2CAP CoC to GATT."
     values:
-      - name: NO_PSM_ADVERTISED
+      - name: L2CAP_UNAVAILABLE
         ordinal: 0
       - name: L2CAP_CONNECT_FAILED
         ordinal: 1
-      - name: L2CAP_DROPPED_MID_TRANSFER
+      - name: L2CAP_OPEN_TIMEOUT
         ordinal: 2
-      - name: LOCAL_POLICY
+      - name: L2CAP_STREAM_ERROR
         ordinal: 3
+      - name: L2CAP_STALLED
+        ordinal: 4
+      - name: L2CAP_DROPPED_MID_TRANSFER
+        ordinal: 5
+      - name: LOCAL_POLICY
+        ordinal: 6
 
   - name: DataPlaneBearer
     package: ch.trancee.meshlink.model
@@ -127,6 +189,24 @@ enums:
         ordinal: 0
       - name: L2CAP
         ordinal: 1
+
+  - name: L2capState
+    package: ch.trancee.meshlink.transport
+    visibility: internal
+    description: "Capability and process-local health state for one adjacent L2CAP channel."
+    values:
+      - name: UNSUPPORTED
+        ordinal: 0
+      - name: AVAILABLE
+        ordinal: 1
+      - name: CONNECTING
+        ordinal: 2
+      - name: ACTIVE
+        ordinal: 3
+      - name: BACKING_OFF
+        ordinal: 4
+      - name: DISABLED
+        ordinal: 5
 
   - name: RegulatoryRegion
     package: ch.trancee.meshlink.model
@@ -160,7 +240,7 @@ enums:
         ordinal: 2
       - name: ESTABLISHED
         ordinal: 3
-      - name: REKEYING
+      - name: RENEWING
         ordinal: 4
       - name: FAILED
         ordinal: 5
@@ -236,29 +316,35 @@ enums:
         grace_period_seconds: 45
 
   - name: TransferState
-    package: ch.trancee.meshlink.model
-    description: "State that a transfer session can be in."
+    package: ch.trancee.meshlink
+    description: "Public finite payload operation state."
     values:
-      - name: IN_PROGRESS
+      - name: AWAITING_DECISION
         ordinal: 0
         terminal: false
-      - name: WAITING_FOR_ROUTE
+      - name: IN_PROGRESS
         ordinal: 1
         terminal: false
-      - name: RETRYING
+      - name: WAITING_FOR_ROUTE
         ordinal: 2
         terminal: false
-      - name: COMPLETED
+      - name: RETRYING
         ordinal: 3
-        terminal: true
-      - name: FAILED
+        terminal: false
+      - name: COMPLETED
         ordinal: 4
         terminal: true
-      - name: TIMED_OUT
+      - name: CANCELLED
         ordinal: 5
         terminal: true
+      - name: FAILED
+        ordinal: 6
+        terminal: true
+      - name: TIMED_OUT
+        ordinal: 7
+        terminal: true
 
-  - name: PeerConnectionState
+  - name: PeerState
     package: ch.trancee.meshlink
     description: "Public peer connection states exposed to host apps."
     values:
@@ -273,13 +359,10 @@ enums:
     values:
       - name: FULL
         ordinal: 0
-        description: "Full 64-byte public key verified against routing table"
+        description: "Current signed identity binding verified against an existing trusted pin"
       - name: TOFU_PIN
         ordinal: 1
-        description: "TOFU-first-contact: key pinned on first successful handshake"
-      - name: NX_VERIFIED
-        ordinal: 2
-        description: "NX fallback: key verified via payload but not pre-known"
+        description: "First-contact signed identity binding verified and pinned after Noise XX"
       - name: NONE
-        ordinal: 3
+        ordinal: 2
         description: "No verification — handshake failed or was rejected"

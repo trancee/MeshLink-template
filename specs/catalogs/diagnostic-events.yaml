@@ -3,6 +3,27 @@
 # Source of truth: meshlink/src/commonMain/kotlin/ch/trancee/meshlink/diagnostics/DiagnosticEvent.kt
 # SPEC-ANCHOR: diagnostic-event
 
+diagnostic_code_ranges:
+  lifecycle_configuration: "0x01xx"
+  discovery_peer: "0x02xx"
+  transport_ble: "0x03xx"
+  crypto_trust: "0x04xx"
+  routing: "0x05xx"
+  transfer: "0x06xx"
+  storage: "0x07xx"
+  internal: "0x0Fxx"
+
+common_event_fields:
+  - name: code
+    type: DiagnosticCode
+    encoding: UShort
+  - name: severity
+    type: DiagnosticSeverity
+  - name: occurredAt
+    type: Instant
+
+redaction: "No raw handles, addresses, keys, ciphertext, payloads, or platform exception text"
+
 diagnostic_events:
   - name: RouteDecryptFailureEvent
     category: route
@@ -38,11 +59,11 @@ diagnostic_events:
 
   - name: TransferDataPlaneBearerEvent
     category: transfer
-    description: "Data plane bearer selected for a transfer session."
+    description: "Data plane bearer selected for a logical transfer."
     fields:
-      - name: sessionId
-        type: SessionId
-        description: "Transfer session identifier"
+      - name: transferId
+        type: TransferId
+        description: "Source-owned 32-bit transfer identifier, scoped by authenticated origin"
       - name: bearer
         type: DataPlaneBearer
         description: "GATT or L2CAP bearer in use"
@@ -85,16 +106,10 @@ diagnostic_events:
         description: "Handshake session identifier"
       - name: pattern
         type: HandshakePattern
-        description: "Noise pattern used (XX, IK, IX, NX)"
-      - name: fallbackUsed
-        type: Boolean
-        description: "True when NX fallback handshake pattern is used instead of IX; set when destination's public key is unknown"
+        description: "Noise pattern selected from trust state: XX without a trusted pin, IK with a trusted current pin"
       - name: verificationLevel
         type: VerificationLevel
-        description: "Verification level achieved: FULL, TOFU_PIN, NX_VERIFIED, NONE"
-      - name: rateLimitAttempts
-        type: Int
-        description: "Number of fallback attempts in current rate-limit window"
+        description: "Verification level achieved: FULL, TOFU_PIN, or NONE"
       - name: nonceReplayDetected
         type: Boolean
         description: "True if nonce replay was detected during handshake"
@@ -109,12 +124,18 @@ diagnostic_events:
       - name: peerIdentity
         type: PeerIdentity
         description: "Peer that announced key rotation"
-      - name: oldKeyVerified
+      - name: oldGeneration
+        type: UInt
+        description: "Pinned generation before processing"
+      - name: newGeneration
+        type: UInt
+        description: "Candidate generation after processing"
+      - name: continuityVerified
         type: Boolean
-        description: "Whether the old key's signature verified correctly"
-      - name: sequenceNumberReset
+        description: "Whether the contiguous dual-signed proof chain validated to the existing pin"
+      - name: conflictDetected
         type: Boolean
-        description: "True when the neighbor accepted the new key and reset its seqno to 1"
+        description: "Whether different valid bindings claimed the same generation"
       - name: propagationDeadlineMet
         type: Boolean
         description: "True when the key rotation announcement reached all direct neighbors within the deadline"
@@ -173,11 +194,11 @@ diagnostic_events:
 
   - name: TransferSessionTransitionEvent
     category: transfer
-    description: "Transfer session state transition. Includes priority inherited from originating RoutingMessage for QoS monitoring and resource allocation decisions."
+    description: "Logical transfer state transition. Includes priority inherited from originating RoutingMessage for QoS monitoring and resource allocation decisions."
     fields:
-      - name: sessionId
-        type: SessionId
-        description: "Transfer session identifier"
+      - name: transferId
+        type: TransferId
+        description: "Source-owned 32-bit transfer identifier, scoped by authenticated origin"
       - name: peerIdentity
         type: PeerIdentity
         description: "Destination peer for this transfer"
@@ -187,10 +208,10 @@ diagnostic_events:
       - name: toState
         type: TransferState
         description: "New transfer state"
-      - name: bytesTransferred
+      - name: offset
         type: Long
-        description: "Bytes transferred so far in this session"
-      - name: totalBytes
+        description: "Highest contiguous payload boundary acknowledged outgoing or accepted by the incoming sink"
+      - name: total
         type: Long
         description: "Total payload size in bytes"
       - name: timestamp
@@ -199,11 +220,11 @@ diagnostic_events:
 
   - name: TransferFailureEvent
     category: transfer
-    description: "Transfer session reached a terminal failure state."
+    description: "Logical transfer reached a terminal failure state."
     fields:
-      - name: sessionId
-        type: SessionId
-        description: "Transfer session identifier"
+      - name: transferId
+        type: TransferId
+        description: "Source-owned 32-bit transfer identifier, scoped by authenticated origin"
       - name: peerIdentity
         type: PeerIdentity
         description: "Destination peer for this transfer"
@@ -214,29 +235,44 @@ diagnostic_events:
         type: Instant
         default: "Clock.System.now()"
 
+error_codes:
+  encoding: UShort
+  ranges:
+    configuration: "0x01xx"
+    permission_lifecycle: "0x02xx"
+    bluetooth_transport: "0x03xx"
+    storage: "0x04xx"
+    crypto_trust: "0x05xx"
+    routing: "0x06xx"
+    transfer: "0x07xx"
+    internal: "0x0Fxx"
+  rule: "Explicit stable values; never enum ordinals; error text is redacted"
+  categories:
+    configuration: [INVALID_PARAMETER, INVALID_STATE]
+    permission: [PERMISSION_DENIED]
+    bluetooth: [BLUETOOTH_DISABLED, CONNECTION_FAILED, GATT_OPERATION_FAILED, L2CAP_CHANNEL_FAILED]
+    storage: [STORAGE_UNAVAILABLE, STORAGE_CORRUPTED]
+    crypto: [CRYPTO_OPERATION_FAILED, SIGNATURE_VERIFICATION_FAILED, REPLAY_DETECTED]
+    trust: [PEER_NOT_FOUND, KEY_UNKNOWN, TRUST_VIOLATION]
+    routing: [NO_ROUTE, ROUTE_ADVERTISEMENT_FAILED, ROUTE_LOOP_DETECTED]
+    transfer: [TRANSFER_TIMEOUT, TRANSFER_CANCELLED, TRANSFER_CORRUPTED, CHUNK_OUT_OF_BOUNDS]
+    internal: [INTERNAL_ERROR]
+
 delivery_outcomes:
-  description: "Explicit, enumerated delivery/diagnostic outcomes surfaced to host apps. Maps from TransferState and TransferFailureReason."
+  description: "Terminal outcomes only. Non-terminal progress is represented by TransferState; TransferStatus.deliveryOutcome remains null until terminal."
   outcomes:
     - name: success
-      description: "Transfer completed successfully"
       source_state: COMPLETED
-    - name: in-progress
-      description: "Transfer actively in progress"
-      source_state: IN_PROGRESS
-    - name: retrying
-      description: "Actively retransmitting missing chunks"
-      source_state: RETRYING
-    - name: route-waiting
-      description: "Route lost, waiting for route recovery"
-      source_state: WAITING_FOR_ROUTE
+    - name: cancelled
+      source_state: CANCELLED
     - name: timeout
-      description: "Retry budget or grace period exhausted"
       source_state: TIMED_OUT
+    - name: rejected
+      source_state: FAILED
+      failure_reason: PayloadRejected
     - name: unrecoverable-failure
-      description: "Generic failure, cancel, or retry budget exhausted"
       source_state: FAILED
       failure_reason: Unrecoverable
     - name: trust-failure
-      description: "Trust-related failure (identity mismatch, revoked peer)"
       source_state: FAILED
       failure_reason: TrustFailure

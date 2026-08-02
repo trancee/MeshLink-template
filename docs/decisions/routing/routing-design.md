@@ -1,157 +1,349 @@
-# MeshLink Routing Design: Key Decisions
+# MeshLink routing design
 
-**Status:** Locked — 2026-07-20
+**Status:** Locked — 2026-07-31
 
-Consolidates five routing-layer decisions. **Specification content** (tables, state machines, wire formats, parameter values) lives in [SPEC.md §8](../../../SPEC.md). This ADR captures only the *rationale*.
+> Normative fields, state transitions, and timing live in [SPEC.md
+> §8](../../../SPEC.md#routing-layer). This record explains destination-owned
+> freshness, additive cost, feasibility, hysteresis, authenticated control, and
+> per-neighbor synchronization.
 
----
+## Model
 
-## 1. SeqNo Ownership: Destination Self-Reports
+MeshLink uses a Babel-inspired, loop-avoiding distance-vector protocol adapted
+to authenticated BLE links. BLE connection state replaces Hello/IHU neighbor
+liveness, but does not replace route feasibility, source-owned sequence numbers,
+or starvation recovery.
 
-### The Bug
+A route candidate separates cost, topology, and local observation:
 
-`RouteCoordinator.onPeerConnected` minted a fresh seqno on every BLE reconnect (`directRouteSeqNos[peerId.value] + 1L`). Two different direct neighbors of the same destination each minted their own unrelated seqno sequence. Relays forwarded unchanged, so the value originated at whichever node most recently connected — not the destination itself.
-
-### Why RFC 8966's SeqNo-Request Doesn't Fit
-
-RFC 8966 §3.7 assumes the destination is reachable for a round trip. BLE devices disconnect constantly; the 3-second convergence budget (SPEC.md §13.7) can't accommodate a multi-hop request/response. batman-adv and Bluetooth Mesh both avoid destination round-trips for freshness.
-
-### Decision SeqNo Ownership
-
-Each node owns **one** local seqno counter (32-bit unsigned), incremented **only on cold start** (`MeshLink.start()`). After a hop session is established with a new direct neighbor, each side sends one self-origin `RouteUpdate`:
-
-- `destination = <own peerId>`
-- `nextHop = <own peerId>` (null = self-origin)
-- `metric = DIRECT_ROUTE_METRIC`
-- `seqNo = <own current counter value>`
-
-No new wire frame type — `RouteCoordinator.onRouteUpdate` already handles route updates; a self-origin update (`destination == sender`) is a new case.
-
-**Receiving side:** `onPeerConnected` no longer mints a seqno. It installs the direct route provisionally and, on receiving the peer's self-origin `RouteUpdate`, adopts the reported `seqNo` as authoritative — the same path any other peer's self-reported route flows through. If the self-origin update never arrives, the provisional route falls back to existing feasibility/expiry logic.
-
-**Result:** The "relay reports higher seqno than live direct route" edge case becomes structurally impossible — every neighbor converges on the same self-reported value.
-
----
-
-## 2. Hello/IHU: Remove, Don't Implement
-
-RFC 8966 §3.4 permits skipping Hello-based discovery if "neighbour discovery is performed by means outside of the Babel protocol" — BLE GATT/L2CAP connect/disconnect is exactly that.
-
-**Decision:** Remove `WireFrame.Hello`, `WireFrame.Ihu`, their envelope type codes, and their no-op dispatch branches. BLE connection state provides liveness immediately, with no periodic-interval polling. Route metric stays flat `+1` hop count.
-
----
-
-## 3. RouteDigest: On Mismatch, Push Full Table
-
-RFC 8966 has no route-table digest mechanism. `RouteDigestTracker` already computes a 32-bit FNV-1a hash attached to nearly every advertisement. `RouteCoordinator.onRouteDigest` is currently a no-op.
-
-**Decision:** On receiving a `RouteDigest` that doesn't match the local table, the receiver re-sends its full current route table to that one peer via the existing `RouteAdvertisementPlanner` path — mirroring RFC 8966's wildcard route request → full table dump. No new wire frame type, no new field, no request/response round trip.
-
----
-
-## 4. Routing Metadata Privacy: Always-Encrypted
-
-### Scope
-
-Covers routing-control metadata only. Does **not** redesign trust, identity, or payload-layer application encryption.
-
-### Goals
-
-- Protect route-control metadata from passive BLE observers
-- No negotiation overhead — encryption is always on
-- Fail-closed: decrypt/auth failures drop the frame, never fall back to plaintext
-
-### Decision Routing Metadata Privacy
-
-`ROUTE_UPDATE` (0x01) and `ROUTE_WITHDRAWAL` (0x02) **always** carry AEAD-encrypted payloads. No plaintext mode, no negotiation, no fallback. `ROUTE_DIGEST` (0x03) carries only a 32-bit FNV-1a hash — it reveals no route contents and is left as plaintext for synchronization.
-
-**Encryption:**
-
-- Algorithm: ChaCha20-Poly1305 (Noise session AEAD)
-- Nonce: Derived from Noise session internal counter (not transmitted)
-- Ciphertext: `encrypted_payload || 16-byte Poly1305 tag`
-- AAD: Frame type + version (bound to ciphertext integrity)
-- UPDATE plaintext includes destination peer's public key (32 bytes), enabling identity distribution through routing table
-
-### Why No Negotiation?
-
-Since no MeshLink release has shipped, there are no legacy peers to be compatible with. Always-encrypt is simpler and more secure:
-
-- No downgrade attacks (plaintext never an option)
-- No negotiation overhead (encryption always on)
-- No fallback logic (no graceful degradation to plaintext)
-- Simpler implementation (one code path, not two)
-
-### Fail-Closed Rules
-
-- Decrypt/auth failures drop frame immediately
-- No silent fallback to plaintext
-- No retry with different encryption mode
-- Route table logic only runs after successful decryption
-
-### Diagnostics Contract (Minimal)
-
-- `route.decrypt_failures` — count of frames dropped due to decrypt/auth failure
-- `route.frame_type` — UPDATE or WITHDRAWAL
-
----
-
-## 5. Link Quality Metric: Composite (RSSI + Flags)
-
-### Context
-
-Hello/IHU removed because BLE connection state provides liveness (§2). However, multi-hop routing decisions benefit from link quality signals beyond hop count. Both Link A (-60 dBm) and Link B (-85 dBm) cost "1 hop" but Link B should be deprioritized.
-
-### Decision Link Quality Metric
-
-Composite `UInt32` metric:
-
-- Low byte (8 bits): RSSI normalized 0-255 (0 = unusable, 255 = excellent)
-- High bits (24 bits): Flags (CoC support bit 8, low latency bit 9, high power bit 10)
-
-**RSSI Normalization:**
-
-```kotlin
-rssiNormalized = when {
-    rssi >= -30 -> 255
-    rssi <= -100 -> 0
-    else -> ((rssi + 100) * 255 / 70).toUInt()
+```text
+RouteCandidate {
+    destination
+    nextHop
+    sequenceNumber
+    routeCost
+    hopCount
+    linkQuality
+    expiresAt
 }
 ```
 
-### Why RSSI-Based
+- `routeCost` is lower-is-better, additive, and used by feasibility/selection.
+- `hopCount` is an independent topological distance and hard-limit input.
+- `linkQuality` describes the local link to `nextHop` and is higher-is-better.
+- `nextHop` is local state inferred from the authenticated adjacent sender; it
+  is not a destination-signed wire claim.
 
-| Metric | Pros | Cons | Decision |
-|--------|------|------|----------|
-| RSSI | Immediate, no extra packets | Proxy only, environment-sensitive | **Primary** — baseline for routing |
-| Throughput | Direct measure | Requires measurement overhead | Secondary — post-connection refinement |
-| Packet Delivery | Reliability measure | Needs feedback loop | Future enhancement |
+## Additive link cost
 
-### Routing Integration
+RSSI is normalized identically on every platform:
 
-Path selection prefers:
+```text
+rssi <= -100 dBm → quality = 0
+rssi >=  -30 dBm → quality = 255
+otherwise        → quality = ((rssi + 100) × 255) / 70
+```
 
-1. Feasible routes only (RFC 8966 requirement)
-2. Lower hop count
-3. Higher metric score
+The shared integer cost formula is:
 
-See SPEC.md §8.4.1 for loop detection mechanisms.
+```text
+qualityLoss   = 255 - quality
+qualityPenalty = ceil(qualityLoss² / 255)
+linkCost      = 64 + qualityPenalty
+```
 
----
+Equivalent integer arithmetic:
 
-## Testing Focus
+```kotlin
+val qualityLoss = 255u - normalizedRssi.toUInt()
+val qualityPenalty = (qualityLoss * qualityLoss + 254u) / 255u
+val linkCost = 64u + qualityPenalty
+```
 
-- `RouteMetricTest`: RSSI normalization
-- `MetricForwardingTest`: Peer-to-peer metric propagation
-- `PathSelectionTest`: Low-quality path deprioritization
-- Decrypt/auth failure handling
-- No plaintext routing metadata on wire
+Link cost ranges from 64 through 319. Path cost is the saturating sum of link
+costs; `UInt.MAX_VALUE` means infinity. The quadratic penalty allows strong
+multi-hop paths to beat weak direct links without making long excellent paths
+routinely beat acceptable direct links.
 
----
+L2CAP capability/health and negotiated latency remain transport state. They do
+not enter LinkQuality, routeCost, or the feasibility tuple; bearer failure falls
+back to GATT without route churn.
+
+## RSSI smoothing and route hysteresis
+
+Shared EWMA smoothing uses:
+
+```text
+smoothedRssi = (3 × previousSmoothedRssi + newRssi) / 4
+```
+
+The first valid sample initializes directly. Invalid platform sentinels are
+ignored. A metric update is advertised only after smoothed RSSI changes by at
+least 3 dB. Link loss/restoration remains immediate.
+
+A feasible candidate replaces the current route only when it remains best for
+two consecutive observations spanning at least one second and improves by:
+
+```text
+switchMargin = max(16, currentRouteCost / 10)
+```
+
+Loss, withdrawal, expiry, infeasibility, hop-limit violation, or trust failure
+switches immediately without hysteresis.
+
+## Feasible distance
+
+For each destination, retain:
+
+```text
+feasibleDistance = (sequenceNumber, routeCost)
+```
+
+A candidate is feasible when its sequence is newer, or its sequence is equal
+and its cost is lower than the feasible cost. Route selection then uses:
+
+1. feasible candidates;
+2. lowest routeCost;
+3. lowest hopCount;
+4. highest local linkQuality; and
+5. lowest lexicographic nextHop as deterministic tie-break.
+
+## Source-owned sequence numbers
+
+Each peer owns and persists the 32-bit sequence for its own destination route.
+It increments and persists before advertising on cold start, a valid
+route-sequence advancement, or explicit internal route reset.
+
+It does not increment for reconnect, RPA/TransportHandle/peerHint change, RSSI
+change, refresh, Noise renewal, long-term key rotation, or bearer migration.
+Routing sequence and key generation are independent.
+
+`SeqNo` is internal and deliberately not `Comparable`. Modular serial ordering
+is not a global total order. It exposes only explicit operations such as
+`isNewerThan`, `isOlderThan`, `isNewerThanOrEqualTo`, `distanceFrom`, and `next`.
+An exact half-range difference is ambiguous and cannot authorize an ordering
+decision.
+
+## Feasibility-starvation recovery
+
+A node with reachable advertisements but no feasible candidate creates:
+
+```text
+RouteSequenceAdvancement {
+    requester
+    destination
+    sequenceNumber
+    requestId
+    hopLimit
+}
+```
+
+`sequenceNumber` is the value the destination must surpass. The requester sends
+immediately through the best known authenticated next hop. After 500 ms without
+a sufficiently new route, it fans the same request out to other authenticated
+neighbors except the incoming/failed hop.
+
+One request per destination remains active. Relays deduplicate
+`(requester, requestId)`, never forward back through the incoming neighbor, and
+enforce hopLimit. `requestId` is a random non-zero origin-scoped UInt and is not
+an authorization token.
+
+An attempt has a three-second hard deadline and 30-second dedup retention. A
+peer may trigger at most three destination sequence-advancement attempts per
+minute. The destination coalesces older/equal requirements, persists a newer
+sequence, and advertises immediately without normal update jitter. Failed
+attempts retry with exponential backoff and full jitter while application
+traffic remains route-waiting.
+
+## Route statement and mutable advertisement
+
+Destination-owned fields use a mandatory signed statement:
+
+```text
+RouteStatement {
+    version
+    appHash
+    destination
+    sequenceNumber
+    identityBinding
+    signature
+}
+```
+
+Path fields remain hop-mutable:
+
+```text
+RouteAdvertisement {
+    statement
+    routeCost
+    hopCount
+}
+```
+
+Relays verify the statement, add local link cost with saturation, increment hop
+count, apply feasibility/policy, and hop-encrypt separately for each outgoing
+neighbor. An unpinned statement is a self-consistent candidate only; it cannot
+change trust. Route signatures are mandatory and not configurable.
+
+An authenticated malicious relay can still lie about mutable cost/count.
+Preventing Byzantine metric manipulation requires a path-proof protocol and is
+not a v0.1 guarantee.
+
+## Routing-control protection
+
+Every routing-control frame is hop-encrypted and authenticated after the
+adjacent Noise session exists:
+
+- advertisements;
+- withdrawals;
+- digests;
+- sequence advancements;
+- synchronization triggers; and
+- full snapshots.
+
+AEAD associated data binds frame type, protocol version, and direction.
+Authentication failure drops the frame before routing-field parsing. No
+plaintext retry or downgrade exists.
+
+Routing uses explicit UByte codes: advertisement `0x01`, withdrawal `0x02`,
+digest `0x03`, sequence advancement `0x04`, synchronization `0x05`, and
+snapshot `0x06`. Encoding never uses enum ordinal.
+
+## Per-neighbor split horizon
+
+Each RouteExport selects the best feasible candidate excluding candidates whose
+nextHop is the export neighbor. A self-origin route is exported to every
+neighbor. If an alternate candidate through another neighbor exists, it may be
+exported.
+
+A route previously exported to a neighbor is withdrawn immediately when the
+only remaining candidate points back through that neighbor. Explicit withdrawal
+replaces poison reverse; no infinite-cost advertisement is needed. Feasibility
+remains the primary loop-avoidance rule, while split horizon reduces avoidable
+loops and traffic.
+
+## Per-neighbor synchronization
+
+Each adjacency tracks canonical wire-level sets:
+
+```text
+RouteExport[neighbor] = advertisements last sent to that neighbor
+RouteImport[neighbor] = advertisements last accepted from that neighbor
+```
+
+`RouteImport` is stored before adding receiver-local link cost or policy.
+
+Synchronization uses:
+
+```text
+RouteDigest   // summary of sender RouteExport
+RouteSynchronization // receiver asks sender to synchronize
+RouteSnapshot // complete sender RouteExport response
+```
+
+The receiver compares an incoming digest with `RouteImport[sender]`, never with
+its complete local routing table. On mismatch it sends `RouteSynchronization`;
+the sender
+returns `RouteSnapshot`. The receiver validates the complete snapshot and
+atomically replaces only that sender's import.
+
+Digest input uses destination-sorted canonical RouteStatements plus advertised
+routeCost and hopCount. It excludes nextHop, local linkQuality, expiry/arrival
+times, feasible distance, and diagnostics.
+
+`RouteDigest`, `RouteSynchronization`, and `RouteSnapshot` carry a per-adjacency UInt
+revision. It starts at zero for each fresh authenticated hop session and
+increments whenever that neighbor's RouteExport changes. Stale delayed values
+are rejected with modular UInt comparison.
+
+The digest is the first 64 bits of SHA-256 over the canonical RouteExport
+encoding. It is a hop-AEAD-protected synchronization checksum, not an
+authorization proof. Raw implementation buffers are not hashed; the MeshLink Wire Codec defines a
+separate deterministic canonical field encoding for digests/signatures.
+
+A matching digest renews every unchanged candidate in that sender's RouteImport.
+`routeDigestInterval` defaults to five minutes and `routeExpiry` to 15 minutes,
+so three missed digest leases expire candidates. Neighbor disconnect invalidates
+its candidates immediately. Unchanged routes are not periodically
+re-advertised.
+
+## Capacity and eviction
+
+`RoutingSettings.maxRoutes` defaults to 256 and counts distinct remote
+destination PeerIdentity values. The local self route is excluded. A route may
+retain at most one candidate from each authenticated adjacent peer, so alternate
+paths do not consume additional public route slots.
+
+When capacity is reached:
+
+1. Remove expired candidates and empty destinations.
+2. Consider only unavailable destinations without active transfers.
+3. Evict the least recently refreshed eligible route.
+4. Break ties by highest selected routeCost, then highest destination identity.
+5. Never evict self state, a direct authenticated peer, or an active-transfer
+   destination.
+6. If every route is protected, reject the new destination and emit a capacity
+   diagnostic.
+
+Disconnect removes or degrades only that neighbor's candidate; another feasible
+candidate for the destination may take over immediately.
+
+## Route-advertisement triggers
+
+- Direct authenticated link up: immediate self-origin statement/advertisement.
+- Smoothed RSSI threshold: jittered differential update.
+- Every routeDigestInterval (default five minutes): send per-neighbor RouteDigest; full RouteSnapshot only after RouteSynchronization.
+- Route expiry/withdrawal: immediate.
+- RouteImport digest mismatch: immediate RouteSynchronization.
+- Successful sequence advancement: immediate destination advertisement.
+
+An internal one-second `routeAdvertisementCooldown` coalesces ordinary changes
+but never delays withdrawal, disconnect, trust invalidation, sequence recovery,
+or requested synchronization. Matching digests renew unchanged RouteImport
+leases, so no periodic unchanged advertisements are sent. Feasibility and the
+cooldown are mandatory and have no public disable/tuning settings.
+
+## Time-to-live and hop limit
+
+Delivery time-to-live and routing hop limit are independent:
+
+- `TransferOptions.timeToLive` is elapsed time during which a message/transfer
+  may remain active or route-waiting. Priority supplies defaults of 10, 5, and 1
+  minutes for HIGH, NORMAL, and LOW.
+- `maximumHopCount` is the fixed number of relays a routed envelope/control
+  operation may traverse. It is 16 for every priority and is not configurable.
+
+New routed envelopes start with `hopLimit = 16`; each relay decrements before
+forwarding and drops zero. Route advertisements with `hopCount >= 16` are
+rejected. RouteSequenceAdvancement uses the same bound.
+
+A higher priority may receive scheduler preference and longer elapsed delivery
+time, but it never receives permission to traverse more hops. Keeping the
+limits separate avoids treating minutes as topology and bounds loops/fan-out
+regardless of application priority.
+
+## Testing requirements
+
+The virtual harness proves:
+
+- exact RSSI normalization/cost table;
+- saturating path addition;
+- quality-sensitive direct versus multi-hop selection;
+- EWMA and hysteresis boundaries;
+- feasibility across wrap-around and half-range ambiguity;
+- source-only sequence ownership and crash-safe persistence;
+- unicast-first/fan-out sequence recovery, dedup, rate limit, and timeout;
+- signed statement mutation rejection;
+- hop-mutable path handling;
+- encrypted-control downgrade rejection;
+- per-neighbor digest mismatch and atomic snapshot replacement;
+- convergence within three seconds; and
+- route/trust/transport/key rotations without identity or sequence conflation.
 
 ## Related
 
-- [MTU Negotiation](../transport/mtu-negotiation.md)
-- [Wire Format Specification](../../../specs/wire-frames.yaml)
-- [Data Model](../model/data-model.md)
-- [E2E Handshake Pattern](../crypto/crypto-design.md)
+- [RFC 8966](../../rfcs/routing/rfc8966.txt)
+- [Data model](../model/data-model.md)
+- [Peer hints and identity races](../discovery/peer-hint-and-identity-races.md)
+- [Identity binding and fail-closed behavior](../crypto/identity-binding-and-fail-closed.md)
+- [SPEC.md §8](../../../SPEC.md#routing-layer)

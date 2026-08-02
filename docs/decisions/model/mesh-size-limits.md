@@ -1,45 +1,47 @@
 # Mesh Size Limits & Practical Capacity — Rationale
 
-**Status:** Locked — 2026-07-26
+**Status:** Locked — 2026-07-31
 
-> **Full specification** (route table eviction, resource tables, Bluetooth controller limits, mesh diameter, developer guidance, diagnostics) lives in [SPEC.md §8.4, §10, §13.7](../../../SPEC.md). This ADR captures the *why*.
+> **Full specification** (route capacity, candidates, Bluetooth controller limits, mesh diameter, and diagnostics) lives in [SPEC.md §8](../../../SPEC.md#routing-layer). This ADR captures the *why*.
 
 ---
 
 ## Decision
 
-**Hard limit: 256 route entries** (enforced by `RouteTable.maxEntries`).
+**Default hard limit: 256 distinct remote destination routes** (`RoutingSettings.maxRoutes`).
 **Practical limit: 20-50 peers typical, 50-100 max in dense deployments.**
 
 ---
 
-## Why 256 Route Entries?
+## Why 256 Routes?
+
+One route means one remote destination PeerIdentity. The local self route is not
+counted. Each route may retain one candidate from every authenticated adjacent
+peer, so alternate paths do not consume additional public route slots.
 
 | Factor | Rationale |
 |--------|-----------|
-| **Power of 2** | Clean memory alignment; easy to reason about |
-| **Typical mesh < 50 peers** | 256 gives 5× headroom for churn/transient entries |
-| **Memory budget** | 256 × ~200B entry = 51 KB — negligible vs 8 MB limit |
-| **Bluetooth controller limit** | Android/iOS typically 7-10 concurrent connections — 256 is purely routing table, not active connections |
-| **Eviction simplicity** | LRU batch eviction (32 entries) is O(1) amortized |
+| **Power of 2** | Easy fixed capacity and diagnostics threshold |
+| **Typical mesh < 50 peers** | 256 gives substantial churn/dense-event headroom |
+| **Alternate candidates** | HIGH mode bounds candidates at 256 × 8 = 2,048 |
+| **Memory budget** | Candidate state remains well below the 8 MB SDK target |
+| **Controller limit** | Route capacity is independent of the smaller active-connection limit |
 
-**Not**: 128 (too tight for dense + churn), 512 (no practical benefit, wastes RAM)
+**Not**: 128 (too tight for dense churn), 512 (no demonstrated v0.1 benefit).
 
 ---
 
-## Why Least-Recently-Updated Eviction?
+## Protected deterministic eviction
 
-| Policy | Why Rejected |
-|--------|--------------|
-| Least-Recently-Used | Requires tracking "use" (forwarding) — adds complexity |
-| Lowest-Metric | Would evict weak-but-only links, partitioning mesh |
-| Random | Unpredictable; hard to debug |
+On capacity pressure, remove expired candidates and empty routes first. Among
+remaining eligible routes, evict the least recently refreshed, with highest
+selected routeCost and then highest destination identity as deterministic
+tie-breaks.
 
-**Least-recently-updated** preserves:
-
-- Active routes (refreshed by periodic sync)
-- Direct neighbors (updated on every connect)
-- High-quality paths (metric changes trigger updates)
+Never evict the local self state, a direct authenticated peer, or an active-
+transfer destination. If all routes are protected, reject the new route and emit
+a capacity diagnostic. Disconnect removes only that neighbor's candidate so an
+alternate route can take over.
 
 ---
 
@@ -52,7 +54,7 @@
 | Dense urban | 10-30 | 60 | Walls attenuate → natural partitioning |
 | Outdoor festival | 50-100 | 150 | Line of sight, high churn |
 
-**Hard limit 256** is for route table entries only — not concurrent BLE connections (limited by power mode + platform).
+**Hard limit 256** counts remote destination routes, not alternate candidates or concurrent BLE connections.
 
 ---
 
@@ -71,14 +73,14 @@
 
 ## Mesh Diameter & Convergence
 
-| Mesh Size | Typical Diameter | Max Hops (TTL) | Convergence Time |
+| Mesh Size | Typical Diameter | Suggested Operational Hops | Convergence Time |
 |-----------|------------------|----------------|------------------|
 | < 10 peers | 1-2 hops | 5 | < 500ms |
 | 10-50 peers | 2-4 hops | 10 | 1-2s |
 | 50-100 peers | 3-5 hops | 15 | 2-3s |
 | 100-256 peers | 4-7 hops | 20 | 3-5s |
 
-**Routing TTL** = 32 (plenty of headroom).
+**maximumHopCount** = 16, independent of delivery timeToLive and priority. This exceeds the documented practical diameter while tightly bounding loops and fan-out.
 
 ---
 
@@ -97,11 +99,9 @@ Total < 8 MB ✓
 
 ## Developer Guidance
 
-Configurable limits in `MeshLinkSettings`:
-
-- `maxActivePeers` — default follows PowerMode.concurrentConnections
-- `maxRouteEntries` — hard limit 256
-- `evictionPolicy` — default LEAST_RECENTLY_UPDATED
+`RoutingSettings.maxRoutes` defaults to 256. Active connections follow the
+selected power mode and platform controller limit. Eviction policy is an
+internal correctness rule rather than a configurable application strategy.
 
 ---
 
@@ -109,7 +109,7 @@ Configurable limits in `MeshLinkSettings`:
 
 `MeshCapacityEvent` with alert thresholds:
 
-- `routeTableSize > 200` → WARN (approaching limit)
+- `routeCount > 200` → WARN (approaching maxRoutes)
 - `evictionCount > 10/min` → WARN (high churn)
 - `currentPeerCount > maxActivePeers` → INFO (throttling)
 
@@ -117,7 +117,7 @@ Configurable limits in `MeshLinkSettings`:
 
 ## Related
 
-- [SPEC.md §8.4, §10, §13.7](../../../SPEC.md)
+- [SPEC.md §8](../../../SPEC.md#routing-layer)
 - [Power Mode Behavior](../power/power-mode-behavior.md)
 - [Routing Design](../routing/routing-design.md)
 - [CONSTITUTION.md §IV](../../../CONSTITUTION.md#iv-performance-requirements)

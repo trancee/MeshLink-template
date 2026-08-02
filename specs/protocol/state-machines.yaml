@@ -1,0 +1,418 @@
+# MeshLink Protocol — State Machine Contracts
+# Authored normative source for states, transitions, guards, timing, retry, and invariants.
+# SPEC-ANCHOR: state-machine
+
+state_machines:
+  - name: TransferState
+    package: ch.trancee.meshlink.transfer
+    description: "Lifecycle shared by finite MESSAGE and TRANSFER payload operations."
+    initial: AWAITING_DECISION
+    terminal_states:
+      - COMPLETED
+      - CANCELLED
+      - FAILED
+      - TIMED_OUT
+    states:
+      - name: AWAITING_DECISION
+        description: "Validated manifest is awaiting automatic message capacity or host TransferSink decision"
+      - name: IN_PROGRESS
+        description: "Accepted payload is actively transferring"
+      - name: WAITING_FOR_ROUTE
+        description: "Origin retains operation while routing recovers within timeToLive"
+      - name: RETRYING
+        description: "Missing chunks are selectively retransmitting under adaptive RTO"
+      - name: COMPLETED
+        description: "All payload chunks acknowledged and terminal completion confirmed"
+        terminal: true
+      - name: CANCELLED
+        description: "Local or remote idempotent PayloadCancellation completed"
+        terminal: true
+      - name: FAILED
+        description: "Rejected, unrecoverable, sink, protocol, or trust failure"
+        terminal: true
+      - name: TIMED_OUT
+        description: "Origin-owned monotonic timeToLive exhausted"
+        terminal: true
+    transitions:
+      - from: AWAITING_DECISION
+        event: "PayloadDecision ACCEPTED"
+        to: IN_PROGRESS
+      - from: AWAITING_DECISION
+        event: "Rejected, receiver unavailable/busy, sink failure, invalid manifest, or acceptance timeout"
+        to: FAILED
+      - from: AWAITING_DECISION
+        event: "Cancellation"
+        to: CANCELLED
+      - from: IN_PROGRESS
+        event: "All chunks acknowledged"
+        to: COMPLETED
+      - from: IN_PROGRESS
+        event: "Route lost"
+        to: WAITING_FOR_ROUTE
+      - from: IN_PROGRESS
+        event: "Gap ACK or retransmission timeout schedules missing chunks"
+        to: RETRYING
+      - from: IN_PROGRESS
+        event: "Cancellation"
+        to: CANCELLED
+      - from: IN_PROGRESS
+        event: "Protocol, sink, or trust failure"
+        to: FAILED
+      - from: WAITING_FOR_ROUTE
+        event: "Route and required E2E session recovered"
+        to: IN_PROGRESS
+      - from: RETRYING
+        event: "Selective retransmission resumes normal window"
+        to: IN_PROGRESS
+      - from: WAITING_FOR_ROUTE
+        event: "timeToLive exhausted"
+        to: TIMED_OUT
+      - from: RETRYING
+        event: "timeToLive exhausted"
+        to: TIMED_OUT
+      - from: WAITING_FOR_ROUTE
+        event: "Cancellation"
+        to: CANCELLED
+      - from: RETRYING
+        event: "Cancellation"
+        to: CANCELLED
+    protocol_limits:
+      maximum_message_size_bytes: 65536
+      incomplete_message_budget_bytes: 2097152
+      pending_offers_per_peer: 2
+      pending_offers_global: 8
+      acceptance_timeout_seconds: 30
+      sack_window_chunks: 256
+      acknowledgment_chunk_trigger: 32
+      acknowledgment_delay_ms:
+        HIGH: 100
+        MEDIUM: 250
+        LOW: 500
+      rto_minimum_ms: 1000
+      rto_maximum_ms: 30000
+
+  - name: NoiseSessionState
+    package: ch.trancee.meshlink.model
+    description: "Noise session states for both hop-by-hop and end-to-end layers."
+    initial: DISCONNECTED
+    terminal_states:
+      - FAILED
+    states:
+      - name: DISCONNECTED
+        description: "No active session"
+      - name: HANDSHAKING_XX
+        description: "Performing first-contact Noise XX with signed identity binding"
+      - name: HANDSHAKING_IK
+        description: "Performing Noise IK with a trusted current destination pin; no application early data"
+      - name: ESTABLISHED
+        description: "Handshake complete, current traffic-key epoch established"
+      - name: RENEWING
+        description: "Fresh IK renewal in progress while the current epoch remains valid"
+      - name: FAILED
+        description: "Handshake or session failed terminally"
+        terminal: true
+    transitions:
+      - from: DISCONNECTED
+        event: "Initiate XX without a trusted destination pin"
+        to: HANDSHAKING_XX
+      - from: DISCONNECTED
+        event: "Initiate IK with a trusted current destination pin"
+        to: HANDSHAKING_IK
+      - from: HANDSHAKING_XX
+        event: "XX and signed identity binding succeed"
+        to: ESTABLISHED
+      - from: HANDSHAKING_IK
+        event: "IK and pinned identity binding succeed"
+        to: ESTABLISHED
+      - from: ESTABLISHED
+        event: "Renewal time or soft record threshold reached"
+        to: RENEWING
+      - from: RENEWING
+        event: "Fresh IK succeeds and atomically installs the new epoch"
+        to: ESTABLISHED
+      - from: RENEWING
+        event: "Attempt fails before hard expiry or record limit; current epoch remains valid"
+        to: ESTABLISHED
+      - from: HANDSHAKING_XX
+        event: "Handshake failure (timeout, malformed binding, mismatch, or retry exhaustion)"
+        to: FAILED
+      - from: HANDSHAKING_IK
+        event: "Handshake failure or pinned mismatch"
+        to: FAILED
+      - from: ESTABLISHED
+        event: "Transport closed or hard lifetime/record limit reached without renewal"
+        to: FAILED
+      - from: RENEWING
+        event: "Hard lifetime or record limit reached before renewal succeeds"
+        to: FAILED
+    renewal_protocol:
+      hard_lifetime_hours: 24
+      renewal_target_hours:
+        minimum: 21
+        maximum: 23
+      takeover_target_minutes:
+        minimum: 1410
+        maximum: 1430
+      preferred_initiator: "Lower lexicographic PeerIdentity; rotating peerHint and TransportHandle never select long-lived roles"
+      soft_record_limit_per_direction: 2147483648
+      hard_record_limit_per_direction: 4294967296
+      phases:
+        - name: PREPARE
+          description: "Fresh IK derives pending keys; old epoch remains active"
+        - name: COMMIT
+          description: "Initiator stops old outbound allocation and sends authenticated final old counter under pending keys"
+        - name: ACKNOWLEDGE
+          description: "Responder validates commit, stops old outbound allocation, and sends its final old counter"
+        - name: ACTIVATE
+          description: "Responder activates after acknowledgement send; initiator activates after acknowledgement validation"
+      retransmission: "Idempotent semantic messages encoded as fresh records with unique counters"
+      old_epoch_drain_seconds: 30
+      pending_application_delivery: false
+
+  - name: DiscoveryAttemptState
+    package: ch.trancee.meshlink.discovery
+    description: "Internal verb-only states for one bounded pre-identity BLE discovery attempt."
+    initial: DISCOVERED
+    terminal_states:
+      - SUCCEEDED
+      - FAILED
+    states:
+      - name: DISCOVERED
+        description: "Advertisement accepted as an ephemeral candidate"
+      - name: CONNECTING
+        description: "Physical BLE connection is being established"
+      - name: RESOLVING
+        description: "GATT metadata is being validated and mapped to a claimed PeerIdentity and trust path"
+      - name: AUTHENTICATING
+        description: "Noise XX, IK, or rotation-recovery XX and identity proof validation is active"
+      - name: SUCCEEDED
+        description: "Authenticated PeerIdentity has been merged into canonical peer state"
+        terminal: true
+      - name: BACKING_OFF
+        description: "Transient failure is waiting for bounded jittered retry"
+      - name: FAILED
+        description: "Attempt ended without canonical identity mutation"
+        terminal: true
+    transitions:
+      - from: DISCOVERED
+        event: "Connection slot admitted"
+        to: CONNECTING
+      - from: CONNECTING
+        event: "GATT connected and identity metadata required"
+        to: RESOLVING
+      - from: CONNECTING
+        event: "Mapped peerHint permits tentative direct pinned authentication"
+        to: AUTHENTICATING
+      - from: RESOLVING
+        event: "Claimed identity selects first-contact, pinned, or rotation-recovery path"
+        to: AUTHENTICATING
+      - from: AUTHENTICATING
+        event: "Noise and all required identity/rotation proofs validate"
+        to: SUCCEEDED
+      - from: CONNECTING
+        event: "Transient transport failure"
+        to: BACKING_OFF
+      - from: RESOLVING
+        event: "Transient GATT failure"
+        to: BACKING_OFF
+      - from: AUTHENTICATING
+        event: "Retryable same-security-mode failure"
+        to: BACKING_OFF
+      - from: BACKING_OFF
+        event: "Bounded retry admitted"
+        to: CONNECTING
+      - from: DISCOVERED
+        event: "Capacity, malformed metadata, or permanent policy rejection"
+        to: FAILED
+      - from: CONNECTING
+        event: "Permanent transport or policy failure"
+        to: FAILED
+      - from: RESOLVING
+        event: "Malformed, incompatible, rollback, or conflict"
+        to: FAILED
+      - from: AUTHENTICATING
+        event: "Signature, pin, proof-chain, or transcript validation fails"
+        to: FAILED
+    deduplication:
+      same_transport_handle_same_hint: "Update observation only"
+      same_transport_handle_new_hint: "Attach observation to active attempt"
+      new_transport_handle_mapped_hint: "Tentatively select mapped pin but require fresh IK"
+      same_claimed_identity: "Serialize through one per-peer coordinator"
+      canonical_merge: "Only after SUCCEEDED"
+
+  - name: L2capState
+    package: ch.trancee.meshlink.transport
+    description: "Process-local capability and circuit-breaker state for one authenticated adjacent peer."
+    initial: UNSUPPORTED
+    terminal_states:
+      - DISABLED
+    states:
+      - name: UNSUPPORTED
+        description: "Local or remote platform cannot use LE L2CAP CoC"
+      - name: AVAILABLE
+        description: "Capability exists and a probationary channel may be attempted"
+      - name: CONNECTING
+        description: "L2CAP channel open is in progress"
+      - name: ACTIVE
+        description: "Channel carries data; failure history may remain probationary"
+      - name: BACKING_OFF
+        description: "GATT carries data until retriesAt"
+      - name: DISABLED
+        description: "Four or more failures disable L2CAP for the process lifetime"
+        terminal: true
+    transitions:
+      - from: UNSUPPORTED
+        event: "Both peers and platform advertise capability"
+        to: AVAILABLE
+      - from: AVAILABLE
+        event: "Eligible large transfer starts"
+        to: CONNECTING
+      - from: CONNECTING
+        event: "Channel opens"
+        to: ACTIVE
+      - from: CONNECTING
+        event: "Open failure or timeout before fourth failure"
+        to: BACKING_OFF
+      - from: ACTIVE
+        event: "EOF, stream error, stall, partial-frame timeout, or channel drop before fourth failure"
+        to: BACKING_OFF
+      - from: BACKING_OFF
+        event: "Jittered probation time reached"
+        to: CONNECTING
+      - from: ACTIVE
+        event: "Ten healthy minutes or one error-free transfer of at least 1 MiB"
+        to: ACTIVE
+      - from: CONNECTING
+        event: "Fourth failure"
+        to: DISABLED
+      - from: ACTIVE
+        event: "Fourth failure"
+        to: DISABLED
+    backoff:
+      failure_1_seconds: "15-30"
+      failure_2_seconds: "60-120"
+      failure_3_seconds: "300-600"
+      failure_4: process_lifetime_disable
+    failure_behavior: "Stop new L2CAP assignment, discard partial frame, continue control/data over GATT, preserve route/trust/E2E/transfer state, and recover missing chunks through SACK"
+
+  - name: PeerLifecycle
+    package: ch.trancee.meshlink
+    description: "Internal runtime tracking type driving peer lifecycle (CONNECTED → DISCONNECTED → GONE). Not exposed publicly — only PeerState (CONNECTED, DISCONNECTED) is visible to host apps."
+    initial: CONNECTED
+    terminal_states:
+      - GONE
+    states:
+      - name: CONNECTED
+        description: "Active BLE link. Transfers may be in progress. Route entries remain live. Host app observes connected presence in knownPeers."
+      - name: DISCONNECTED
+        description: "BLE link was lost. Grace period active because peer may return quickly. Routes can degrade before full retraction. Transfers can pause instead of being abandoned. Host app observes disconnected presence in knownPeers."
+      - name: GONE
+        description: "Grace window expired without reconnection. MeshLink cleans up ephemeral state (presence, routes, pending transfer work). Transient unverified peers leave knownPeers; persisted trusted or revoked identities remain unavailable."
+        terminal: true
+    transitions:
+      - from: CONNECTED
+        event: "BLE link lost"
+        to: DISCONNECTED
+      - from: DISCONNECTED
+        event: "BLE reconnects"
+        to: CONNECTED
+      - from: DISCONNECTED
+        event: "Grace period expires (mode-dependent: HIGH=15s, MEDIUM=30s, LOW=45s)"
+        to: GONE
+
+  - name: TrustState
+    package: ch.trancee.meshlink.model
+    description: "Trust record state in the TrustStore. Tracks TOFU pinning lifecycle."
+    initial: INITIATED
+    states:
+      - name: INITIATED
+        description: "Handshake in progress, not yet verified"
+      - name: TRUSTED
+        description: "TOFU-pinned identity (first successful handshake)"
+      - name: REVOKED
+        description: "Explicitly revoked by user/application"
+    transitions:
+      - from: INITIATED
+        event: "Handshake verified successfully"
+        to: TRUSTED
+      - from: TRUSTED
+        event: "Explicit revocation via API"
+        to: REVOKED
+      - from: REVOKED
+        event: "Explicit reset via API"
+        to: INITIATED
+
+  - name: KeyRotationState
+    package: ch.trancee.meshlink.model
+    description: "Key rotation lifecycle per peer. Not a single state machine but tracks per-peer key status."
+    states:
+      - name: CURRENT
+        description: "Key is active and current"
+      - name: GRACE_PERIOD
+        description: "Old key retained for grace period after rotation (PERIODIC/MANUAL: rotationGracePeriod; SECURITY_EVENT: compromiseGracePeriod)"
+      - name: REVOKED
+        description: "Key fully revoked, no longer accepted"
+
+  - name: TransferDeliveryOutcome
+    package: ch.trancee.meshlink
+    description: "Explicit, enumerated delivery outcomes surfaced to host apps (not a state machine but a result mapping)."
+    mapping:
+      - transfer_state: COMPLETED
+        outcome: success
+      - transfer_state: IN_PROGRESS
+        outcome: in-progress
+      - transfer_state: RETRYING
+        outcome: retrying
+      - transfer_state: WAITING_FOR_ROUTE
+        outcome: route-waiting
+      - transfer_state: TIMED_OUT
+        outcome: timeout
+      - transfer_state: FAILED
+        failure_reason: Unrecoverable
+        outcome: unrecoverable-failure
+      - transfer_state: FAILED
+        failure_reason: TrustFailure
+        outcome: trust-failure
+
+  - name: RoutingUpdateTrigger
+    package: ch.trancee.meshlink.routing
+    description: "Events that update one neighbor RouteExport. Ordinary non-immediate updates use bounded jitter."
+    triggers:
+      - name: AUTHENTICATED_LINK_UP
+        condition: "Adjacent Noise session established"
+        frame_type: RouteAdvertisement
+        description: "Immediate destination-signed self-origin statement"
+        jitter: false
+        immediate: true
+      - name: LINK_COST_CHANGE
+        condition: "EWMA smoothed RSSI changes by at least 3 dB"
+        frame_type: RouteAdvertisement
+        jitter: true
+        immediate: false
+      - name: PERIODIC_DIGEST
+        condition: "routeDigestInterval reached"
+        frame_type: RouteDigest
+        jitter: true
+        immediate: false
+      - name: ROUTE_EXPIRY
+        condition: "Candidate not renewed before routeExpiry"
+        frame_type: RouteWithdrawal
+        jitter: false
+        immediate: true
+      - name: DIGEST_MISMATCH
+        condition: "RouteDigest differs from RouteImport for the authenticated sender"
+        frame_type: RouteSynchronization
+        description: "Receiver requests RouteSnapshot of sender RouteExport"
+        jitter: false
+        immediate: true
+      - name: SEQUENCE_ADVANCEMENT_SUCCEEDED
+        condition: "Destination persisted a sequence newer than requested"
+        frame_type: RouteAdvertisement
+        jitter: false
+        immediate: true
+
+  - name: AdvertisementCooldown
+    package: ch.trancee.meshlink.routing
+    description: "Ordinary differential advertisements to one peer coalesce within the internal one-second routeAdvertisementCooldown. Withdrawal, disconnect, trust invalidation, sequence advancement, and synchronization are immediate exceptions."
+    route_lease:
+      description: "A matching RouteDigest renews every unchanged entry in that sender's RouteImport; no periodic unchanged advertisement is required."

@@ -1,142 +1,119 @@
-# PeerIdentity & TrustStore Persistence Strategy — Rationale
+# Identity and trust persistence
 
-**Status:** Locked — 2026-07-26
+**Status:** Locked — 2026-07-31
 
-> **Full implementation** (platform-specific stores, encryption, migration, diagnostics) lives in platform `*Main` sources and [SPEC.md §1.3, §5.4](../../../SPEC.md). This ADR captures the *why*.
+> Private-key encryption and memory rules live in
+> [Private-key handling](../crypto/private-key-handling.md). This record defines
+> what persists, platform ownership, reinstall behavior, and corruption policy.
 
----
+## Persisted state
 
-## Decision
+MeshLink persists only continuity and crash-safety state:
 
-**`expect`/`actual` platform-specific storage with hardware-backed encryption:**
+- local PeerIdentity;
+- Ed25519/X25519 provider aliases or encrypted private records;
+- corresponding public keys and current key generation;
+- installation-lifetime public rotation proof chain;
+- trust records keyed by remote PeerIdentity;
+- local route-sequence value;
+- MessageId/TransferId allocation high-water marks;
+- storage schema/version; and
+- installation marker metadata.
 
-| Platform | Storage | Encryption |
-|----------|---------|------------|
-| Android | Jetpack DataStore | Android Keystore (AES-256-GCM, hardware-backed if available) |
-| iOS | Keychain | Secure Enclave (AES-256-GCM) |
-| JVM (test) | File | Software AES-256-GCM (test only) |
+## Ephemeral state
 
-**Persisted (minimal):**
+MeshLink never persists:
 
-1. `PeerIdentity` (16 bytes) — generated once at install
-2. `TrustStore` — `PeerIdentity → TrustRecord` (public keys, timestamps, state)
-3. `LocalIdentityKeys` — Ed25519 + X25519 private keys (encrypted)
+- peerHint or TransportHandle;
+- advertisements or scan candidates;
+- BLE/GATT/L2CAP connections and health;
+- Noise traffic/ephemeral keys, counters, replay windows, or pending renewal;
+- routes, RouteImport/RouteExport, or feasible distance;
+- active messages/transfers, chunks, scoreboards, retries, or payload data; or
+- diagnostics.
 
-**NOT persisted:** Diagnostics, route tables, transfer sessions, ephemeral keys, scan results.
+Process death therefore reconstructs identity/trust but starts fresh radio,
+Noise, routing, and transfer state.
 
----
+## Android
 
-## Why Minimal Persistence?
+Android uses an app-private atomic encrypted record rather than a new runtime
+storage dependency. Exportable private keys are AES-256-GCM wrapped by an
+Android Keystore key; non-exportable provider keys persist by alias. Records are
+excluded from backup.
 
-| Not Persisted | Reason |
-|---------------|--------|
-| Diagnostics | Volatile; replayable via eventCallback |
-| Route tables | Rebuilt from advertisements on startup |
-| Transfer sessions | In-memory only; doesn't survive process restart (CONSTITUTION.md §1.3) |
-| Ephemeral keys | Regenerated per session |
-| Scan results | Stale on restart |
+Ordinary uninstall or app-data clear destroys the app container and Keystore
+association. Backup/restore must not migrate installation identity to another
+device.
 
-**Principle**: Only persist what's required to re-verify pinned trust (identity material + first-seen/last-verified timestamps).
+## iOS
 
----
+Identity/private representations use non-synchronizable,
+`AfterFirstUnlockThisDeviceOnly` Keychain items. Trust/public continuity records
+use app-private storage or Keychain according to sensitivity, without iCloud
+synchronization.
 
-## Why `expect`/`actual` with Hardware-Backed Encryption?
+Because Keychain may survive app deletion, an app-container installation marker
+is authoritative. Missing marker causes stale MeshLink Keychain items to be
+deleted before creating a new installation identity. App offload and deletion
+are tested separately.
 
-| Alternative | Why Rejected |
-|-------------|--------------|
-| Plaintext SharedPreferences/UserDefaults | Private keys in plaintext — extractable from backup/root |
-| SQLDelight/Room | Overhead for simple key-value; no hardware encryption |
-| Custom file + software crypto | No hardware protection; keys in process memory |
-| `MultiPlatformSettings` lib | No control over encryption backend |
+## Installation identity
 
-**Platform-native + hardware-backed** gives:
+PeerIdentity is random and stable across process restart, device reboot, app
+updates, key rotation, RPA/TransportHandle change, peerHint rotation, route
+change, and Noise renewal.
 
-- Android: Keystore (TEE/StrongBox) — keys never leave hardware
-- iOS: Secure Enclave — keys never leave hardware
-- Test: Software fallback (explicitly not for production)
+Reinstall creates a new PeerIdentity and key set. Remote applications continue
+to address the old and new installations as different peers; MeshLink never
+silently attaches old trust to the new identity.
 
----
+## Trust record
 
-## Why DataStore (Android) / Keychain (iOS)?
+Internal trust state contains stable peer identity, current public binding,
+trust state, key generation, immutable `seenAt`, latest successful `verifiedAt`,
+and rotation-chain position. Applications observe only the stable PeerIdentity,
+public trust/presence state, and approved timestamps; they never manage keys,
+generation, or proof chains.
 
-| Platform | Choice | Rationale |
-|----------|--------|-----------|
-| Android | DataStore | Coroutine-first, transactional, migration support, replaces SharedPreferences |
-| iOS | Keychain | Hardware-backed, persists across app deletes (if `ThisDeviceOnly`), encrypted at rest |
-| Both | Encrypted payload | AEAD (AES-256-GCM) — integrity + confidentiality; master key in hardware |
+Trusted and revoked records persist. Transient unverified discovery candidates
+do not.
 
----
+## Atomicity and corruption
 
-## TrustRecord Design Rationale
+Writes use temporary-record, flush, atomic-replace, and committed-marker
+semantics. Counter ranges are durably reserved before use, so crashes create
+gaps rather than identifier reuse.
 
-```kotlin
-data class TrustRecord(
-    val peerIdentity: PeerIdentity,
-    val identityKey: ByteArray,      // Ed25519 public (32B)
-    val handshakeKey: ByteArray,     // X25519 public (32B)
-    var state: TrustState,           // INITIATED | TRUSTED | REVOKED
-    var generation: Int,             // Key rotation count
-    val seenAt: Instant,             // First handshake (immutable)
-    var verifiedAt: Instant,         // Last successful verify
-)
-```
+Authentication failure, partial record, missing key under an existing
+installation marker, schema rollback, or mixed key generation fails closed.
+MeshLink never repairs unexplained corruption by silently generating replacement
+keys under the same PeerIdentity.
 
-| Field | Why |
-|-------|-----|
-| `generation` | Tracks key rotation count; enables "new crypto era" detection |
-| `seenAt` | Immutable first contact — for forensic/audit |
-| `verifiedAt` | Updates on each successful handshake — staleness detection |
-| `state` | TOFU lifecycle: `INITIATED` → `TRUSTED` → `REVOKED` |
+## Migration
 
----
+Every persisted record has an explicit schema version. Migrations are
+transactional, deterministic, covered from every supported prior version, and
+preserve identity/key/trust invariants. A migration cannot weaken key
+accessibility, enable backup, or convert private material to a textual form.
 
-## Uninstall/Reinstall Behavior
+## Background and lock state
 
-| Platform | Behavior | Rationale |
-|----------|----------|-----------|
-| iOS | Keychain persists (`ThisDeviceOnly`) → identity survives reinstall | User expectation: "my device" identity persists |
-| Android | Keystore clears on uninstall → identity regenerated | Acceptable per TOFU model; first handshake re-pins |
+Before first unlock after reboot, protected key material is unavailable and
+MeshLink remains inactive. After first unlock, accepted platform background
+integration may use the keys under OS policy. Force-stop/force-quit does not
+change persisted trust but prevents guaranteed execution.
 
-**Not a bug** — TOFU model assumes first handshake establishes trust. Reinstall = new device from network perspective.
+## Diagnostics
 
----
-
-## Migration Strategy
-
-| Version | Change | Migration |
-|---------|--------|-----------|
-| 1 | Initial | — |
-| 2 | Add `keyRotationCount` to TrustRecord | Default 0 |
-| 3 | Add `revokedAt` timestamp | Nullable, default null |
-
-**Android**: DataStore `PreferenceMigration` (automatic).
-**iOS**: Manual on startup (check schema version, migrate).
-
----
-
-## Security Considerations
-
-| Threat | Mitigation |
-|--------|------------|
-| App backup exposes keys | `android:allowBackup="false"` / iOS Keychain `ThisDeviceOnly` |
-| Root/jailbreak extracts keys | Hardware-backed keystore (TEE/StrongBox/Secure Enclave) |
-| TrustStore tampering | AEAD encryption + integrity check on decrypt |
-
----
-
-## Diagnostics Rationale
-
-Events for observability without persisting diagnostics:
-
-- `PeerIdentityGenerated` — identity created
-- `TrustRecordUpdated` — state/key rotation
-- `StorageError` — failure (never silent)
-
----
+Storage diagnostics expose operation, schema version, provider label, and typed
+failure category only. They never include private bytes, ciphertext plaintext,
+raw stored records, or payload data.
 
 ## Related
 
-- [SPEC.md §1.3, §5.4](../../../SPEC.md)
-- [Data Model ADR](../model/data-model.md)
-- [Trust Model (TOFU)](../../reference/trust-model.md)
-- [Crypto Design](../crypto/crypto-design.md)
+- [Private-key handling](../crypto/private-key-handling.md)
+- [Peer hints and identity races](../discovery/peer-hint-and-identity-races.md)
+- [Background operation](../transport/background-operation.md)
+- [Data model](../model/data-model.md)
+- [Trust model](../../reference/trust-model.md)

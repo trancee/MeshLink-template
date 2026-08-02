@@ -106,7 +106,7 @@ The `consumeNonce` function computes the replay check (bit already set) **before
 
 ### Epoch support (spec §7.5 "per-epoch numbering")
 
-Each `advanceEpoch()` call increments an internal epoch counter and clears the bitmap. Nonces from a previous epoch are no longer tracked in the cleared window, so they are accepted as fresh in the new epoch. This matches the Noise protocol's rekey behavior where `KeyUpdate` resets the nonce space.
+Each successful fresh IK renewal installs new directional keys, increments the local epoch, and clears the new epoch's bitmap. Record lookup selects the authenticated epoch before consulting its replay window; an old-epoch record is never interpreted as a fresh record in the new window.
 
 ### Failure Mode
 

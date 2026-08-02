@@ -3,11 +3,33 @@
 # Source of truth: SPEC.md §14 and meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PowerMode.kt
 # SPEC-ANCHOR: setting-model
 
+validation:
+  construction:
+    - "appId is non-empty normalized UTF-8 and at most 255 bytes"
+    - "all durations are positive where required"
+    - "routeExpiry is greater than routeDigestInterval"
+    - "route limits are positive and maxRoutes is at most 256"
+    - "maxTransfersPerPeer is positive and at most 3"
+    - "chunk, grace-period, and diagnostics-buffer bounds are valid"
+    - "security invariants are not disableable"
+  start:
+    - "permissions and Bluetooth availability"
+    - "protected key storage accessibility"
+    - "provider self-tests"
+    - "background integration when backgroundOperation is true"
+    - "physical radio lease"
+
 settings:
   MeshLinkSettings:
     package: ch.trancee.meshlink
     description: "MeshLink configuration DSL. Single source of truth for all tunable parameters."
     fields:
+      - name: appId
+        type: String
+        required: true
+        max_utf8_bytes: 255
+        validation: "Non-empty, normalized UTF-8 stable across app updates; changing it requires a new MeshLink instance"
+        description: "Host-supplied application/profile isolation identifier"
       - name: powerMode
         type: PowerMode
         default: "MEDIUM"
@@ -16,6 +38,10 @@ settings:
         type: RegulatoryRegion
         default: "DEFAULT"
         description: "Regulatory region controlling BLE radio policy clamping"
+      - name: backgroundOperation
+        type: Boolean
+        default: false
+        description: "Whether this instance validates and uses platform-authorized best-effort background BLE integration"
       - name: keyRotation
         type: KeyRotationSettings
         default: "KeyRotationSettings()"
@@ -28,10 +54,6 @@ settings:
         type: RoutingSettings
         default: "RoutingSettings()"
         description: "Routing layer configuration"
-      - name: security
-        type: SecuritySettings
-        default: "SecuritySettings()"
-        description: "Security layer configuration"
       - name: diagnostics
         type: DiagnosticsSettings
         default: "DiagnosticsSettings()"
@@ -66,72 +88,32 @@ settings:
         type: Int
         default: 256
         description: "Default chunk size in bytes (overridden by power mode at session start)"
-      - name: maxConcurrentSessionsPerPeer
+      - name: maxTransfersPerPeer
         type: Int
         default: 3
-        description: "Maximum concurrent transfer sessions per peer"
-      - name: scoreboardEncoding
-        type: ScoreboardEncoding
-        default: "DYNAMIC"
-        description: "Scoreboard bitfield encoding strategy. FIXED is useful when totalChunks is unknown upfront but maxChunksPerSession provides a safe upper bound (e.g. streaming transfers)."
-      - name: maxChunksPerSession
-        type: UInt
-        default: "1024u"
-        description: "Upper bound on chunks per session, used to pre-allocate the scoreboard bitfield when scoreboardEncoding = FIXED. Ignored for DYNAMIC encoding. Must be > 0."
+        maximum: 3
+        description: "Maximum concurrent accepted or outgoing finite MESSAGE/TRANSFER payload operations per peer; terminal operations do not count"
 
   RoutingSettings:
     package: ch.trancee.meshlink
     description: "Routing layer configuration."
     fields:
-      - name: routeUpdateMinInterval
-        type: Duration
-        default: "Duration.seconds(1)"
-        description: "Minimum interval between route updates to the same peer. Prevents update storms during link flapping."
-      - name: routeUpdateMaxInterval
-        type: Duration
-        default: "Duration.seconds(30)"
-        description: "Maximum interval between route updates to the same peer when no changes occur. Acts as a keep-alive for route freshness."
-      - name: routeUpdateChangeThreshold
+      - name: routeAdvertisementChangeThreshold
         type: Int
         default: 3
-        description: "Minimum RSSI change (in decibels) required to trigger a route update. Smaller values = more responsive routing but more control traffic. Larger values = quieter control plane but slower reaction to link quality changes. Default 3 dB (roughly 'noticeable but not noise')."
-      - name: fullTableSyncInterval
+        description: "Minimum EWMA-smoothed RSSI change in dB required to advertise a changed link cost."
+      - name: routeDigestInterval
         type: Duration
         default: "Duration.minutes(5)"
-        description: "Interval for sending full route table to all peers (periodic full sync). Ensures eventual consistency even if differential updates are lost."
-      - name: routeEntryExpiry
+        description: "Interval for sending the per-neighbor RouteExport digest. Mismatch triggers RouteSynchronization and RouteSnapshot."
+      - name: routeExpiry
         type: Duration
         default: "Duration.minutes(15)"
-        description: "Time after which a route entry expires if not refreshed. Must be > fullTableSyncInterval to avoid premature expiry. Default 15 minutes."
-      - name: feasibilityConditionEnabled
-        type: Boolean
-        default: true
-        description: "Whether to enforce the Babel feasibility condition (loop avoidance). Should always be true in production; false only for testing."
-      - name: maxRouteEntries
+        description: "Maximum time an imported candidate remains without renewal by matching RouteDigest, RouteAdvertisement, or RouteSnapshot. Neighbor disconnect invalidates immediately."
+      - name: maxRoutes
         type: Int
         default: 256
-        description: "Maximum number of route entries to maintain in the routing table. When exceeded, least-recently-updated entries are evicted. Default 256 (suitable for typical personal mesh networks of 10-20 peers)."
-
-  SecuritySettings:
-    package: ch.trancee.meshlink
-    description: "Security layer configuration."
-    fields:
-      - name: fallbackMaxAttemptsPerMinute
-        type: Int
-        default: 3
-        description: "Maximum fallback handshake attempts allowed per minute per destination. Exceeding this limit causes new attempts to be rejected until the window resets. Default 3 (matches the spec mitigation for DoS via unauthenticated handshakes)."
-      - name: fallbackTimeout
-        type: Duration
-        default: "Duration.seconds(10)"
-        description: "Timeout for fallback handshake (stricter than IX). Fallback has no responder authentication, so a tighter bound limits exposure. Default 10 seconds."
-      - name: requireSignatureOnRouteUpdates
-        type: Boolean
-        default: true
-        description: "Whether ROUTE_UPDATE frames must carry an end-to-end signature from the originating peer (covering the destination's public key). Prevents a malicious relay from substituting the destination's key (MITM on handshake). Should always be true in production; false only for testing."
-      - name: defaultHandshakePattern
-        type: HandshakePattern
-        default: "IX"
-        description: "Default handshake pattern when destination key is known. IX = one-way authenticated (origin knows dest key). NX = fallback (key unknown). Default: IX."
+        description: "Maximum distinct remote destination PeerIdentity values. Alternate candidates from adjacent peers do not consume additional route slots; the local self route is excluded."
 
   DiagnosticsSettings:
     package: ch.trancee.meshlink
@@ -139,17 +121,41 @@ settings:
     fields:
       - name: emitToLog
         type: Boolean
-        default: true
-        description: "Whether to emit diagnostic events to logcat/system log"
+        default: false
+        description: "Whether to mirror diagnostic events to Logcat or unified logging"
       - name: eventBufferSize
         type: Int
         default: 1000
-        description: "Size of the in-memory event buffer for callback consumers"
+        description: "Bound on the internal diagnostic flow buffer; no application callback is configured in settings"
 
   meshLinkSettings:
     package: ch.trancee.meshlink
     description: "MeshLink configuration DSL builder function. Usage: val settings = meshLinkSettings { powerMode = PowerMode.HIGH; keyRotation { interval = Duration.days(1) } }"
     returns: MeshLinkSettings
+
+runtime_mutability:
+  mutable:
+    - name: powerMode
+      command: setPowerMode
+      observable_state: powerMode
+      effective_state: effectivePowerSettings
+      description: "Existing transfers retain established chunk framing; new transfers and connections use updated effective values"
+  immutable_for_instance:
+    - appId
+    - regulatoryRegion
+    - backgroundOperation
+    - keyRotation
+    - transfer
+    - routing
+    - diagnostics
+  reconfiguration_rule: "Stop the instance and construct a new MeshLink to change immutable settings"
+
+connection_interval_adaptation:
+  idle_after_seconds: 5
+  idle_interval_min_ms: 500
+  idle_interval_max_ms: 1000
+  active_trigger: "Handshake, urgent control, acknowledgment, or data queued"
+  battery_scope: "LOW/background idle"
 
 power_mode_parameter_mapping:
   HIGH:

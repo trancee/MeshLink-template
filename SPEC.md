@@ -59,12 +59,12 @@ Mobile devices need to communicate securely without internet, backend servers, o
 | Layer | Standards |
 |-------|-----------|
 | Crypto primitives | RFC 7748 (X25519), RFC 8032 (Ed25519), RFC 8439 (ChaCha20-Poly1305), RFC 5869 (HKDF), RFC 2104 (HMAC), RFC 6234 (SHA-2) |
-| Handshake patterns | Noise Protocol Framework (XX, IK, IX, NX) |
+| Handshake patterns | Noise Protocol Framework (XX for unpinned contact, IK for pinned reconnect) |
 | Routing | RFC 8966 (Babel) — feasibility condition, seqno, route digest |
 | Transfer | RFC 2018 (TCP SACK), RFC 7233 (HTTP Range) |
 | Replay protection | RFC 9147 (DTLS 1.3 sliding window) |
 | Opportunistic security | RFC 7435 (design philosophy) |
-| Wire encoding | FlatBuffers-compatible pure-Kotlin codec (not CBOR) |
+| Wire encoding | Custom pure-Kotlin MeshLink Wire Codec, inspired by selected FlatBuffers techniques but not byte-compatible by contract |
 | Compression (optional) | RFC 1950/1951/1952 (zlib), RFC 7932 (Brotli), RFC 8878 (Zstandard) |
 
 ---
@@ -101,17 +101,63 @@ Dokka, SKIE, and 100% coverage gate apply **only to `meshlink`**.
 
 ### 2.3 Public API Surface
 
-The shipped artifact exposes **one entry point**:
+`MeshLink` is a final instance-based class constructed from immutable settings
+and an opaque platform environment:
 
 ```kotlin
-// ch.trancee.meshlink.MeshLink
-object MeshLink {
-    const val VERSION: String = "0.0.0"  // Replaced at release
-    // Full API surface defined in implementation milestones
+class MeshLink(
+    settings: MeshLinkSettings,
+    environment: MeshLinkEnvironment,
+) {
+    val state: StateFlow<MeshLinkState>
+    val knownPeers: StateFlow<List<KnownPeer>>
+    val transfers: StateFlow<List<Transfer>>
+    val messages: Flow<Message>
+    val diagnostics: Flow<DiagnosticEvent>
+    val powerMode: StateFlow<PowerMode>
+    val effectivePowerSettings: StateFlow<PowerModeSettings>
+
+    suspend fun start()
+    suspend fun pause()
+    suspend fun resume()
+    suspend fun stop()
+    suspend fun setPowerMode(powerMode: PowerMode)
+
+    suspend fun sendMessage(
+        destination: PeerIdentity,
+        payload: ByteArray,
+        options: TransferOptions = TransferOptions.DEFAULT,
+    ): MessageHandle
+
+    suspend fun sendTransfer(
+        destination: PeerIdentity,
+        source: TransferSource,
+        options: TransferOptions = TransferOptions.DEFAULT,
+    ): TransferHandle
+
+    suspend fun revokeTrust(peer: PeerIdentity)
+    suspend fun resetTrust(peer: PeerIdentity)
 }
 ```
 
-All public API lives in `ch.trancee.meshlink` package. Platform differences hidden behind `expect`/`actual`.
+Platform factory functions create `MeshLinkEnvironment`; Android context and
+iOS framework types never enter shared protocol code. Multiple instances may
+coexist, but one physical environment grants its BLE radio lease to only one
+running instance. Virtual environments may run concurrently.
+
+Applications address each remote installation by one stable PeerIdentity.
+peerHint, TransportHandle, keys, key generations, proof chains, Noise epochs,
+and route next hops remain internal; valid rotations and reconnects never make
+the application replace identity or key material.
+
+Lifecycle states are `UNINITIALIZED`, `RUNNING`, `PAUSED`, and `STOPPED`.
+Commands are serialized, idempotent at their target state, and restartable after
+stop. Immediate failures use `MeshLinkException`; transfer failures use terminal
+outcomes. The public API lives in `ch.trancee.meshlink`, with platform
+differences hidden behind the environment factories and internal
+`expect`/`actual` implementations.
+
+**ADR**: docs/decisions/api/public-api-and-lifecycle.md
 
 ---
 
@@ -169,7 +215,7 @@ All public API lives in `ch.trancee.meshlink` package. Platform differences hidd
 ```
 
 - Incremented **only on cold start** (`MeshLink.start()`)
-- Self-reported by destination in `RouteUpdate` frames
+- Self-reported by destination in `RouteAdvertisement` frames
 - `toUInt()`/`fromUInt()` for logical wire serialization (value extraction)
 - `toByteArray()`/`fromByteArray()` for 4-byte big-endian byte-level wire serialization
 - `isNewerThanOrEqualTo` used by Babel feasibility condition (RFC 8966 §3.7)
@@ -199,36 +245,39 @@ class Scoreboard(totalChunks: UInt) {
 
 **SPEC-ANCHOR**: `scoreboard-model`
 
-### 3.4 RouteEntry {#route-entry-model}
+### 3.4 RouteCandidate {#route-candidate-model}
 
 ```kotlin
-data class RouteEntry(
-    val source: PeerIdentity,           // Peer from whom route was learned
-    val destination: PeerIdentity,      // Final destination
-    val nextHop: PeerIdentity?,         // Immediate next hop (null = self-origin)
-    val metric: UInt,                   // Composite: RSSI (low byte) + flags (high bits)
-    val seqNo: SeqNo,                   // Destination-self-reported
-    val identityKey: IdentityKey?,      // Destination's Ed25519 key
-    val handshakeKey: HandshakeKey?,    // Destination's X25519 key
-    val expiresAt: Instant              // Expiration time
+internal class RouteCandidate(
+    val destination: PeerIdentity,
+    val nextHop: PeerIdentity,
+    val sequenceNumber: SeqNo,
+    val routeCost: UInt,
+    val hopCount: UByte,
+    val linkQuality: LinkQuality,
+    val expiresAt: Instant,
 )
 ```
 
-**SPEC-ANCHOR**: `route-entry-model`
+Destination-owned identity, sequence, and key candidates arrive in a mandatory
+signed RouteStatement. `nextHop` is inferred locally from the authenticated
+adjacent sender. Routing models remain internal to the SDK.
+
+**SPEC-ANCHOR**: `route-candidate-model`
 
 ### 3.5 TransferSession {#transfer-session-model}
 
 ```kotlin
 data class TransferSession(
-    val sessionId: SessionId,
+    val id: TransferId,
     val destination: PeerIdentity,
     val priority: Priority,
     val state: TransferState,
     val chunkSize: Int,                 // Bounded by peer MTU, selected by PowerMode
     val totalChunks: UInt,
     val scoreboard: Scoreboard,
-    val totalBytes: Long,
-    val bytesReceived: Long,
+    val total: Long,
+    val bytes: Long,
     val startedAt: Instant,
     val expiresAt: Instant?,            // Deadline for WAITING_FOR_ROUTE
     val retryCount: Int,
@@ -242,12 +291,14 @@ data class TransferSession(
 
 | State | Terminal | Description |
 |-------|----------|-------------|
+| `AWAITING_DECISION` | No | Manifest validated; awaiting automatic capacity or host sink decision |
 | `IN_PROGRESS` | No | Actively transferring |
 | `WAITING_FOR_ROUTE` | No | Route lost, waiting for recovery |
-| `RETRYING` | No | Retransmitting missing chunks with backoff |
-| `COMPLETED` | **Yes** | All chunks received, scoreboard complete |
-| `FAILED` | **Yes** | Unrecoverable or trust-related failure |
-| `TIMED_OUT` | **Yes** | Retry budget/grace period exhausted |
+| `RETRYING` | No | Selectively retransmitting missing chunks under adaptive RTO |
+| `COMPLETED` | **Yes** | All chunks acknowledged and completion confirmed |
+| `CANCELLED` | **Yes** | Local or remote cancellation completed |
+| `FAILED` | **Yes** | Rejection, sink, protocol, trust, or unrecoverable failure |
+| `TIMED_OUT` | **Yes** | Origin timeToLive exhausted |
 
 ### 3.7 TransferFailureReason (Sealed) {#transfer-failure-reason-model}
 
@@ -258,40 +309,42 @@ sealed interface TransferFailureReason {
 }
 ```
 
-### 3.8 SessionId {#session-id-model}
+### 3.8 TransferId {#transfer-id-model}
+
+A transfer is identified by `(authenticated origin PeerIdentity, TransferId)`.
+The origin allocates values from a durably reserved, monotonically increasing
+32-bit counter. Zero is reserved as invalid.
 
 ```kotlin
-@JvmInline value class SessionId(private val value: ULong) {
-    companion object { fun fromHex(hex: String): SessionId }
-    override fun toString(): String  // Hex representation
+@JvmInline value class TransferId private constructor(private val value: UInt) {
+    override fun toString(): String  // Eight-character hex representation
 }
 ```
 
-**SPEC-ANCHOR**: `session-id-model`
+The identifier is correlation data, not an authorization token. Active state
+and completed-transfer tombstones use the complete origin-scoped tuple. Counter
+ranges are persisted before use so a crash can skip values but cannot reuse an
+allocated value under the same `PeerIdentity`.
 
-### 3.9 LinkMetric {#link-metric-model}
+**SPEC-ANCHOR**: `transfer-id-model`
 
-**Composite UInt32 metric:**
+**ADR**: docs/decisions/transfer/transfer-identifier.md
 
-| Bits | Field | Range | Description |
-|------|-------|-------|-------------|
-| 0-7 | `rssiNormalized` | 0-255 | RSSI normalized (0=unusable, 255=excellent) |
-| 8 | `supportsL2CAP` | 0/1 | L2CAP CoC supported |
-| 9 | `lowLatency` | 0/1 | Short connection interval |
-| 10 | `highPower` | 0/1 | High power mode |
-| 11-31 | Reserved | 0 | Future use |
-
-**RSSI Normalization:**
+### 3.9 LinkQuality {#link-quality-model}
 
 ```kotlin
-rssiNormalized = when {
-    rssi >= -30 -> 255
-    rssi <= -100 -> 0
-    else -> ((rssi + 100) * 255 / 70).toUInt()
-}
+internal class LinkQuality(
+    val smoothedRssi: Int,
+    val normalizedRssi: UByte,
+)
 ```
 
-**SPEC-ANCHOR**: `link-metric-model`
+`LinkQuality` is a higher-is-better local RSSI observation used after routeCost
+and hopCount during selection. L2CAP capability, health, and connection latency
+belong to transport state and never enter this routing model.
+RSSI normalization and the quadratic link-cost conversion are specified in §8.
+
+**SPEC-ANCHOR**: `link-quality-model`
 
 ### 3.10 IdentityKey / HandshakeKey {#identity-key-model} {#handshake-key-model}
 
@@ -318,23 +371,22 @@ rssiNormalized = when {
 |------|--------|-------|
 | `KeyType` | `ED25519`, `X25519` | Distinguishes key purposes |
 | `KeyRotationReason` | `PERIODIC`, `MANUAL`, `SECURITY_EVENT` | |
-| `HandshakePattern` | `XX`, `IK`, `IX`, `NX` | Noise patterns |
-| `ScoreboardEncoding` | `DYNAMIC`, `FIXED` | SACK bitfield strategy |
-| `Priority` | `HIGH` (10min TTL), `NORMAL` (5min), `LOW` (1min) | Affects routing TTL |
-| `FrameType` | `MESH_ENVELOPE(0)`, `ROUTE_UPDATE(1)`, `ROUTE_WITHDRAWAL(2)`, `ROUTE_DIGEST(3)`, `TRANSFER_CHUNK(4)`, `TRANSFER_ACKNOWLEDGMENT(5)`, `TRANSFER_CANCEL(6)`, `KEY_ROTATION(7)` | Wire frame types |
+| `HandshakePattern` | `XX`, `IK` | XX for unpinned contact; IK for trusted pinned reconnect |
+| `Priority` | `HIGH` (10min default timeToLive), `NORMAL` (5min), `LOW` (1min) | Affects delivery scheduling/time, never hop limit |
+| `FrameType` | `MESH_ENVELOPE(0x00)`; routing `0x01`–`0x06`; transfer `0x20`–`0x22`; key/epoch `0x40`–`0x42` | Explicit UByte codes; never enum ordinals |
 | `DecryptFailureReason` | `AUTHENTICATION_TAG_MISMATCH`, `REPLAY_DETECTED`, `SEQUENCE_NUMBER_MISMATCH`, `KEY_UNAVAILABLE`, `MALFORMED_FRAME` | |
-| `TransportFallbackReason` | `NO_PSM_ADVERTISED`, `L2CAP_CONNECT_FAILED`, `L2CAP_DROPPED_MID_TRANSFER`, `LOCAL_POLICY` | |
+| `TransportFallbackReason` | `L2CAP_UNAVAILABLE`, `L2CAP_CONNECT_FAILED`, `L2CAP_OPEN_TIMEOUT`, `L2CAP_STREAM_ERROR`, `L2CAP_STALLED`, `L2CAP_DROPPED_MID_TRANSFER`, `LOCAL_POLICY` | |
 | `DataPlaneBearer` | `GATT`, `L2CAP` | |
 | `RegulatoryRegion` | `DEFAULT`, `EU` | EU clamps adv≥300ms, scan≤70% |
 | `NoiseLayer` | `HOP_BY_HOP`, `END_TO_END` | |
-| `NoiseSessionState` | `DISCONNECTED`, `HANDSHAKING_XX`, `HANDSHAKING_IK`, `HANDSHAKING_IX`, `HANDSHAKING_NX`, `ESTABLISHED`, `REKEYING`, `FAILED` | |
+| `NoiseSessionState` | `DISCONNECTED`, `HANDSHAKING_XX`, `HANDSHAKING_IK`, `ESTABLISHED`, `RENEWING`, `FAILED` | |
 | `NoiseRole` | `INITIATOR`, `RESPONDER` | |
 | `NoiseFailureReason` | `HANDSHAKE_TIMEOUT`, `HANDSHAKE_MESSAGE_MALFORMED`, `HANDSHAKE_MESSAGE_OUT_OF_ORDER`, `REMOTE_STATIC_KEY_MISMATCH`, `REMOTE_STATIC_KEY_UNKNOWN`, `REKEY_REJECTED`, `TRANSPORT_CLOSED`, `MAX_RETRIES_EXCEEDED`, `INTERNAL_ERROR` | |
 | `PowerMode` | `HIGH`, `MEDIUM`, `LOW` | See §10 for parameters |
-| `VerificationLevel` | `FULL`, `TOFU_PIN`, `NX_VERIFIED`, `NONE` | Handshake verification achieved |
-| `TransferDeliveryOutcome` | `SUCCESS`, `IN_PROGRESS`, `RETRYING`, `ROUTE_WAITING`, `TIMEOUT`, `UNRECOVERABLE_FAILURE`, `TRUST_FAILURE` | Mapped from TransferState |
-| `PeerConnectionState` | `CONNECTED`, `DISCONNECTED` | Public API |
-| `PeerLifecycleState` (internal) | `CONNECTED`, `DISCONNECTED`, `GONE` | Internal runtime tracking |
+| `VerificationLevel` | `FULL`, `TOFU_PIN`, `NONE` | Handshake verification achieved |
+| `TransferDeliveryOutcome` | `SUCCESS`, `CANCELLED`, `TIMEOUT`, `REJECTED`, `UNRECOVERABLE_FAILURE`, `TRUST_FAILURE` | Terminal outcome; non-terminal progress is TransferState |
+| `PeerState` | `CONNECTED`, `DISCONNECTED` | Public API |
+| `PeerLifecycle` (internal) | `CONNECTED`, `DISCONNECTED`, `GONE` | Internal runtime tracking |
 | `TrustState` | `INITIATED`, `TRUSTED`, `REVOKED` | TOFU lifecycle |
 | `KeyRotationState` (internal) | `CURRENT`, `GRACE_PERIOD`, `REVOKED` | Per-peer key status |
 
@@ -346,19 +398,37 @@ rssiNormalized = when {
 
 ### 4.1 Advertisement Format
 
-Single BLE advertisement packet (non-connectable, undirected):
+MeshLink emits a **connectable, undirected legacy BLE advertisement** while it
+is available for peer connections. Connectability permits the subsequent GATT
+and L2CAP setup; it does not establish application trust.
+
+The packet advertises two service UUIDs:
+
+| Service UUID | Size | Description |
+|--------------|------|-------------|
+| Protocol marker | 32 bits | Private, unassigned `0x4D455348` (`"MESH"` in ASCII); known scan-filter value, not Bluetooth SIG-assigned |
+| Discovery metadata | 128 bits | Dynamic UUID whose 16 bytes contain the packed metadata below |
+
+The dynamic 128-bit UUID uses this network byte layout:
 
 | Field | Size | Description |
 |-------|------|-------------|
-| Fixed UUID | 4 bytes | `4d455348` ("MESH" in ASCII) |
 | Protocol version | 3 bits | Current protocol version |
-| Platform | 2 bits | `0=Android`, `1=iOS`, `2=Desktop`, `3=Reserved` |
-| Power mode | 3 bits | `0=HIGH`, `1=MEDIUM`, `2=LOW`, `3-7=Reserved` |
+| Platform | 3 bits | `0=Android`, `1=iOS`, `2=Desktop`, `3-7=Reserved` |
+| Power mode | 2 bits | `0=HIGH`, `1=MEDIUM`, `2=LOW`, `3=Reserved` |
 | Mesh hash | 16 bits | Application isolation filter (FNV-1a of appId) |
-| L2CAP PSM hint | 8 bits | Assigned PSM from 0x0080–0x00FF; `0` = CoC not supported |
-| PeerFingerprint | 12 bytes | SHA-256(Ed25519Pub \|\| X25519Pub) truncated to 96 bits; discovery hint only |
+| Capability flags | 8 bits | Bit 0 = L2CAP available; bits 1-7 reserved and zero |
+| Peer hint | 12 bytes | Random rotating `peerHint`; unauthenticated candidate-deduplication value with limited privacy guarantees |
 
-**Total**: ~31 bits + 4 bytes + 12 bytes ≈ 31 bytes (fits in BLE ad packet)
+The two UUID AD structures plus the normal flags consume approximately 27 of
+the 31 legacy-advertisement bytes. MeshLink does not add a local name or other
+optional advertisement fields.
+
+The dynamic UUID is a fast path. When a platform does not surface it — in
+particular under iOS background advertising restrictions — the fixed MeshLink
+GATT service exposes full PeerIdentity, version, key generation, 16-bit PSM, and a fresh nonce.
+peerHint remains advertisement-only. Advertisement and GATT metadata are
+untrusted until the security handshake authenticates identity and keys.
 
 ### 4.2 Mesh Hash Derivation {#mesh-hash}
 
@@ -367,23 +437,52 @@ Single BLE advertisement packet (non-connectable, undirected):
 meshHash = fnv1a_32(appId.toByteArray()) & 0xFFFF
 ```
 
-**Purpose**: Prevents cross-application discovery. Apps with different `appId` won't discover each other.
+**Purpose**: Reduces cross-application discovery. `meshHash` is only a
+16-bit radio filter; collisions are resolved by the 128-bit `appHash` security
+boundary.
 
-### 4.3 PeerFingerprint
+```text
+appHash = first128Bits(SHA-256("MeshLink app-id v1" || UTF8(appId)))
+```
 
-- **Not used for authentication** — only a discovery hint
-- Full public keys exchanged during Noise handshake
-- Truncated SHA-256 provides 96-bit collision resistance for passive correlation
+`appHash` is the 128-bit application-isolation value bound into security
+handshakes. `handshakeHash` is reserved for the Noise transcript hash `h`; the
+two names never refer to the same value.
+
+### 4.3 Peer Hint
+
+`peerHint` is a random 12-byte value generated by the platform CSPRNG. It is
+carried only in the dynamic advertisement UUID and is not persisted, sent
+through GATT, included in identity bindings, or used for authentication.
+
+A new hint is generated whenever advertising starts and at a uniformly random
+best-effort interval from 10 through 20 minutes. Suspended applications are not
+awakened solely for rotation; an overdue hint rotates before advertising resumes
+when the platform permits.
+
+The hint coalesces short-lived scan candidates and may tentatively map a changed
+`TransportHandle` to a known identity before mandatory IK. It never keys trust,
+routes, transfers, sessions, or public peer state. A copied hint can cause only
+bounded connection work.
+
+Android controller RPA rotation is independent and cannot be atomically coupled
+through portable app APIs. Consequently `peerHint` reduces installation-lifetime
+static identification but does not guarantee unlinkability against continuous
+passive observation.
 
 ### 4.4 Privacy Trade-offs
 
 | Aspect | Trade-off |
 |--------|-----------|
-| Stable PeerFingerprint | Passive observers can correlate repeated sightings more easily than rotating pseudonyms |
-| Protected | Full public keys not advertised; plaintext never in ads; hop/E2E session keys established post-discovery |
-| Isolation | Mesh hash derived from `appId` prevents cross-application discovery |
+| Rotating peer hint | Reduces stable application identifiers but independently rotated RPA/advertisement fields can still permit continuous correlation |
+| Protected | Full PeerIdentity and public keys are not advertised; trust is established only after GATT and Noise |
+| Isolation | `meshHash` filters discovery; 128-bit `appHash` enforces the security boundary |
 
-**ADR**: docs/decisions/discovery/mesh-hash-derivation.md
+**ADRs**:
+
+- docs/decisions/discovery/connectable-advertisement.md
+- docs/decisions/discovery/mesh-hash-derivation.md
+- docs/decisions/discovery/peer-hint-and-identity-races.md
 
 ---
 
@@ -391,109 +490,189 @@ meshHash = fnv1a_32(appId.toByteArray()) & 0xFFFF
 
 ### 5.1 Handshake Patterns
 
-| Layer | First Contact | Post-TOFU Reconnect | End-to-End |
-|-------|---------------|---------------------|------------|
-| Pattern | `Noise_XX` | `Noise_IK` | `Noise_IX` |
-| Protocol | `Noise_XX_25519_ChaChaPoly_SHA256` | `Noise_IK_25519_ChaChaPoly_SHA256` | `Noise_IX_25519_ChaChaPoly_SHA256` |
-| Auth | Mutual (both pins) | Mutual (both pinned) + 0-RTT | One-way (origin knows dest key) |
+| Layer | No Trusted Pin | Trusted Current Pin |
+|-------|----------------|---------------------|
+| Direct hop | `Noise_XX_25519_ChaChaPoly_SHA256` | `Noise_IK_25519_ChaChaPoly_SHA256` |
+| Routed E2E | Routed `Noise_XX_25519_ChaChaPoly_SHA256` | Routed `Noise_IK_25519_ChaChaPoly_SHA256` |
 
-### 5.2 Trust Flow
+No application early data is sent in IK. A pinned mismatch fails closed and
+never starts XX until explicit trust reset.
+
+### 5.2 First-Contact Identity Binding and Automatic TOFU
+
+Direct first contact uses `Noise_XX_25519_ChaChaPoly_SHA256`. Each peer carries
+a canonical, Ed25519-signed identity binding in its encrypted handshake payload:
 
 ```text
-Discovery → GATT connection → Noise_XX handshake → INITIATED
-                                                    ↓
-                                            TOFU pin (first success)
-                                                    ↓
-                                                    TRUSTED → TrustRecord stored
-```
-
-### 5.3 Identity Distribution via Route Updates
-
-- Each peer's public key included in `ROUTE_UPDATE` encrypted payload
-- Direct neighbor (Noise XX) learns neighbor's public key, includes in route updates
-- Route updates propagate hop-by-hop: each relay re-advertises destination's public key
-- Enables E2E IX handshake where origin knows destination's static key before connecting
-- NX fallback used only when destination key not in routing table
-
-### 5.4 NX Fallback (Unknown Destination Key)
-
-**Trigger**: Cold start discovery, key rotation lag, network partition
-
-**Protocol**: `Noise_NX_25519_ChaChaPoly_SHA256` with mitigations:
-
-| Mitigation | Parameter |
-|------------|-----------|
-| Rate limit | 3 attempts/minute per destination |
-| Timeout | 10s (vs 30s for IX) |
-| Full public key verification | 64-byte Ed25519 \|\| X25519 in payload |
-| Replay protection | 32-bit nonce in payload |
-| Observability | `handshake.fallback_used = true` diagnostic flag |
-
-**Payload Verification**: `received_ed25519 == expected_ed25519 AND received_x25519 == expected_x25519` (510 bits effective entropy)
-
-### 5.5 Key Rotation Protocol
-
-**Triggers**: Periodic timer (default 3 days), manual API, security event
-
-**Wire Format** (`KEY_ROTATION` frame, plaintext but signed):
-
-```flatbuffers
-KeyRotationAnnouncement {
-    identityKey: IdentityKey      // NEW Ed25519 public key (32 bytes)
-    handshakeKey: HandshakeKey    // NEW X25519 public key (32 bytes)
-    seqNo: UInt                   // Always 1 — new crypto era
-    signature: ByteArray          // 64-byte Ed25519 sig with OLD private key
-    reason: KeyRotationReason     // PERIODIC | MANUAL | SECURITY_EVENT
+IdentityBinding {
+    version
+    appHash
+    peerIdentity
+    ed25519PublicKey
+    x25519PublicKey
+    keyGeneration
 }
 ```
 
-**Neighbor Behavior**:
-
-1. Verify signature with OLD known key
-2. Accept new key into TrustStore
-3. SeqNo resets to 1
-4. Old key retained for grace period
-
-**Grace Periods**:
-
-| Rotation Type | Grace Period | Old Key |
-|---------------|--------------|---------|
-| PERIODIC/MANUAL | `rotationGracePeriod` (default 1h) | Accepted for in-flight sessions |
-| SECURITY_EVENT | `compromiseGracePeriod` (default 0) | Rejected immediately |
-
-**During Active Transfer**: Existing Noise sessions continue with current traffic keys. New sessions use rotated keys. Transfer layer is identity-key agnostic.
-
-### 5.6 E2E Handshake Routing Over Mesh {#trust-record}
-
-When destination not a direct neighbor:
+Acceptance requires a valid signature, equality between the bound X25519 key
+and Noise static key, compatible protocol version and appHash, and a valid key
+generation. `peerHint` is deliberately outside the trust binding. Trust is not mutated until the complete XX
+transcript yields `handshakeHash`.
 
 ```text
-Phase 1: Link Setup (Noise_XX)
+Discovery
+    → GATT connection
+    → Noise XX completes
+    → identity binding fully validates
+    → automatic TOFU pin
+    → TRUSTED record with immutable seenAt and latest verifiedAt
+```
+
+Automatic TOFU proves continuity after first contact; it does not claim
+out-of-band verification of the first real-world peer.
+
+**ADR**: docs/decisions/crypto/identity-binding-and-fail-closed.md
+
+### 5.3 Identity Distribution via Route Updates
+
+- Route updates may carry signed candidate identity bindings for discovery and planning.
+- Route-learned keys are candidates until the destination has a trusted pin.
+- An unpinned E2E first contact always uses routed XX.
+- Only an existing trusted, current destination pin permits routed IK.
+- A route candidate never changes trust state by itself.
+
+### 5.4 Key Rotation Protocol
+
+**Triggers**: Periodic timer (default 3 days), manual API, security event
+
+Each rotation creates a signed continuity proof carried inside hop-encrypted
+control traffic:
+
+```flatbuffers
+KeyRotationProof {
+    version: UByte
+    appHash: [ubyte]                    // 16 bytes
+    peerIdentity: [ubyte]               // unchanged 16 bytes
+    oldGeneration: UInt
+    newGeneration: UInt
+    newIdentityKey: [ubyte]             // Ed25519, 32 bytes
+    newHandshakeKey: [ubyte]            // X25519, 32 bytes
+    reason: KeyRotationReason
+    continuitySignature: [ubyte]        // old Ed25519 key, 64 bytes
+    possessionSignature: [ubyte]        // new Ed25519 key, 64 bytes
+}
+```
+
+Validation requires unchanged PeerIdentity/appHash, contiguous generation,
+valid old-key continuity and new-key possession signatures, and a different
+new key pair. Routing SeqNo remains independent and never resets.
+
+Proofs are retained for the installation lifetime. A peer that missed rotations
+performs rotation-recovery XX, receives the encrypted proof chain from its
+pinned generation to current, and updates trust only after every link validates.
+This XX mode is continuity recovery, never TOFU fallback. A missing, rolled-back,
+or forked chain fails closed.
+
+Local rotation persists the new binding, proof, generation, and grace material
+atomically before exposing the new generation. Planned rotation may let existing
+sessions drain for `rotationGracePeriod`; new sessions use the current binding.
+Security-event rotation rejects old keys and closes old-key sessions immediately.
+Transfers remain addressed by PeerIdentity and resume only after required session
+authentication succeeds.
+
+Applications continue using the same PeerIdentity and never manage keys,
+generations, or proof chains.
+
+**ADR**: docs/decisions/discovery/peer-hint-and-identity-races.md
+
+### 5.5 E2E Handshake Routing Over Mesh {#trust-record}
+
+When the destination is not a direct neighbor:
+
+```text
+Phase 1: Establish authenticated hop sessions along the route
 Origin --(GATT/L2CAP)--> Relay(s) --> Destination
 
-Phase 2: E2E Handshake Routing
-Origin wraps IX_Msg1 in RoutingFrame:
+Phase 2: Route E2E handshake messages
+Origin wraps the next XX or IK message in RoutingFrame:
   RoutingFrame {
     destination: destination.peerIdentity,
-    payload: IX_Msg1_encrypted,
+    payload: e2eHandshakeMessage,
     hopLimit: UByte
   }
 Relay(s) decrypt hop layer → re-encrypt → forward (no E2E inspection)
 
-Phase 3: Destination responds with IX_Msg2 wrapped for return path
+Phase 3: Destination returns the next handshake message over the mesh
 
-Phase 4: Origin now has E2E traffic keys
+Phase 4: Completed handshake yields fresh E2E traffic keys
 ```
 
-**Security**: Relays cannot read E2E content; only link-layer encryption per hop.
+**Security**: Relays cannot read E2E handshake or application content; they see
+only routing information required for forwarding.
+
+### 5.6 Trust Reset and Revocation
+
+`resetTrust(peerIdentity)` cancels active work, deletes the peer's current
+binding/rotation position, and permits a future first-contact XX/automatic TOFU
+flow. It never changes local identity or keys.
+
+`revokeTrust(peerIdentity)` cancels active work, persists `REVOKED`, rejects
+future XX/IK/rotation recovery after identity resolution, and does not delete the
+blocking record. An explicit reset is required to permit trust again.
+
+Neither command accepts or exposes key material.
 
 ### 5.7 Revocation
 
-- Explicit API action required to reset trust
+- Explicit reset/revoke API action is required
 - No silent re-trust on identity mismatch
-- Stored trust records persist until revoked
+- Revoked records persist until explicit reset
 
-**ADR**: docs/decisions/crypto/crypto-design.md
+### 5.7 Noise Session Renewal
+
+Every hop and E2E Noise session has a hard 24-hour lifetime. A fresh IK renewal
+is scheduled with monotonic per-session jitter:
+
+```text
+renewalAt = establishedAt + uniform random duration in [21h, 23h]
+expiresAt = establishedAt + 24h
+```
+
+The lower lexicographic `PeerIdentity` is the preferred initiator. The other
+peer takes over only at an independently jittered instant from 23h30m through
+23h50m when renewal has not completed. Equal full identities across two
+installations fail closed.
+
+Initiator retries use exponential backoff with full jitter and cannot cross hard
+expiry. Idle suspended applications are not awakened solely for renewal. On
+activity after expiry, old keys are discarded and fresh IK must complete before
+protected traffic resumes.
+
+Per-direction authenticated record counters also enforce:
+
+```text
+soft renewal threshold = 2^31 records
+hard record limit      = 2^32 records
+```
+
+Fresh IK creates a pending epoch. The preferred initiator then sends an
+authenticated `EpochCommit(newEpoch, finalOldOutboundCounter, handshakeHash)`
+under the pending keys. The responder validates it and returns
+`EpochAcknowledgement` with its own final old counter. The responder activates
+new outbound traffic after sending the acknowledgement; the initiator activates
+after receiving it.
+
+Control retries are idempotent but use fresh record counters and never reuse an
+AEAD nonce. Each side starts a 30-second old-epoch receive drain only when it
+locally activates the new epoch. Old records above the authenticated final
+counter are rejected. Pending new-epoch application records remain bounded and
+undelivered until activation. Missing transfer data is retransmitted under the
+new epoch through SACK. Traffic keys are never persisted.
+
+**ADRs**:
+
+- docs/decisions/crypto/crypto-design.md
+- docs/decisions/crypto/noise-session-renewal.md
 
 ---
 
@@ -508,24 +687,98 @@ Phase 4: Origin now has E2E traffic keys
 
 **Control plane MUST work over GATT alone** for reliability.
 
-### 6.2 Negotiation Sequence
+### 6.2 GATT Service and Negotiation
+
+The private unassigned `0x4D455348` service exposes:
+
+| Characteristic | UUID | Properties |
+|----------------|------|------------|
+| Metadata | `4D455348-0001-1000-8000-00805F9B34FB` | read |
+| Channel | `4D455348-0002-1000-8000-00805F9B34FB` | write, write-without-response, notify, indicate |
+
+The private component namespace reserves `0000` for the service, `0001` for
+metadata, `0002` for channel, and `0003`–`00FF` for future characteristics.
+Assigned component values are never reused.
+
+Control uses write-with-response/indication. GATT fallback data uses
+write-without-response/notification under MeshLink SACK. Noise cannot start
+until the channel subscription is confirmed.
+
+Negotiation sequence:
 
 1. GATT connection establishes
 2. `Noise_XX_25519_ChaChaPoly_SHA256` handshake completes (control plane)
-3. If both peers advertised PSM hint, attempt L2CAP CoC channel
+3. After Noise validates GATT metadata, attempt L2CAP when its 16-bit PSM is valid and non-zero; the advertisement capability bit is only a hint
 4. On CoC success, promote data-plane traffic to CoC
 5. On CoC failure, continue on GATT
 
-### 6.3 Fallback Reasons (Machine Observable)
+### 6.3 Bearer Framing
+
+GATT fragments are connection-local:
+
+```text
+GattFragment {
+    index: UShort
+    if index == 0: totalLength: UShort
+    payload: remaining bytes
+}
+```
+
+Index zero starts; completion occurs at exact totalLength. Continuations are
+strictly sequential. There are no flags or record IDs. Maximum frame size is
+65,535 bytes; unauthenticated connections are limited to 4 KiB. State is scoped
+by `(TransportHandle, ConnectionContext.generation)` and direction, so concurrent
+peers cannot collide.
+
+L2CAP uses `UShort frameLength` little-endian followed by exact frame bytes.
+Both bearers yield identical MeshLink Wire Codec frames.
+
+**ADR**: docs/decisions/transport/gatt-channel-and-framing.md
+
+### 6.4 Fallback Reasons (Machine Observable)
 
 | Reason | Description |
 |--------|-------------|
-| `NO_PSM_ADVERTISED` | Peer didn't advertise PSM in discovery |
+| `L2CAP_UNAVAILABLE` | Advertisement/GATT capability indicates no usable L2CAP channel |
 | `L2CAP_CONNECT_FAILED` | CoC connection failed |
+| `L2CAP_OPEN_TIMEOUT` | Channel did not open before deadline |
+| `L2CAP_STREAM_ERROR` | Stream read/write failed |
+| `L2CAP_STALLED` | Channel made no bounded forward progress |
 | `L2CAP_DROPPED_MID_TRANSFER` | CoC channel dropped during transfer |
 | `LOCAL_POLICY` | Local configuration disabled CoC |
 
-**ADR**: docs/decisions/transport/mtu-negotiation.md
+### 6.5 L2CAP Health and Circuit Breaking
+
+L2CAP capability is transport state, not routing LinkQuality. Open
+failure/timeout, EOF, stream error, stall, partial-frame timeout, or channel drop
+immediately moves new data assignment to GATT while preserving route, trust,
+E2E session, and transfer state. SACK retransmits missing chunks.
+
+Per-peer process-local backoff is 15–30 seconds, 1–2 minutes, then 5–10 minutes.
+A fourth failure disables L2CAP for the process lifetime. `failureCount` resets
+only after ten healthy minutes or one error-free transfer of at least 1 MiB.
+Health is not persisted.
+
+### 6.6 Background Operation
+
+`MeshLinkSettings.backgroundOperation` is immutable and defaults to false. When
+true, start validates platform-authorized background integration.
+
+Android host apps own the connected-device foreground service, notification,
+permission UX, and restart policy; MeshLink owns BLE state and PendingIntent
+helpers. iOS host apps own Bluetooth usage/background declarations and launch
+forwarding; MeshLink owns Core Bluetooth restoration identifiers and manager
+reconstruction.
+
+Background execution is best effort. Suspension may delay/coalesce callbacks;
+OS restoration rebuilds platform and persisted identity/trust only. Noise
+traffic keys, routes, active transfers, peerHint, and TransportHandle never
+survive process death. Force-stop/force-quit has no relaunch guarantee.
+
+**ADRs**:
+
+- docs/decisions/transport/mtu-negotiation.md
+- docs/decisions/transport/background-operation.md
 
 ---
 
@@ -542,19 +795,47 @@ Phase 4: Origin now has E2E traffic keys
 | HMAC-SHA256 | RFC 2104 | 174 (66 valid + 108 invalid) |
 | SHA-256 | RFC 6234 | Covered via other primitives |
 
-### 7.2 Fail-Closed Rules {#constant-time}
+### 7.2 Fail-Closed Rules {#fail-closed}
 
-- Malformed/untrusted input **never** surfaces private keys in logs
-- Invalid X25519 public keys fail before HKDF derivation
-- Decrypt/sign/verify failures stop operation immediately
-- No fallback to plaintext or cached secrets
-- All cryptographic field operations and comparisons **MUST** implement constant-time algorithms
+Fail closed is the project-wide default. Uncertainty cannot create authority,
+plaintext, or partially validated state.
 
-### 7.3 Android Crypto Constraints
+- Malformed or incompatible input is rejected before durable or protocol-state mutation.
+- Invalid X25519 public keys fail before HKDF derivation.
+- Signature, identity-binding, Noise, or AEAD failures terminate the affected operation.
+- Pinned identity or key mismatch never falls back to first-contact TOFU without explicit reset.
+- Replay rejection occurs without response amplification or state mutation.
+- No failure path retries as plaintext, reuses stale keys, silently downgrades security, or regenerates corrupted identity state.
+- Runtime configuration failure preserves the previous effective values.
+- A specified fallback is allowed only when it preserves required security properties, is bounded and observable, and has dedicated tests.
+- Failure is contained to the smallest safe frame, transfer, peer, or instance scope rather than crashing unrelated work.
+- Typed diagnostics and errors contain no private keys, shared secrets, session keys, KDF output, or payload plaintext.
 
-- API 26-32: Runtime checks for X25519/XDH and ChaCha20-Poly1305 availability
-- Pure-Kotlin fallback implementations for older devices
-- Ed25519 fallback with constant-time arithmetic
+**ADR**: docs/decisions/crypto/identity-binding-and-fail-closed.md
+
+### 7.3 Provider and Private-Key Boundaries
+
+Primitive selection is platform-first per primitive after once-per-process
+known-answer, negative, secure-random, and private-key persistence round-trip
+tests before advertising. Unsupported/failing primitives use the validated pure-Kotlin fallback;
+if neither validates, startup fails. Secure random is platform-mandatory and has
+no deterministic production fallback.
+
+Private keys remain opaque provider-owned handles. Android fallback/exportable
+keys are AES-256-GCM wrapped by an Android Keystore key in backup-excluded
+app-private atomic storage. iOS uses non-synchronizable
+`AfterFirstUnlockThisDeviceOnly` Keychain items. MeshLink remains inactive after
+reboot until first unlock.
+
+Self-test keys are ephemeral and never enter installation storage. Provider
+selection reruns after process/OS/provider changes and must fit the 500 ms cold-
+start budget.
+
+Private bytes never enter public APIs, strings, logs, exceptions, diagnostics,
+wire frames, crash reports, or test reports. Storage corruption fails closed and
+never silently regenerates keys under the same PeerIdentity.
+
+**ADR**: docs/decisions/crypto/private-key-handling.md
 
 ### 7.4 Constant-Time Policy {#constant-time}
 
@@ -582,17 +863,27 @@ All operations on secret data (private keys, shared secrets, session keys, KDF o
 
 ### 7.6 Error Hierarchy (Sealed) {#delivery-outcome}
 
-```kotlin
-sealed class MeshLinkError : Exception()
-sealed class SecurityError : MeshLinkError()
-sealed class TrustError : SecurityError()
-sealed class CryptoError : SecurityError()
-sealed class TransportError : MeshLinkError()
-sealed class RoutingError : MeshLinkError()
-sealed class TransferError : MeshLinkError()
+```text
+MeshLinkException
+├── ConfigurationException
+├── LifecycleException
+├── PermissionException
+├── BluetoothException
+├── StorageException
+├── CryptoException
+├── TrustException
+├── RoutingException
+└── TransferException
 ```
 
-All errors in `commonMain`. Platform exceptions wrapped, never leak to consumers.
+All public immediate command failures use typed `MeshLinkException` subtypes
+with explicit stable UShort `ErrorCode` values grouped by category: 0x01xx
+configuration, 0x02xx permission/lifecycle, 0x03xx Bluetooth/transport, 0x04xx
+storage, 0x05xx crypto/trust, 0x06xx routing, 0x07xx transfer, and 0x0Fxx
+internal. Codes never use enum ordinals or carry sensitive context. Platform exceptions are wrapped and
+never leak. Untrusted parsing uses sealed internal results; long-running payload
+failures use terminal status/outcome. `CancellationException` remains normal
+coroutine cancellation.
 
 **ADR**: docs/decisions/model/error-hierarchy.md
 
@@ -600,74 +891,152 @@ All errors in `commonMain`. Platform exceptions wrapped, never leak to consumers
 
 ## 8. Routing Layer
 
-### 8.1 Design Principles
+### 8.1 Model and Selection
 
-- **Babel-inspired** distance-vector with feasibility condition (RFC 8966)
-- **Destination self-reports SeqNo** — originated only on cold start, not on reconnect
-- **No Hello/IHU** — BLE connection state provides liveness (RFC 8966 §3.4)
-- **RouteDigest triggers full table push** on mismatch
-- **Always-encrypted metadata** — no plaintext routing frames
-- **Composite link metric** — RSSI + capability flags
+MeshLink uses a Babel-inspired distance-vector protocol over authenticated BLE
+neighbors. Route state separates lower-is-better additive `routeCost`,
+independent `hopCount`, higher-is-better local `linkQuality`, and local
+`nextHop`.
 
-### 8.2 SeqNo Ownership (Critical Fix)
+Selection uses feasible candidates, lowest routeCost, lowest hopCount, highest
+local linkQuality, then lowest lexicographic nextHop.
 
-**Bug Fixed**: `RouteCoordinator.onPeerConnected` previously minted fresh seqno on every BLE reconnect, causing different direct neighbors to have unrelated seqno sequences.
+### 8.2 Link and Path Cost
 
-**Solution**: Each node owns **one** local seqno counter (32-bit unsigned), incremented **only on cold start** (`MeshLink.start()`). On new direct connection, each side sends one self-origin `RouteUpdate`:
+RSSI normalizes from 0 at -100 dBm through 255 at -30 dBm. Shared code computes:
 
-- `destination = <own peerId>`
-- `nextHop = <own peerId>` (null = self-origin)
-- `metric = DIRECT_ROUTE_METRIC`
-- `seqNo = <own current counter>`
+```text
+qualityLoss    = 255 - normalizedRssi
+qualityPenalty = ceil(qualityLoss² / 255)
+linkCost       = 64 + qualityPenalty
+routeCost      = saturating sum of linkCost values
+```
 
-Receiving side adopts reported seqNo as authoritative. No new wire frame type needed.
+Link cost ranges from 64 through 319; `UInt.MAX_VALUE` means infinity. Strong
+multi-hop paths may beat weak direct paths.
 
-### 8.3 Hello/IHU Removal
+### 8.3 Smoothing and Hysteresis
 
-Removed `WireFrame.Hello`, `WireFrame.Ihu`, their type codes, and no-op dispatch branches. BLE connect/disconnect provides immediate liveness. Route metric stays flat `+1` hop count.
+RSSI uses `smoothed = (3 × previous + sample) / 4`. Cost updates advertise only
+after at least 3 dB smoothed change. A candidate must remain best for two
+observations spanning one second and improve by
+`max(16, currentRouteCost / 10)`. Loss, withdrawal, expiry, infeasibility,
+hop-limit violation, or trust failure switches immediately.
 
-### 8.4 RouteDigest Resync
+### 8.4 Feasibility and Sequence Ownership
 
-On receiving `RouteDigest` that doesn't match local table, receiver re-sends full current route table to that peer via `RouteAdvertisementPlanner`. Mirrors RFC 8966 wildcard route request → full table dump. No new frame type, no request/response round trip.
+Feasible distance is `(sequenceNumber, routeCost)`. A candidate is feasible when
+its sequence is newer, or equal with lower cost.
 
-### 8.5 Routing Metadata Privacy
+Each destination owns and persists its 32-bit sequence. It increments before
+advertising on cold start, valid sequence advancement, or internal route reset. It
+does not change for reconnect, peerHint/TransportHandle/RPA change, RSSI update,
+refresh, Noise renewal, key rotation, or bearer migration.
 
-**ROUTE_UPDATE (0x01)** and **ROUTE_WITHDRAWAL (0x02)** always carry AEAD-encrypted payloads. **No plaintext mode, no negotiation, no fallback.**
+`SeqNo` is internal and not Comparable. It exposes explicit modular operations,
+including `distanceFrom`; an exact half-range difference is ambiguous.
 
-**Encryption**:
+### 8.5 Feasibility-Starvation Recovery
 
-- Algorithm: ChaCha20-Poly1305 (Noise session AEAD)
-- Nonce: Derived from Noise session internal counter (not transmitted)
-- Ciphertext: `encrypted_payload || 16-byte Poly1305 tag`
-- AAD: Frame type + version
+```text
+RouteSequenceAdvancement {
+    requester
+    destination
+    sequenceNumber
+    requestId
+    hopLimit
+}
+```
 
-**Fail-Closed**: Decrypt/auth failures drop frame immediately. No retry with different mode.
+Send immediately through the best known authenticated next hop. After 500 ms
+without a sufficiently new route, fan out to other authenticated neighbors.
+Relays deduplicate `(requester, requestId)`, exclude the incoming neighbor, and
+enforce hopLimit. One request per destination is active; attempts expire after
+three seconds, dedup state after 30 seconds, and each peer may trigger at most
+three destination advancements per minute. Failed attempts retry with
+exponential backoff and full jitter.
 
-**Diagnostics**: `route.decrypt_failures` count, `route.frame_type` (UPDATE/WITHDRAWAL)
+### 8.6 Signed Statements and Advertisements
 
-### 8.6 Link Quality Metric
+```text
+RouteStatement {
+    version
+    appHash
+    destination
+    sequenceNumber
+    identityBinding
+    signature
+}
 
-**Composite UInt32**: Low byte = RSSI normalized (0-255), High bits = flags (CoC, latency, power).
+RouteAdvertisement {
+    statement
+    routeCost
+    hopCount
+}
+```
 
-Path selection prefers: 1) Feasible routes only, 2) Lower hop count, 3) Higher metric score.
+Destination signatures are mandatory. Relays may update routeCost and hopCount
+under hop authentication. `nextHop` remains local and is inferred from the
+authenticated adjacent sender. An authenticated malicious relay can still lie
+about mutable path fields; Byzantine path proofs are outside v0.1.
 
-### 8.7 Route Update Triggers {#ttl-by-priority}
+### 8.7 Encrypted Routing Control
 
-| Trigger | Condition | Frame | Jitter | Immediate |
-|---------|-----------|-------|--------|-----------|
-| `DIRECT_LINK_UP` | New GATT/L2CAP connection | RouteUpdate (self-origin) | No | Yes |
-| `METRIC_CHANGE` | `\|newRssi - oldRssi\| > threshold` (default 3 dB) | RouteUpdate | Yes (0-500ms) | No |
-| `PERIODIC_FULL_SYNC` | Every `fullTableSyncInterval` (default 5 min) | RouteUpdate (all routes) | Yes | No |
-| `ROUTE_EXPIRY` | Entry not refreshed before `routeEntryExpiry` (default 15 min) | RouteWithdrawal | No | Yes |
-| `DIGEST_MISMATCH` | Received RouteDigest differs | RouteUpdate (full table) | No | Yes |
+Advertisements, withdrawals, digests, sequence advancements, synchronization, and
+snapshots are all hop-encrypted/authenticated after adjacent Noise succeeds.
+Authentication failure drops a frame before routing parsing. No plaintext retry
+or downgrade exists.
 
-**Minimum interval enforcement**: No more than one update to same peer within `routeUpdateMinInterval` (default 1s).
+### 8.8 Per-Neighbor Split Horizon and Synchronization
 
-### 8.8 Loop Detection
+Each RouteExport excludes candidates whose nextHop is that export neighbor. A
+self-origin route is always exported; an alternate route through another
+neighbor may be exported. If a previously exported route becomes reachable only
+through the recipient, send immediate RouteWithdrawal. Explicit withdrawal
+replaces poison reverse.
 
-- `RouteEntry.source` tracks peer from whom route was learned
-- Feasibility condition (RFC 8966 §3.7): route feasible only if `metric < best_known_metric` for that destination
-- TTL by priority: HIGH=10min, NORMAL=5min, LOW=1min
+```text
+RouteExport[neighbor] // canonical routes last advertised to neighbor
+RouteImport[neighbor] // canonical wire routes last accepted from neighbor
+
+RouteDigest           // summary of RouteExport
+RouteSynchronization  // receiver requests synchronization
+RouteSnapshot         // sender returns complete RouteExport
+```
+
+A digest compares with `RouteImport[sender]`, never the receiver's full table.
+On mismatch, the receiver sends RouteSynchronization; the sender returns RouteSnapshot; the
+receiver validates and atomically replaces only that sender's import. Digest
+input sorts by destination and includes RouteStatement, routeCost, and hopCount,
+excluding nextHop, local linkQuality, timers, and feasibility state.
+
+RouteDigest is the first 64 bits of SHA-256 over canonical field encoding, never
+raw implementation-buffer layout. RouteDigest, RouteSynchronization, and RouteSnapshot carry a
+per-adjacency UInt revision that starts at zero for a fresh hop Noise session and
+increments whenever RouteExport changes. Stale revisions are rejected.
+
+### 8.9 Route Update Triggers {#ttl-by-priority}
+
+| Trigger | Behavior |
+|---------|----------|
+| Authenticated direct link up | Immediate self-origin statement/advertisement |
+| Smoothed RSSI threshold | Jittered differential advertisement |
+| Periodic refresh | Bounded jitter |
+| Expiry/withdrawal/trust failure | Immediate |
+| Digest mismatch | Immediate RouteSynchronization |
+| Successful sequence advancement | Immediate destination advertisement |
+
+Ordinary updates coalesce under the internal one-second cooldown. Withdrawal,
+trust invalidation, sequence recovery, and requested synchronization do not wait.
+
+### 8.10 Time-to-Live and Hop Limit
+
+`TransferOptions.timeToLive` is elapsed delivery lifetime; priority defaults are
+10, 5, and 1 minutes. `maximumHopCount = 16` is an independent fixed protocol
+bound for every priority. Envelopes start at 16, relays decrement before
+forwarding, and zero is dropped. RouteAdvertisement rejects hopCount at or above
+16; RouteSequenceAdvancement uses the same bound. Neither value is publicly
+configurable as the other.
 
 **ADR**: docs/decisions/routing/routing-design.md
 
@@ -675,58 +1044,84 @@ Path selection prefers: 1) Feasible routes only, 2) Lower hop count, 3) Higher m
 
 ## 9. Transfer Layer
 
-### 9.1 Chunked Transfer with SACK
+### 9.1 Manifest and Acceptance
 
-- **Chunk size**: Selected by local `PowerMode` at session start, bounded by peer's advertised MTU
-- **SACK bitfield**: Dynamic length = `ceil(totalChunks / 8)` bytes. Bit N = 1 means chunk N received
-- **Cut-through relay**: Relays forward chunks before full reassembly (reduces latency)
+Every finite payload starts with an E2E-encrypted PayloadManifest carrying kind
+(MESSAGE/TRANSFER), source-owned ID, origin/destination, priority,
+timeToLive, totalLength, chunkSize, and chunkCount.
 
-### 9.2 Transfer Session Lifecycle
+Messages up to 64 KiB auto-accept under a 2 MiB global incomplete-message budget.
+Large transfers require a host TransferSink. At most two offers per peer and
+eight globally wait up to 30 seconds in AWAITING_DECISION. No chunks transmit
+before PayloadDecision ACCEPTED.
+
+### 9.2 Lifecycle and Lifetime
 
 ```text
+AWAITING_DECISION
+    ├── accepted → IN_PROGRESS
+    ├── rejected/timeout → FAILED
+    └── cancelled → CANCELLED
+
 IN_PROGRESS
-    ├── all chunks received → COMPLETED
+    ├── all chunks acknowledged → COMPLETED
     ├── route lost → WAITING_FOR_ROUTE
-    ├── chunk missing → RETRYING
-    ├── error/cancel/trust failure → FAILED
-    └── retry budget exhausted → TIMED_OUT
+    ├── missing chunks → RETRYING
+    ├── error/trust failure → FAILED
+    └── cancelled → CANCELLED
 
-WAITING_FOR_ROUTE
-    ├── route found → IN_PROGRESS
-    └── grace period exhausted → TIMED_OUT
-
-RETRYING
-    ├── retransmission complete → IN_PROGRESS
-    └── retry budget exhausted → FAILED
+WAITING_FOR_ROUTE / RETRYING
+    ├── recovered → IN_PROGRESS
+    ├── timeToLive exhausted → TIMED_OUT
+    └── cancelled → CANCELLED
 ```
 
-### 9.3 Retry Policy
+Origin owns a monotonic lifetime; manifest duration is UInt milliseconds and no
+wall-clock timestamp is trusted. Relays forward cut-through with bounded queues
+and own no persistent payload/retry state.
 
-| Parameter | Default | Per PowerMode |
-|-----------|---------|---------------|
-| Max retries | 5 | HIGH=10, MEDIUM=5, LOW=3 |
-| Retry budget | 30s | HIGH=60s, MEDIUM=30s, LOW=15s |
-| Backoff | Exponential + jitter | 1s, 2s, 4s... |
+### 9.3 Chunks and Selective Acknowledgement
 
-### 9.4 TransferDeliveryOutcome Mapping
+PayloadChunk contains only kind, id, index, and payload. Offset, length, and
+finality derive from the manifest.
 
-| TransferState | FailureReason | Outcome |
-|---------------|---------------|---------|
-| COMPLETED | — | `success` |
-| IN_PROGRESS | — | `in-progress` |
-| RETRYING | — | `retrying` |
-| WAITING_FOR_ROUTE | — | `route-waiting` |
-| TIMED_OUT | — | `timeout` |
-| FAILED | Unrecoverable | `unrecoverable-failure` |
-| FAILED | TrustFailure | `trust-failure` |
+PayloadAcknowledgment contains kind, id, `start`, and a fixed 32-byte bitmap.
+All indices below start are cumulative; bit n acknowledges start+n. Sender keeps
+at most 256 chunks in flight and rereads missing data through TransferSource.
+
+ACK emits after 32 chunks; after 100/250/500 ms in HIGH/MEDIUM/LOW; or
+immediately for gap, full window, final chunk, or retransmission probe.
+
+### 9.4 Retransmission Timeout
+
+RTO is retransmission timeout: the wait without adequate acknowledgement before
+selective retransmission. Initial RTO is
+`clamp(1s + hopCount×250ms + powerAckDelay, 1s, 10s)`. Valid non-retransmitted
+samples update smoothed RTT and variation; RTO becomes
+`smoothedRtt + max(4×rttVariation, 250ms)`, clamped 1–30 seconds. Karn's rule
+excludes retransmitted samples. Unsuccessful timeout doubles RTO up to 30
+seconds. Route/bearer change resets the relevant estimator. RTO never extends
+remaining timeToLive.
 
 ### 9.5 Wire Frames
 
-| Frame | Type | Encryption | Key Fields |
-|-------|------|------------|------------|
-| `TRANSFER_CHUNK` | 4 | Link-layer AEAD | sessionId, chunkIndex, offset, length, payload, isLast |
-| `TRANSFER_ACKNOWLEDGMENT` | 5 | Link-layer AEAD | sessionId, bitfield (dynamic) |
-| `TRANSFER_CANCEL` | 6 | Link-layer AEAD | sessionId, reason |
+| Frame | Code | Purpose |
+|-------|------|---------|
+| `PAYLOAD_MANIFEST` | `0x20` | Offer and immutable chunk/lifetime contract |
+| `PAYLOAD_DECISION` | `0x21` | Accepted or typed rejection |
+| `PAYLOAD_CHUNK` | `0x22` | Minimal indexed payload bytes |
+| `PAYLOAD_ACKNOWLEDGMENT` | `0x23` | 256-chunk sliding SACK window |
+| `PAYLOAD_CANCELLATION` | `0x24` | Idempotent message/transfer cancellation |
+
+Every frame repeats kind; identity is `(origin, kind, id)`. All are E2E Noise
+records inside hop-encrypted MESH_ENVELOPE.
+
+Receiver delivery is at most once per identity. Sender SUCCESS requires full
+acknowledgement; TIMEOUT means confirmation is unknown, not proof of
+non-delivery. Large totalLength is allowed through checked Long/UInt/UShort
+representation and host sink policy; SDK memory remains window-bounded.
+
+**ADR**: docs/decisions/transfer/payload-transfer-protocol.md
 
 **SPEC-ANCHOR**: `transfer-session-model`, `scoreboard-model`
 
@@ -740,14 +1135,26 @@ RETRYING
 |-----------|------|--------|-----|
 | Scan duty cycle | 20% | 10% | 5% |
 | Advertisement interval | 100 ms | 500 ms | 1000 ms |
-| Connection interval | 7.5 ms | 15 ms | 30 ms |
+| Active connection interval | 7.5–15 ms | 15–30 ms | 30–60 ms |
 | Max concurrent connections | 8 | 4 | 2 |
 | Chunk size | 512 B | 256 B | 128 B |
 | Max retries | 10 | 5 | 3 |
 | Retry budget | 60 s | 30 s | 15 s |
 | Grace period (disconnect→GONE) | 15 s | 30 s | 45 s |
 
-### 10.2 EU Regulatory Clamping
+### 10.2 Active and Idle Connections
+
+Handshakes, urgent control, acknowledgements, and transfer data request the
+mode's active interval. After five seconds with no queued work, every mode
+requests a 500–1000 ms idle interval. New work immediately requests active
+latency again. Platform clamping/negotiation may delay or alter requests;
+effective values are observable.
+
+The constitutional 5% scan-duty battery target applies to LOW/background idle
+benchmarks. HIGH and MEDIUM intentionally trade battery for discovery and
+throughput.
+
+### 10.3 EU Regulatory Clamping
 
 When `regulatoryRegion = RegulatoryRegion.EU`:
 
@@ -756,13 +1163,13 @@ When `regulatoryRegion = RegulatoryRegion.EU`:
 
 Applied at runtime, observable in diagnostics.
 
-### 10.3 Grace Periods
+### 10.4 Grace Periods
 
-Per-mode grace period controls `PeerLifecycleState` transition `DISCONNECTED → GONE`. During grace period:
+Per-mode grace period controls `PeerLifecycle` transition `DISCONNECTED → GONE`. During grace period:
 
 - Routes can degrade before full retraction
 - Transfers can pause instead of being abandoned
-- Host app sees `PeerEvent.StateChanged(..., DISCONNECTED)`
+- Host app observes disconnected presence in the `knownPeers` snapshot
 
 **ADR**: docs/decisions/power/power-mode-behavior.md
 
@@ -772,15 +1179,24 @@ Per-mode grace period controls `PeerLifecycleState` transition `DISCONNECTED →
 
 ## 11. Diagnostics & Events
 
-### 11.1 Peer Events (Public) {#diagnostic-event}
+### 11.1 Public Observation {#diagnostic-event}
 
 ```kotlin
-sealed interface PeerEvent {
-    data class Found(val peerId: PeerIdentity, val state: PeerConnectionState) : PeerEvent
-    data class StateChanged(val peerId: PeerIdentity, val state: PeerConnectionState) : PeerEvent
-    data class Lost(val peerId: PeerIdentity) : PeerEvent
-}
+val knownPeers: StateFlow<List<KnownPeer>>
+val transfers: StateFlow<List<Transfer>>
+val messages: Flow<Message>
+val diagnostics: Flow<DiagnosticEvent>
 ```
+
+`knownPeers` includes canonical identities across unverified, verifying,
+trusted, mismatched, and revoked trust states. Advertisement-only
+candidates are not canonical peers. `seenAt` is the immutable instant the full
+identity was first learned; `verifiedAt` is the nullable instant of the latest
+successful verification.
+
+Messages are complete, authenticated incoming `Message` values. Transfers are
+current pending or active message/finite-transfer operations. Diagnostics are
+bounded events rather than retained history.
 
 ### 11.2 Peer Lifecycle (Internal)
 
@@ -793,12 +1209,29 @@ CONNECTED (active BLE link)
 
 Grace period: HIGH=15s, MEDIUM=30s, LOW=45s.
 
-### 11.3 Diagnostic Event Hierarchy
+### 11.3 Diagnostic Event Metadata
+
+Every diagnostic event carries explicit stable metadata:
+
+```kotlin
+val code: DiagnosticCode
+val severity: DiagnosticSeverity
+val occurredAt: Instant
+```
+
+`occurredAt` names the event instant. Diagnostic codes use explicit ranges:
+0x01xx lifecycle/configuration, 0x02xx discovery/peer, 0x03xx transport/BLE,
+0x04xx crypto/trust, 0x05xx routing, 0x06xx transfer, 0x07xx storage, and
+0x0Fxx internal. Events may include redacted PeerIdentity, MessageId/TransferId,
+frame code, provider label, and error code, but never raw handles, addresses,
+keys, ciphertext, payloads, or platform exception text.
+
+### 11.4 Diagnostic Event Hierarchy
 
 ```kotlin
 sealed interface DiagnosticEvent {
     data class NoiseSessionTransition(...) : DiagnosticEvent
-    data class RouteUpdateReceived(...) : DiagnosticEvent
+    data class RouteAdvertisementReceived(...) : DiagnosticEvent
     data class RouteDigestMismatch(...) : DiagnosticEvent
     data class TransferProgress(...) : DiagnosticEvent
     data class TransferCompleted(...) : DiagnosticEvent
@@ -813,15 +1246,22 @@ sealed interface DiagnosticEvent {
 }
 ```
 
-### 11.4 Severity Levels
+### 11.5 Severity Levels
 
-`DEBUG`, `INFO`, `WARN`, `ERROR` — mapped to platform logging (Logcat, OSLog).
+`DEBUG`, `INFO`, `WARN`, `ERROR` are fixed by event consequence and mapped to
+platform logging (Logcat, unified logging) without allowing configuration to
+downgrade security/error events. Routine events may be coalesced; security
+failures retain counters. ERROR does not imply process termination.
 
-### 11.5 Callback Threading
+### 11.6 Diagnostic Flow Delivery
 
-All diagnostic callbacks dispatched on coroutine dispatcher (configurable via `DiagnosticsSettings`). Not on BLE callback threads.
+An internal bounded channel serializes diagnostic producers. Applications
+collect the public flow in their own coroutine context; MeshLink never invokes
+application callbacks from BLE or protocol threads. Buffer saturation preserves
+security/error events ahead of lower-severity events and emits a summarized
+overflow event.
 
-**ADR**: docs/decisions/diagnostics/callback-threading.md
+**ADR**: docs/decisions/diagnostics/flow-delivery.md
 
 **SPEC-ANCHOR**: `diagnostic-event`
 
@@ -836,7 +1276,7 @@ All diagnostic callbacks dispatched on coroutine dispatcher (configurable via `D
 | Throughput (1-hop L2CAP) | ≥80 KB/s (Android Pixel 6+), ≥60 KB/s (iOS iPhone 12+) | `meshlink-benchmark` |
 | Latency (1-hop, 256B, p95) | <50 ms after connection established | `meshlink-benchmark` |
 | Memory (steady state, 8 peers) | ≤8 MB heap | `meshlink-benchmark` |
-| Battery | ≤5% scan duty cycle, ≥500 ms connection interval | Derived from PowerMode |
+| Battery (LOW/background idle) | Target ≤5% scan duty; request 500–1000 ms idle interval after 5 s without queued work | Effective power settings |
 | Cold start | <500 ms from `mesh.start()` to first advertisement | `meshlink-benchmark` |
 | Routing convergence | ≤3 s for 10-node topology change (virtual transport) | `meshlink-benchmark` |
 | Wire codec encode/decode | <1 μs/message (JVM benchmark) | `kotlinx-benchmark` |
@@ -890,10 +1330,10 @@ Only `kotlinx-coroutines-core` in shipped `:meshlink` artifact. `kotlinx-datetim
 | Layer | Criteria |
 |-------|----------|
 | Data Model / Trust | Wire vectors, malformed input rejection |
-| Discovery / Advertisement | Single-packet format, PeerFingerprint matching |
-| Security Contract | Wycheproof vectors, fail-closed on all edge cases |
+| Discovery / Advertisement | Two-service-UUID format, peerHint rotation/deduplication, RPA races, GATT identity resolution |
+| Security Contract | Wycheproof vectors, signed identity binding, appHash isolation, fail-closed on all edge cases |
 | Routing Control | Convergence under virtual harness, seqno correctness |
-| Chunked Transfer | Dynamic bitfield SACK semantics, cut-through relay, retry bounds |
+| Chunked Transfer | Fixed 256-chunk sliding SACK, cut-through relay, adaptive RTO, and retry bounds |
 | Power Policy | Mode-to-parameter mapping, EU clamping observable |
 | Public API | Identical Android/iOS surface, lifecycle events |
 
@@ -906,9 +1346,10 @@ Only `kotlinx-coroutines-core` in shipped `:meshlink` artifact. `kotlinx-datetim
 ```kotlin
 // Entry point: ch.trancee.meshlink.meshLinkSettings
 val settings = meshLinkSettings {
-    appId = "com.example.myapp"
+    appId = "com.example.myapp" // stable normalized UTF-8 application/profile ID; max 255 bytes
     powerMode = PowerMode.HIGH
     regulatoryRegion = RegulatoryRegion.EU
+    backgroundOperation = true
     
     keyRotation {
         interval = Duration.days(1)
@@ -919,32 +1360,20 @@ val settings = meshLinkSettings {
     transfer {
         maxRetries = 3
         chunkSize = 512
-        maxConcurrentSessionsPerPeer = 2
+        maxTransfersPerPeer = 2
     }
     
     routing {
-        routeUpdateMinInterval = Duration.seconds(1)
-        routeUpdateMaxInterval = Duration.seconds(30)
-        routeUpdateChangeThreshold = 3
-        fullTableSyncInterval = Duration.minutes(5)
-        routeEntryExpiry = Duration.minutes(15)
-        feasibilityConditionEnabled = true
-        maxRouteEntries = 256
-    }
-    
-    security {
-        fallbackMaxAttemptsPerMinute = 3
-        fallbackTimeout = Duration.seconds(10)
-        requireSignatureOnRouteUpdates = true
-        defaultHandshakePattern = HandshakePattern.IX
+        routeAdvertisementChangeThreshold = 3
+        routeDigestInterval = Duration.minutes(5)
+        routeExpiry = Duration.minutes(15)
+        maxRoutes = 256
     }
     
     diagnostics {
         eventBufferSize = 1000
+        emitToLog = true
     }
-    
-    emitToLog = true
-    eventCallback = { event -> println(event) }
 }
 ```
 
@@ -952,16 +1381,15 @@ val settings = meshLinkSettings {
 
 ```kotlin
 data class MeshLinkSettings(
+    // Required, non-empty normalized UTF-8; max 255 bytes and stable across updates.
     val appId: String,
     val powerMode: PowerMode,
     val regulatoryRegion: RegulatoryRegion,
+    val backgroundOperation: Boolean,
     val keyRotation: KeyRotationSettings,
     val transfer: TransferSettings,
     val routing: RoutingSettings,
-    val security: SecuritySettings,
-    val diagnostics: DiagnosticsSettings,
-    val emitToLog: Boolean,
-    val eventCallback: ((DiagnosticEvent) -> Unit)?
+    val diagnostics: DiagnosticsSettings
 )
 
 data class KeyRotationSettings(
@@ -973,30 +1401,19 @@ data class KeyRotationSettings(
 data class TransferSettings(
     val maxRetries: Int = 5,
     val chunkSize: Int = 256,
-    val maxConcurrentSessionsPerPeer: Int = 3,
-    val scoreboardEncoding: ScoreboardEncoding = ScoreboardEncoding.DYNAMIC,
-    val maxChunksPerSession: UInt = 1024u
+    val maxTransfersPerPeer: Int = 3
 )
 
 data class RoutingSettings(
-    val routeUpdateMinInterval: Duration = Duration.seconds(1),
-    val routeUpdateMaxInterval: Duration = Duration.seconds(30),
-    val routeUpdateChangeThreshold: Int = 3,
-    val fullTableSyncInterval: Duration = Duration.minutes(5),
-    val routeEntryExpiry: Duration = Duration.minutes(15),
-    val feasibilityConditionEnabled: Boolean = true,
-    val maxRouteEntries: Int = 256
-)
-
-data class SecuritySettings(
-    val fallbackMaxAttemptsPerMinute: Int = 3,
-    val fallbackTimeout: Duration = Duration.seconds(10),
-    val requireSignatureOnRouteUpdates: Boolean = true,
-    val defaultHandshakePattern: HandshakePattern = HandshakePattern.IX
+    val routeAdvertisementChangeThreshold: Int = 3,
+    val routeDigestInterval: Duration = Duration.minutes(5),
+    val routeExpiry: Duration = Duration.minutes(15),
+    val maxRoutes: Int = 256
 )
 
 data class DiagnosticsSettings(
-    val eventBufferSize: Int = 1000
+    val eventBufferSize: Int = 1000,
+    val emitToLog: Boolean = false
 )
 ```
 
@@ -1005,7 +1422,10 @@ data class DiagnosticsSettings(
 - **Lambda DSL** (`meshLinkSettings { }`) is primary API — Kotlin idiom, readable, type-safe
 - **Imperative builder** retained for programmatic construction (e.g., from settings file)
 - Both paths produce identical `MeshLinkSettings` instances
-- `MeshLinkSettings` is the **source of truth** for defaults — `specs/settings.yaml` is generated from it
+- Settings remain immutable for an instance except for runtime power-mode changes through `MeshLink.setPowerMode`
+- `PowerMode.settings` contains nominal values; `MeshLink.effectivePowerSettings` exposes values after regulatory and platform clamping
+- Diagnostics are collected from `MeshLink.diagnostics`; no callback is configured in settings
+- `MeshLinkSettings` is the **source of truth** for defaults — `specs/catalogs/settings.yaml` is checked against it. Static settings validation occurs at construction; runtime prerequisites are checked by `start()`.
 
 **SPEC-ANCHOR**: `setting-model`
 
@@ -1021,39 +1441,36 @@ data class DiagnosticsSettings(
 
 **ADR**: docs/decisions/crypto/pq-hybrid-candidate-matrix.md
 
-### 15.2 Noise IK for E2E Layer
-
-Replace IX with IK when both peers hold pinned keys for mutual 0-RTT E2E.
-
-### 15.3 Throughput-Based Link Metrics
+### 15.2 Throughput-Based Link Metrics
 
 Replace RSSI proxy with measured throughput for routing decisions.
 
-### 15.4 Payload Compression
+### 15.3 Payload Compression
 
 Optional zlib/Brotli/Zstd for large payloads.
 
-### 15.5 Group Messaging
+### 15.4 Group Messaging
 
 MLS (RFC 9420) integration for multi-recipient E2E encryption.
 
 ---
 
-## Machine-Readable Specs (Generated)
+## Machine-Readable Specification Layout
 
-The following files in `specs/` are **generated from source code and this SPEC.md** — do not edit manually:
+| Path | Ownership | Purpose |
+|------|-----------|---------|
+| `specs/codecs/frames.yaml` | Authored normative | Exact MeshLink frame codes, fields, widths, bounds, protection, and evolution |
+| `specs/codecs/enums.yaml` | Authored normative | Explicit enum storage/codes/reserved ranges/unknown behavior; never ordinals |
+| `specs/codecs/models.yaml` | Authored normative | Reusable encoded value layouts |
+| `specs/protocol/state-machines.yaml` | Authored normative | Protocol states, guards, timing, retry, and invariants |
+| `specs/catalogs/diagnostic-events.yaml` | Source-derived catalog | Diagnostic event names, fields, and severity |
+| `specs/catalogs/settings.yaml` | Source-derived catalog | Public settings and defaults |
+| `specs/traceability/specification-map.yaml` | Generated traceability | SPEC ↔ ADR ↔ codec ↔ code ↔ test mapping and implementation status |
+| `specs/product/`, `specs/epics/`, `specs/tests/` | Authored planning | Scope, story plans, and test architecture |
 
-| File | Generated From | Purpose |
-|------|----------------|---------|
-| `enums.yaml` | `TypeModel.kt`, `PowerMode.kt` | All public enums with values/metadata |
-| `data-models.yaml` | Model classes in `model/` | Data class schemas |
-| `state-machines.yaml` | This SPEC.md (§5, §8, §9, §11) | State machine definitions |
-| `wire-frames.yaml` | This SPEC.md (§4, §6, §8, §9) | Wire format definitions |
-| `diagnostic-events.yaml` | `DiagnosticEvent.kt` | Diagnostic event catalog |
-| `settings.yaml` | `MeshLinkSettings.kt` | Configuration DSL schemas |
-| `cross-ref-index.yaml` | This SPEC.md + ADRs + code | SPEC ↔ ADR ↔ Code traceability |
-
-**Generation script**: `scripts/generate-specs.sh` (run at build time)
+Codec/protocol files are reviewed source, not generated runtime code. The custom
+pure-Kotlin MeshLink Wire Codec must conform to them. Catalog/traceability update
+tooling must make CI fail when committed projections are stale.
 
 ---
 
@@ -1064,14 +1481,14 @@ The following files in `specs/` are **generated from source code and this SPEC.m
 | §1 Vision | — | — |
 | §2 Architecture | docs/explanation/module-structure.md | meshlink/build.gradle.kts |
 | §3 Data Models | docs/decisions/model/data-model.md | meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/ |
-| §4 Discovery | docs/decisions/discovery/mesh-hash-derivation.md | specs/wire-frames.yaml |
-| §5 Trust/TOFU | docs/decisions/crypto/crypto-design.md | specs/enums.yaml, specs/state-machines.yaml |
+| §4 Discovery | docs/decisions/discovery/connectable-advertisement.md, docs/decisions/discovery/mesh-hash-derivation.md | specs/codecs/frames.yaml |
+| §5 Trust/TOFU | docs/decisions/crypto/crypto-design.md | specs/codecs/enums.yaml, specs/protocol/state-machines.yaml |
 | §6 Transport | docs/decisions/transport/mtu-negotiation.md | — |
-| §7 Security | docs/decisions/crypto/crypto-design.md, constant-time-policy.md, replay-window.md, key-rotation-propagation.md, error-hierarchy.md | specs/enums.yaml, specs/state-machines.yaml |
-| §8 Routing | docs/decisions/routing/routing-design.md | RouteEntry.kt, RoutingPolicy.kt, LinkMetric.kt |
-| §9 Transfer | docs/decisions/model/data-model.md | TransferSession.kt, Scoreboard.kt, TransferFailureReason.kt |
+| §7 Security | docs/decisions/crypto/crypto-design.md, identity-binding-and-fail-closed.md, constant-time-policy.md, replay-window.md, key-rotation-propagation.md, error-hierarchy.md | specs/codecs/enums.yaml, specs/protocol/state-machines.yaml |
+| §8 Routing | docs/decisions/routing/routing-design.md | RouteCandidate, LinkQuality, RouteStatement, routing coordinator (planned) |
+| §9 Transfer | docs/decisions/model/data-model.md, docs/decisions/transfer/transfer-identifier.md | TransferSession.kt, Scoreboard.kt, TransferFailureReason.kt |
 | §10 Power | docs/decisions/power/power-mode-behavior.md | PowerMode.kt |
-| §11 Diagnostics | docs/decisions/diagnostics/callback-threading.md | DiagnosticEvent.kt |
+| §11 Diagnostics | docs/decisions/diagnostics/flow-delivery.md, docs/decisions/api/public-api-and-lifecycle.md | DiagnosticEvent.kt |
 | §12 Build Quality | — | meshlink/build.gradle.kts |
 | §13 Testing | — | — |
 | §14 Settings | docs/decisions/model/settings-model.md | MeshLinkSettings.kt |

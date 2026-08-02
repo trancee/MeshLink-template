@@ -3,65 +3,114 @@
 > **Specification**: [SPEC.md §8](../../SPEC.md#routing-layer)  
 > **Design rationale**: [Routing Design](../decisions/routing/routing-design.md)
 
-## Design Principles
+## Model
 
-- Babel-inspired distance-vector with feasibility condition (RFC 8966)
-- **Destination self-reports SeqNo** — originated only on cold start, not on reconnect
-- **No Hello/IHU** — BLE connection state provides liveness (RFC 8966 §3.4)
-- **RouteDigest triggers full table push** on mismatch
-- **Always-encrypted metadata** — no plaintext routing frames
-- **Composite link metric** — RSSI + capability flags
+| Field | Semantics |
+|-------|-----------|
+| `routeCost` | Lower-is-better saturating additive path cost |
+| `hopCount` | Independent topological distance and hard-limit input |
+| `linkQuality` | Higher-is-better local observation of the next-hop link |
+| `nextHop` | Local authenticated adjacent forwarding peer |
 
-## SeqNo Ownership (Critical Fix)
+Selection order: feasible, lowest routeCost, lowest hopCount, highest local
+linkQuality, lowest lexicographic nextHop.
 
-Each node owns **one** local seqno counter (32-bit unsigned), incremented **only on cold start** (`MeshLink.start()`). On new direct connection, each side sends self-origin `RouteUpdate`:
+## Link Cost
 
-- `destination = <own peerId>`
-- `nextHop = <own peerId>` (null = self-origin)
-- `metric = DIRECT_ROUTE_METRIC`
-- `seqNo = <own current counter>`
+```text
+qualityLoss    = 255 - normalizedRssi
+qualityPenalty = ceil(qualityLoss² / 255)
+linkCost       = 64 + qualityPenalty
+```
 
-Receiving side adopts reported seqNo as authoritative. Eliminates "relay reports higher seqno than live direct route" edge case.
+RSSI is normalized over -100 through -30 dBm. Link cost ranges from 64 through
+319. Path cost is a saturating sum; `UInt.MAX_VALUE` is infinity. Strong
+multi-hop paths may beat weak direct paths.
 
-## Hello/IHU Removal
+RSSI uses a 3:1 EWMA. Changes below 3 dB do not advertise. Route switching
+requires two observations over one second and improvement by
+`max(16, currentRouteCost / 10)`, except immediate loss/invalidation cases.
 
-Removed `WireFrame.Hello`, `WireFrame.Ihu`, type codes, and no-op dispatch branches. BLE connect/disconnect provides immediate liveness. Route metric stays flat `+1` hop count.
+## Feasibility and Sequence Ownership
 
-## RouteDigest Resync
+Feasible distance is `(sequenceNumber, routeCost)`. A candidate is feasible when
+its sequence is newer, or equal with lower cost.
 
-On receiving `RouteDigest` that doesn't match local table → re-send full current route table to that peer via `RouteAdvertisementPlanner`. Mirrors RFC 8966 wildcard route request → full table dump. No new frame type, no request/response round trip.
+Each destination persists and originates its own 32-bit sequence. Reconnect,
+peerHint/RPA/TransportHandle change, RSSI update, Noise renewal, key rotation,
+and bearer migration never increment it. `SeqNo` is internal and uses explicit
+modular methods rather than Comparable.
 
-## Routing Metadata Privacy
+## Sequence Recovery
 
-`ROUTE_UPDATE` (0x01) and `ROUTE_WITHDRAWAL` (0x02) **always** AEAD-encrypted. No plaintext mode, no negotiation, no fallback. `ROUTE_DIGEST` (0x03) is plaintext 32-bit FNV-1a hash only.
+`RouteSequenceAdvancement` uses unicast first, then bounded fan-out after 500 ms.
+Attempts expire after three seconds; dedup entries after 30 seconds. At most
+three destination-advancement attempts per peer per minute are accepted.
 
-**Encryption**: ChaCha20-Poly1305 (Noise session AEAD). Nonce from session counter. Ciphertext = `encrypted_payload || 16-byte tag`. AAD = frame type + version.
+## Signed Route Data
 
-**Fail-closed**: Decrypt/auth failures drop frame immediately. No retry with different mode.
+```text
+RouteStatement {
+    version
+    appHash
+    destination
+    sequenceNumber
+    identityBinding
+    signature
+}
 
-**Diagnostics**: `route.decrypt_failures` count, `route.frame_type` (UPDATE/WITHDRAWAL)
+RouteAdvertisement {
+    statement
+    routeCost
+    hopCount
+}
+```
 
-## Link Quality Metric
+The destination signs RouteStatement. Relays update cost/count under hop
+authentication. Route signatures are mandatory and not configurable. v0.1 does
+not claim protection from an authenticated Byzantine relay lying about mutable
+path fields.
 
-Composite `UInt32`:
+## Control Protection
 
-- Low byte (8 bits): RSSI normalized 0-255 (0=unusable, 255=excellent)
-- Bit 8: `supportsL2CAP`
-- Bit 9: `lowLatency`
-- Bit 10: `highPower`
-- Bits 11-31: Reserved
+All advertisements, withdrawals, digests, sequence advancements, synchronization,
+and snapshots use hop AEAD after adjacent Noise authentication. There is no
+plaintext or downgrade mode.
 
-**RSSI Normalization**: ≥-30→255, ≤-100→0, else `((rssi + 100) * 255 / 70)`
+## Per-Neighbor Split Horizon and Synchronization
 
-**Path Selection**: 1) Feasible routes only, 2) Lower hop count, 3) Higher metric score
+RouteExport excludes candidates whose nextHop is the export neighbor. An
+alternate through another neighbor may be advertised; otherwise an existing
+export is withdrawn immediately. Explicit withdrawal replaces poison reverse.
 
----
+```text
+RouteExport[neighbor]
+RouteImport[neighbor]
+
+RouteDigest
+RouteSynchronization
+RouteSnapshot
+```
+
+Digest compares the sender's RouteExport with the receiver's RouteImport for
+that sender, not two complete local routing tables. Mismatch triggers
+RouteSynchronization; the sender returns RouteSnapshot; the receiver atomically
+replaces only that sender's import after validation.
+
+The digest is the first 64 bits of SHA-256 over canonical fields. All three
+records carry a per-adjacency UInt revision reset by a fresh hop Noise session.
+
+## Time-to-Live and Hop Limit
+
+`TransferOptions.timeToLive` is an elapsed delivery deadline, with priority
+defaults of 10, 5, and 1 minutes. `maximumHopCount = 16` is a separate fixed
+routing bound for all priorities. Relays decrement before forwarding and drop
+zero; advertisements at or above 16 hops are rejected.
 
 ## Quick Links
 
 - [SPEC.md §8 — Full routing spec](../../SPEC.md#routing-layer)
 - [Routing Design ADR](../decisions/routing/routing-design.md)
-- [State Machines Spec](../../specs/state-machines.yaml)
-- [Wire Frames Spec](../../specs/wire-frames.yaml)
-- [MTU Negotiation ADR](../decisions/transport/mtu-negotiation.md)
-- [E2E Handshake Pattern ADR](../decisions/crypto/crypto-design.md)
+- [State Machines Spec](../../specs/protocol/state-machines.yaml)
+- [Wire Frames Spec](../../specs/codecs/frames.yaml)
+- [Peer Hint and Identity Races](../decisions/discovery/peer-hint-and-identity-races.md)

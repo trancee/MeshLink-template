@@ -1,8 +1,15 @@
 # Settings Model
 
-> **Specification**: [SPEC.md §14](../../SPEC.md#configuration-model)  
+> **Specification**: [SPEC.md §14](../../SPEC.md#settings-model)
 > **Source of truth**: MeshLinkSettings.kt  
 > **Design rationale**: [Lambda DSL ADR](../decisions/model/settings-model.md)
+
+## Application Identifier
+
+`appId` is required, non-empty, normalized UTF-8 of at most 255 bytes, and
+stable across app updates and process restarts. It determines `meshHash` and the
+128-bit `appHash` security context. Changing it requires a new MeshLink instance
+and creates a separate application/profile namespace.
 
 ## Lambda DSL (Primary API)
 
@@ -11,6 +18,7 @@ val settings = meshLinkSettings {
     appId = "com.example.myapp"
     powerMode = PowerMode.HIGH
     regulatoryRegion = RegulatoryRegion.EU
+    backgroundOperation = true
     
     keyRotation {
         interval = Duration.days(1)
@@ -21,32 +29,20 @@ val settings = meshLinkSettings {
     transfer {
         maxRetries = 3
         chunkSize = 512
-        maxConcurrentSessionsPerPeer = 2
+        maxTransfersPerPeer = 2
     }
     
     routing {
-        routeUpdateMinInterval = Duration.seconds(1)
-        routeUpdateMaxInterval = Duration.seconds(30)
-        routeUpdateChangeThreshold = 3
-        fullTableSyncInterval = Duration.minutes(5)
-        routeEntryExpiry = Duration.minutes(15)
-        feasibilityConditionEnabled = true
-        maxRouteEntries = 256
-    }
-    
-    security {
-        fallbackMaxAttemptsPerMinute = 3
-        fallbackTimeout = Duration.seconds(10)
-        requireSignatureOnRouteUpdates = true
-        defaultHandshakePattern = HandshakePattern.IX
+        routeAdvertisementChangeThreshold = 3
+        routeDigestInterval = Duration.minutes(5)
+        routeExpiry = Duration.minutes(15)
+        maxRoutes = 256
     }
     
     diagnostics {
         eventBufferSize = 1000
+        emitToLog = true
     }
-    
-    emitToLog = true
-    eventCallback = { event -> println(event) }
 }
 ```
 
@@ -54,24 +50,41 @@ val settings = meshLinkSettings {
 
 | Class | Purpose |
 |-------|---------|
-| `MeshLinkSettings` | Top-level configuration |
+| `MeshLinkSettings` | Top-level configuration, including immutable backgroundOperation opt-in |
 | `KeyRotationSettings` | Interval, grace periods |
 | `TransferSettings` | Retries, chunk size, concurrency, scoreboard |
 | `RoutingSettings` | Update intervals, thresholds, sync, expiry, feasibility, max entries |
-| `SecuritySettings` | NX fallback limits, timeout, route update signatures, handshake pattern |
-| `DiagnosticsSettings` | Event buffer size |
+| `DiagnosticsSettings` | Event buffer size and optional platform logging |
+
+## Runtime Mutability
+
+Settings are immutable for a `MeshLink` instance except for power mode:
+
+```kotlin
+meshLink.setPowerMode(PowerMode.LOW)
+```
+
+`meshLink.powerMode` exposes the successfully selected mode.
+`meshLink.effectivePowerSettings` exposes resolved parameters after regulatory
+and platform clamping. Existing transfers retain their established chunk
+framing; new transfers and connections use the updated values.
+
+Changing any other setting requires stopping the instance and constructing a
+new one.
 
 ## Imperative Builder
 
-Retained for programmatic construction (e.g., from settings file). Both paths produce identical `MeshLinkSettings` instances.
+Retained for programmatic construction (e.g., from a settings file). Both paths
+produce identical `MeshLinkSettings` instances. Diagnostics are collected from
+`MeshLink.diagnostics`; settings do not contain an event callback.
 
-**Source of truth**: `MeshLinkSettings.kt` — `specs/settings.yaml` is generated from it.
+**Source of truth**: `MeshLinkSettings.kt` — `specs/catalogs/settings.yaml` is generated from it.
 
 ---
 
 ## Quick Links
 
-- [SPEC.md §14 — Full config spec](../../SPEC.md#configuration-model)
+- [SPEC.md §14 — Full config spec](../../SPEC.md#settings-model)
 - MeshLinkSettings.kt
 - [Lambda DSL ADR](../decisions/model/settings-model.md)
 - [Power Mode Behavior ADR](../decisions/power/power-mode-behavior.md)

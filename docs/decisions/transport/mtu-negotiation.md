@@ -67,9 +67,35 @@
 
 ---
 
+## L2CAP capability and health
+
+Advertised support does not imply runtime reliability. L2CAP capability remains
+transport state and never enters routing LinkQuality or routeCost.
+
+Each authenticated adjacent peer tracks process-local `L2capHealth` with
+`state`, `failureCount`, `failedAt`, and `retriesAt`. Open failure/timeout,
+unexpected EOF, stream error, stall, partial-frame timeout, or channel drop
+immediately stops assigning new chunks to L2CAP, discards partial frames, and
+moves data to GATT without changing route, trust, E2E keys, or transfer IDs.
+SACK retransmits missing chunks.
+
+Circuit-breaker schedule:
+
+```text
+failure 1 → retry in 15–30 seconds
+failure 2 → retry in 1–2 minutes
+failure 3 → retry in 5–10 minutes
+failure 4 → disable L2CAP for the process lifetime
+```
+
+Failure history resets only after ten continuous healthy minutes or one
+error-free transfer of at least 1 MiB. Health is not persisted; process restart
+permits a clean capability probe. During bearer drain, only one bearer assigns
+new chunks and late duplicate chunks remain idempotent.
+
 ## Diagnostics Rationale
 
-`MtuNegotiatedEvent` emits **effective** parameters (negotiated MTU, effective chunk size) so host apps observe actual behavior, not requested values.
+`MtuNegotiatedEvent` emits **effective** parameters (negotiated MTU, effective chunk size) so host apps observe actual behavior, not requested values. Typed fallback diagnostics distinguish open failure, timeout, stream error, stall, mid-transfer drop, and local policy.
 
 ---
 

@@ -39,8 +39,7 @@ stateDiagram-v2
 - Active BLE link
 - Transfers may be in progress
 - Route entries remain live
-- The host app sees `PeerEvent.Found(..., CONNECTED)` or
-  `PeerEvent.StateChanged(..., CONNECTED)`
+- The host app observes connected presence in the `knownPeers` snapshot
 
 ### Disconnected
 
@@ -48,8 +47,7 @@ stateDiagram-v2
 - A grace period is active because the peer may return quickly
 - Routes can degrade before they are fully retracted
 - Transfers can pause instead of being abandoned immediately
-- The host app sees `PeerEvent.StateChanged(..., DISCONNECTED)` rather than an
-  immediate `Lost`
+- The host app observes disconnected presence rather than immediate removal
 
 ### Gone
 
@@ -58,7 +56,7 @@ stateDiagram-v2
   transfer work tied to the peer
 - Pinned trust state remains, so a future reconnection with the same identity is
   still recognized
-- `PeerEvent.Lost` is emitted to the host app
+- transient unverified peers are removed from `knownPeers`; persisted trust remains unavailable
 
 ## How the grace period works
 
@@ -82,21 +80,17 @@ peer-loss timer just to smooth normal transport churn.
 
 ## Why "Gone" is not a public state
 
-The public API exposes only:
+The public API exposes peer snapshots through `knownPeers`, not the internal
+lifecycle enum. When a peer reaches the internal gone state:
 
-```kotlin
-enum class PeerConnectionState { CONNECTED, DISCONNECTED }
-```
+- transient presence and route state are removed;
+- an unverified peer disappears from `knownPeers`;
+- a persisted trusted or revoked peer remains with unavailable presence; and
+- pinned trust remains available for a future authenticated reconnect.
 
-There is no public `GONE` value. When a peer reaches the internal gone state:
-
-- MeshLink emits `PeerEvent.Lost`
-- the peer is removed from active runtime state
-- the app should treat it as unavailable until it is found again
-
-Exposing `GONE` publicly would suggest there is still something actionable about
-that peer. There is not. Once the peer is gone, the next meaningful public
-signal is a new `Found`.
+Exposing internal `GONE` directly would couple applications to cleanup timing.
+The public presence snapshot instead describes whether a known identity is
+currently actionable.
 
 ## The seqNo interaction
 
@@ -113,15 +107,11 @@ nodes keep stale route knowledge.
 From the app's perspective, the right model is still simple:
 
 ```kotlin
-meshLink.peerEvents.collect { event ->
-    when (event) {
-        is PeerEvent.Found -> addPeerToUi(event.peerId)
-        is PeerEvent.StateChanged -> updatePeerState(event.peerId, event.state)
-        is PeerEvent.Lost -> removePeerFromUi(event.peerId)
-    }
+meshLink.knownPeers.collect { peers ->
+    renderPeers(peers)
 }
 ```
 
-The app does not need to manage grace periods itself. MeshLink handles the
-transport churn internally and surfaces cleaner `Found`, `StateChanged`, and
-`Lost` transitions.
+The app does not need to reconstruct current state from found, changed, and lost
+events or manage grace periods itself. MeshLink handles transport churn and
+publishes one current snapshot.

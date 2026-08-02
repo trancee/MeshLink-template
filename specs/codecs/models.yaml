@@ -1,6 +1,6 @@
-# MeshLink Data Model Definitions
-# Machine-readable reference for all data classes in the codebase.
-# Source of truth: meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/
+# MeshLink Wire Codec — Model Contracts
+# Authored normative source for reusable encoded value layouts and constraints.
+# Public/runtime Kotlin models may differ from encoded representations.
 # SPEC-ANCHOR: data-model
 
 data_models:
@@ -142,12 +142,10 @@ data_models:
   - name: Scoreboard
     package: ch.trancee.meshlink.model
     type: class
-    description: "Immutable bitfield for selective acknowledgment (SACK). Bit N = 1 means chunk N received. Length is ceil(totalChunks / 8) bytes. Counts (receivedCount, missingCount, isComplete) are O(1) via cached incremental tracking. Immutable markReceived/markMissing return new instances for thread-safe sharing."
+    description: "Internal bounded-message/test scoreboard. Large-transfer wire ACK uses the fixed 256-chunk PayloadAcknowledgment window; this model is not a configurable wire encoding."
     constructors:
       - name: Scoreboard(totalChunks: UInt)
         description: "Dynamic bitfield sized for the actual chunk count."
-      - name: Scoreboard(totalChunks: UInt, maxChunksPerSession: UInt)
-        description: "FIXED encoding — pre-allocates a byte array sized for maxChunksPerSession. Used when totalChunks is unknown upfront but an upper bound is known. Only bits 0..totalChunks-1 carry meaning."
     fields:
       - name: totalChunks
         type: UInt
@@ -278,44 +276,42 @@ data_models:
         return_type: Scoreboard
         description: "Converts to an immutable snapshot for transfer state."
 
-  - name: RouteEntry
-    package: ch.trancee.meshlink.model
-    type: data_class
-    description: "Route entry in the routing table. Managed by RouteCoordinator; updates via RouteDigest."
+  - name: RouteCandidate
+    package: ch.trancee.meshlink.routing
+    visibility: internal
+    type: class
+    description: "One candidate route learned from an authenticated adjacent peer. Cost, hop count, and local link quality have distinct semantics."
     fields:
-      - name: source
-        type: PeerIdentity
-        description: "The peer from whom this route was learned (for loop detection)"
       - name: destination
         type: PeerIdentity
         description: "Final destination peer in the mesh"
       - name: nextHop
-        type: "PeerIdentity?"
-        description: "Immediate next hop toward the destination (null = unreachable)"
-      - name: metric
-        type: UInt
-        description: "Route metric (RSSI + flags, see LinkMetric)"
-      - name: seqNo
+        type: PeerIdentity
+        description: "Authenticated immediate forwarding peer; inferred locally rather than destination-signed"
+      - name: sequenceNumber
         type: SeqNo
-        description: "Destination-self-reported sequence number, wrapped for safe comparison"
-      - name: identityKey
-        type: "IdentityKey?"
-        description: "Destination's Ed25519 identity key, learned via route updates (may be null on cold start)"
-      - name: handshakeKey
-        type: "HandshakeKey?"
-        description: "Destination's X25519 handshake key, learned via route updates (may be null on cold start)"
+        description: "Destination-owned internal modular route sequence"
+      - name: routeCost
+        type: UInt
+        description: "Lower-is-better saturating additive path cost; UInt.MAX_VALUE means infinity"
+      - name: hopCount
+        type: UByte
+        description: "Independent topological distance and hard-hop-limit input"
+      - name: linkQuality
+        type: LinkQuality
+        description: "Higher-is-better observation of the local link to nextHop"
       - name: expiresAt
         type: Instant
-        description: "Expiration instant for this route entry"
+        description: "Expiration instant for this locally learned candidate"
 
   - name: TransferSession
     package: ch.trancee.meshlink.model
     type: data_class
     description: "Drives chunked transfer with selective ACK and cut-through relay support. Chunk size is selected by the local PowerMode at session start and bounded by the peer's advertised MTU. Scoreboard uses a dynamic bitfield whose length is derived from totalChunks — bit N = 1 means chunk N is received (standard SACK)."
     fields:
-      - name: sessionId
-        type: SessionId
-        description: "Unique 64-bit token identifying this transfer session"
+      - name: transferId
+        type: TransferId
+        description: "Source-owned 32-bit identifier; unique within the authenticated origin PeerIdentity namespace"
       - name: destination
         type: PeerIdentity
         description: "Final destination peer for this transfer"
@@ -334,12 +330,12 @@ data_models:
       - name: scoreboard
         type: Scoreboard
         description: "Tracks which chunks have been received via SACK bitfield"
-      - name: totalBytes
+      - name: offset
+        type: Long
+        description: "Highest contiguous payload boundary accepted by the sink or acknowledged by the remote peer"
+      - name: total
         type: Long
         description: "Total payload size in bytes"
-      - name: bytesReceived
-        type: Long
-        description: "Bytes received so far"
       - name: startedAt
         type: Instant
         description: "When this transfer session was started"
@@ -353,26 +349,29 @@ data_models:
         type: "TransferFailureReason?"
         description: "Why this session reached a terminal failure state"
 
-  - name: SessionId
+  - name: TransferId
     package: ch.trancee.meshlink.model
     type: value_class
-    description: "Unique 64-bit token identifying a transfer session."
+    description: "Unsigned 32-bit transfer identifier scoped by authenticated origin PeerIdentity. Allocated from a durably reserved source-owned counter; zero is invalid."
+    identity_tuple:
+      - PeerIdentity
+      - TransferId
     fields:
       - name: value
-        type: ULong
+        type: UInt
         visibility: private
-        description: "Raw 64-bit session ID value"
+        description: "Raw 32-bit origin-scoped transfer identifier"
     methods:
       - name: toString
         return_type: String
-        description: "Hex representation of the 64-bit value"
-    companion_functions:
-      - name: fromHex
-        params:
-          - name: hex
-            type: String
-        return_type: SessionId
-        description: "Creates a SessionId from a hex string (max 16 chars)"
+        description: "Eight-character hexadecimal representation"
+    allocation:
+      strategy: monotonically_increasing_reserved_ranges
+      first_value: 1
+      reserved_values:
+        - 0
+      persistence_rule: "Persist a range high-water mark before allocating any value from that range"
+      wrap_rule: "After UInt.MAX_VALUE, skip zero and reject candidates present in active state or retained tombstones"
 
   - name: TransferFailureReason
     package: ch.trancee.meshlink.model
@@ -392,26 +391,36 @@ data_models:
             type: PeerIdentity
         description: "Trust-related failure (e.g. identity mismatch, revoked peer)"
 
-  - name: LinkMetric
-    package: ch.trancee.meshlink.model
+  - name: LinkQuality
+    package: ch.trancee.meshlink.routing
+    visibility: internal
     type: class
-    description: "Encapsulates the metric bit layout: low byte = RSSI normalized (0-255), high bits = flags (supportsL2CAP, lowLatency, highPower). Composite serialized form: (flags shl 8) or rssiNormalized."
+    description: "Higher-is-better local observation used only after route cost and hop count during path selection."
     fields:
-      - name: rssiNormalized
+      - name: smoothedRssi
+        type: Int
+        description: "EWMA-smoothed RSSI in dBm"
+      - name: normalizedRssi
         type: UByte
-        description: "RSSI normalized to 0-255 (low byte)"
-      - name: supportsL2CAP
-        type: Boolean
-        description: "Bit 8: L2CAP CoC supported"
-      - name: lowLatency
-        type: Boolean
-        description: "Bit 9: Low-latency (short) connection interval"
-      - name: highPower
-        type: Boolean
-        description: "Bit 10: High power mode"
-      - name: composite
+        description: "Smoothed RSSI normalized to 0-255"
+
+  - name: L2capHealth
+    package: ch.trancee.meshlink.transport
+    visibility: internal
+    type: class
+    description: "Process-local L2CAP circuit-breaker state for one authenticated adjacent peer. Capability and runtime reliability are distinct."
+    fields:
+      - name: state
+        type: L2capState
+      - name: failureCount
         type: UInt
-        description: "Serialized form: (flags shl 8) or rssiNormalized"
+        description: "Consecutive failures in the current health episode"
+      - name: failedAt
+        type: "Instant?"
+        description: "Latest L2CAP failure instant"
+      - name: retriesAt
+        type: "Instant?"
+        description: "Scheduled probation retry instant"
 
   - name: IdentityKey
     package: ch.trancee.meshlink.model

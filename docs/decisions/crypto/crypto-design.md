@@ -1,163 +1,102 @@
-# MeshLink Crypto Layer: Consolidated Design Decisions
+# MeshLink Noise and key-rotation design
 
-**Status:** Locked — 2026-07-20
+**Status:** Locked — 2026-07-31
 
-Consolidates five crypto-layer decisions:
+This record consolidates the rationale for Noise pattern selection, session
+behavior, key rotation, and E2E handshake routing. Normative state machines,
+parameters, and wire layouts live in [SPEC.md §§5 and
+7](../../../SPEC.md#trust-model-tofu).
 
-1. **E2E Handshake Pattern**: Noise IX (link: XX/IK)
-2. **NX Fallback**: Full public key verification + mitigations
-3. **Noise Session State Machine**: Timeouts, retries, migration, rekeying
-4. **Key Rotation Protocol**: Explicit announcement + seqno reset
-5. **E2E Handshake Routing Over Mesh**: IX frames routed via mesh
+All Noise layers use X25519, HKDF-SHA256, ChaCha20-Poly1305, and SHA-256.
+Ed25519 signs the stable MeshLink identity binding carried inside encrypted
+handshake payloads.
 
-All layers use the same primitives: X25519 DH, HKDF-SHA256, ChaCha20-Poly1305.
+## Noise pattern selection
 
-> **Specification content** (tables, state machines, wire formats, parameter values) lives in [SPEC.md §5, §7](../../../SPEC.md). This ADR captures only the *rationale*.
+MeshLink uses two patterns:
 
----
+| Trust state | Pattern | Applies to |
+|-------------|---------|------------|
+| No trusted destination pin | Noise XX | Direct first contact and routed E2E first contact |
+| Trusted, current destination pin | Noise IK | Direct reconnect and routed E2E reconnect |
 
-## 1. E2E Handshake Pattern: Noise IX (Link Layer: Noise XX/IK)
+A pinned identity, key, or generation mismatch fails closed. It never starts a
+new first-contact exchange until the application explicitly resets trust.
 
-### Context E2E Handshake Pattern
+### First contact with XX
 
-MeshLink has two encryption layers:
+Neither peer begins with a trusted remote static key. XX exchanges both X25519
+static keys under handshake encryption. Both peers validate the encrypted,
+Ed25519-signed identity binding before automatic TOFU pinning.
 
-1. **Hop-by-hop link encryption** between adjacent mesh nodes (relays forward without reading)
-2. **End-to-end encryption** between message origin and final destination, carried inside link frames
+The three-message exchange costs an additional message compared with a
+one-sided handshake but gives both endpoints authenticated key possession and
+one coherent trust transition.
 
-### Decision E2E Handshake Pattern
+### Reconnect with IK
 
-| Layer | Pattern | Rationale |
-|---|---|---|
-| Hop-by-hop (first contact) | Noise XX | Mutual authentication for initial TOFU — both parties pin each other |
-| Hop-by-hop (post-TOFU reconnect) | Noise IK | Proactive mutual auth + 0-RTT when both hold pinned keys (1 RTT vs XX's 1.5) |
-| End-to-end | Noise IX | Origin knows destination key (gossiped); IX uses `es = DH(e, rs)` in msg 1 |
+The initiator already knows the responder's trusted X25519 static key. IK binds
+the first message to that key and encrypts the initiator static key before
+transmission. Both sides validate the current signed identity binding and key
+generation before updating `verifiedAt`.
 
-### Why IX for E2E
+MeshLink sends no application early data in the first IK message. Avoiding early
+data removes application replay semantics from v0.1.
 
-1. **Key-knowledge asymmetry**: Origin knows destination's key; IX binds handshake to known key in message 1 (`es = DH(e, rs)`)
-2. **Proactive 0-RTT authentication**: Origin authenticates to destination in first message without waiting for response
-3. **Destination pins origin's identity**: IX transmits origin's static key (`s`, encrypted under `es`) in message 1
-4. **Key-rotation robustness**: IX re-sends destination's current static key in message 2
+### Route-learned identity hints
 
-> **IX Flow** (specified in SPEC.md §5.1): `-> e, s, es` / `<- e, ee, se, s`
+Routing metadata may carry candidate identity bindings and keys for discovery
+and planning, but an unpinned route candidate is not a trust
+credential. An E2E first contact still uses routed XX. Only an existing trusted
+pin permits routed IK.
 
----
+## Noise session behavior
 
-## 2. NX Fallback with Full Public Key Verification
+- At most one hop-by-hop and one E2E Noise session exists per peer and layer.
+- New attempts for the same peer/layer are serialized or rejected.
+- GATT-to-L2CAP migration changes the bearer without restarting the handshake or
+  changing traffic keys.
+- L2CAP failure may return data traffic to GATT because both bearers preserve
+  the same application-layer security guarantees.
+- Every new Noise session produces a fresh transcript `handshakeHash` and fresh
+  directional transport keys.
+- Responders do not perform autonomous retry loops; initiators use bounded
+  retries in the same pattern and security mode.
 
-### Context NX Fallback
+## Key rotation
 
-When destination's public key is unknown, Noise IX cannot proceed. Noise NX provides source authentication level 0 but enables DoS via unauthenticated handshake initiation.
+Key rotation is an explicit, dual-signed continuity event. The old Ed25519 key
+signs continuity and the new Ed25519 key signs possession over stable
+PeerIdentity/appHash, contiguous generations, new Ed25519/X25519 keys, and
+reason. Routing SeqNo is independent. Existing Noise sessions may continue
+according to the configured grace policy; new sessions use the accepted current
+binding.
 
-### Decision NX Fallback
+Planned rotations may retain the old key for a bounded grace period. Security
+rotations default to immediate old-key rejection. A key change without valid
+continuity proof is an identity mismatch, not a rotation.
 
-Use `Noise_NX_25519_ChaChaPoly_SHA256` when destination key is unknown, **with security mitigations**.
+Proofs remain in an installation-lifetime chain. Direct-neighbor propagation is
+expected within one second and two-hop propagation within the routing-convergence
+budget. A peer that missed generations uses rotation-recovery XX to validate the
+chain back to its existing pin. The application continues using one stable
+PeerIdentity and never handles keys, generations, or proofs.
 
-**Key design choice**: NX handshake payload carries the **full 64-byte concatenated public key** (Ed25519Pub \|\| X25519Pub), not the truncated 12-byte `PeerFingerprint`.
+## E2E handshake routing
 
-### Why Full Public Key in Payload
+E2E XX and IK messages are carried inside the existing routed mesh envelope.
+Relays decrypt only adjacent hop encryption, inspect the routing fields required
+for forwarding, and pass the E2E handshake bytes without inspection.
 
-- `PeerFingerprint` (96-bit truncated SHA-256) has insufficient entropy for identity verification
-- Full 64-byte key provides 510 bits effective security (255 + 255)
-- Byte-for-byte verification eliminates collision/preimage concerns
-- Payload size increase (64 vs 12 bytes) is negligible vs handshake overhead
-
-### When NX Fallback Triggers
-
-1. Cold start discovery (key gossip not yet propagated)
-2. Key rotation lag (peer rotated, announcement not received)
-3. Network partition (key unavailable due to mesh partition)
-
-**Not triggered by**: Direct attack, key compromise, misconfiguration
-
-### Security Mitigations (Rationale)
-
-| Threat | Mitigation | Why This Works |
-|---|---|---|
-| DoS via unauthenticated handshakes | Rate limit: 3 attempts/min/destination | Bounds resource exhaustion |
-| Resource exhaustion | 10s timeout (vs 30s for IX) | Limits handshake window |
-| Wrong-peer handshake | Full public key verification in payload | Validates identity claim cryptographically |
-| Silent degradation | Diagnostic flag `fallback_used = true` | Observability without breaking flow |
-| NX replay attacks | 32-bit nonce in payload, checked pre-verification | Prevents message replay |
-
----
-
-## 3. Noise Session State Machine
-
-### Design Principles
-
-- **One session per peer per layer**: At most one `HOP_BY_HOP` and one `END_TO_END` session per `PeerIdentity`
-- **Handshake serialization**: New attempts for in-progress peer/layer are queued or rejected
-- **Transport migration**: L2CAP CoC availability triggers migration — `transport` updates, no handshake restart, encryption keys continue unchanged. Fallback to GATT on L2CAP failure.
-
-### Timeout & Retry Rationale
-
-| Pattern | Max Retries | Backoff | Reasoning |
-|---|---|---|---|
-| XX (initiator) | 3 | 1s, 2s, 4s | First contact needs resilience; exponential backoff |
-| IK (initiator) | 2 | 1s, 2s | Reconnect with pinned keys should be faster |
-| IX (initiator) | 3 | 1s, 2s, 4s | E2E may traverse multiple hops |
-| NX (initiator) | 3/min (rate limited) | 1s, 2s, 4s | Rate limit is the primary DoS control |
-| Responder (all) | 0 | — | Responders never retry; fail fast to avoid state buildup |
-
-**Rekeying**: Triggered at 2^64−1 messages, 3-day timer, or remote `KeyRotationAnnouncement`. Grace period (default 1h) retains old keys for in-flight sessions.
-
----
-
-## 4. Key Rotation Protocol
-
-### Design Goals
-
-- **Explicit announcement**: No silent key changes — every rotation is a signed, verifiable event
-- **SeqNo reset to 1**: Signals "new crypto era" to routing layer; distinguishes rotation from normal seqno progression
-- **Grace period differentiation**: Planned rotations allow overlap; security-event rotations are immediate
-- **Active session continuity**: Existing Noise sessions continue with current traffic keys; rotation affects only new sessions
-
-### Why Old Key Signs New Key
-
-- Proves continuity of identity (rotation, not replacement)
-- Enables neighbors to verify without TOFU re-pinning
-- Sig covers `identityKey || handshakeKey || seqNo(1) || reason` — binds both keys to the rotation event
-
-### Grace Period Rationale
-
-| Rotation Type | Grace Period | Security vs Availability Trade-off |
-|---|---|---|
-| PERIODIC/MANUAL | 1 hour (configurable) | Allows in-flight sessions to complete; old key still trusted |
-| SECURITY_EVENT | 0 (immediate) | Suspected compromise → no window for attacker to use old key |
-
-### Propagation Deadlines
-
-- Direct neighbors: < 1s (single hop, link-layer delivery)
-- 2-hop: < 3s (within routing convergence budget)
-- Beyond: digest resync handles eventual consistency
-
----
-
-## 5. E2E Handshake Routing Over Mesh
-
-### Core Principle
-
-When destination is not a direct neighbor or key is unknown, route the E2E handshake through the mesh using the existing routing layer. Relays forward without inspecting E2E payload.
-
-### Security Model
-
-- **Relay confidentiality**: Relays decrypt only link-layer encryption; E2E payload remains opaque
-- **No trust in relays**: Compromised relay cannot decrypt E2E content, only observe routing metadata
-- **Return path symmetry**: Destination responds via reverse route established by routing layer
-
-### Why Not Separate E2E Routing Protocol
-
-- Reuses existing distance-vector routing (Babel-inspired)
-- No additional round trips for route discovery
-- Route metrics (RSSI, flags) apply equally to E2E handshake frames
-- Simpler implementation, smaller attack surface
-
----
+Reusing the routing layer avoids a second route-discovery protocol and keeps
+route metrics applicable to handshake and application traffic. Relays are not
+trusted with E2E plaintext or identity decisions.
 
 ## Related
 
-- [Routing Design](../routing/routing-design.md) — Routing layer carries E2E handshake frames
-- [Transport: MTU](../transport/mtu-negotiation.md) — Bearer selection affects handshake fragmentation
-- [SPEC.md §5, §7](../../../SPEC.md) — Full specification (state machines, wire formats, parameters)
+- [Identity Binding and Fail-Closed Behavior](identity-binding-and-fail-closed.md)
+- [Noise Session Renewal](noise-session-renewal.md)
+- [Peer Hints and Identity Races](../discovery/peer-hint-and-identity-races.md)
+- [Routing Design](../routing/routing-design.md)
+- [Transport Bearer and MTU](../transport/mtu-negotiation.md)
+- [SPEC.md §5, §7](../../../SPEC.md)

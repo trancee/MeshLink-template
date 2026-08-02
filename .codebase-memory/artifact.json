@@ -1,0 +1,11 @@
+{
+    "schema_version": 2,
+    "commit": "a57ba9068890500aac3ac76f5db2be984c308783",
+    "indexed_at": "2026-07-31T08:39:49Z",
+    "project": "MeshLink-template",
+    "nodes": 4937,
+    "edges": 7990,
+    "original_size": 5963776,
+    "compressed_size": 969869,
+    "compression_level": 9
+}

@@ -5,19 +5,19 @@ import org.jetbrains.kotlin.konan.target.HostManager
 val specsDir = project.rootProject.file("specs")
 val requiredFiles =
     listOf(
-        "enums.yaml",
-        "data-models.yaml",
-        "state-machines.yaml",
-        "diagnostic-events.yaml",
-        "settings.yaml",
-        "wire-frames.yaml",
-        "cross-ref-index.yaml",
+        "specs/codecs/enums.yaml",
+        "specs/codecs/models.yaml",
+        "specs/codecs/frames.yaml",
+        "specs/protocol/state-machines.yaml",
+        "specs/catalogs/diagnostic-events.yaml",
+        "specs/catalogs/settings.yaml",
+        "specs/traceability/specification-map.yaml",
     )
 
-for (name in requiredFiles) {
-    val file = project.rootProject.file("specs/$name")
+for (path in requiredFiles) {
+    val file = project.rootProject.file(path)
     if (!file.exists()) {
-        throw GradleException("Missing specs/$name")
+        throw GradleException("Missing $path")
     }
 }
 

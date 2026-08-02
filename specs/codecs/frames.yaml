@@ -1,0 +1,533 @@
+# MeshLink Wire Codec — Frame Contracts
+# Authored normative source for exact frame codes, layouts, bounds, protection, and evolution.
+# Inspired by selected FlatBuffers techniques; not a FlatBuffers compatibility contract.
+# SPEC-ANCHOR: wire-frame
+
+frame:
+  description: "Canonical MeshLink Wire Codec envelope; bearer framing wraps these bytes without changing them"
+  fields:
+    - name: code
+      type: UByte
+      size_bytes: 1
+      description: "Explicit frame code; never enum ordinal"
+    - name: version
+      type: UByte
+      size_bytes: 1
+      description: "Protocol version bound into authentication/signature context"
+    - name: length
+      type: UShort
+      size_bytes: 2
+      byte_order: little_endian
+      valid_values: "0..65535"
+    - name: payload
+      type: ByteArray
+      size: length
+
+wire_frames:
+  - name: MESH_ENVELOPE
+    frame_type: "0x00"
+    description: "Routed E2E handshake or payload"
+    encryption: "Link-layer AEAD per hop"
+    fields:
+      - name: destination
+        type: PeerIdentity
+        size_bytes: 16
+        description: "Final destination peer identity"
+      - name: payload
+        type: ByteArray
+        description: "E2E encrypted payload (Noise XX/IK handshake message or application data)"
+      - name: hopLimit
+        type: UByte
+        description: "Fixed topology bound: initialized to maximumHopCount 16, decremented before forwarding, dropped at zero; independent of delivery timeToLive and priority"
+
+  - name: ROUTE_ADVERTISEMENT
+    frame_type: "0x01"
+    description: "RouteAdvertisement containing a mandatory destination-signed RouteStatement and hop-mutable path fields"
+    encryption: "Hop AEAD after adjacent Noise authentication"
+    fields:
+      - name: statement
+        type: RouteStatement
+        description: "Destination-signed protocol/app context, destination, sequenceNumber, and identityBinding"
+      - name: routeCost
+        type: UInt
+        size_bytes: 4
+        description: "Lower-is-better additive cost; relays add local linkCost with saturation"
+      - name: hopCount
+        type: UByte
+        size_bytes: 1
+        description: "Independent topological distance; relays increment by one"
+
+  - name: ROUTE_WITHDRAWAL
+    frame_type: "0x02"
+    description: "Adjacent sender retracts one route from its RouteExport"
+    encryption: "Hop AEAD after adjacent Noise authentication"
+    fields:
+      - name: destination
+        type: PeerIdentity
+        size_bytes: 16
+      - name: sequenceNumber
+        type: UInt
+        size_bytes: 4
+        description: "Destination sequence associated with the withdrawn export"
+
+  - name: ROUTE_DIGEST
+    frame_type: "0x03"
+    description: "Summary of the sender's canonical RouteExport for this neighbor"
+    encryption: "Hop AEAD after adjacent Noise authentication"
+    fields:
+      - name: revision
+        type: UInt
+        size_bytes: 4
+        description: "Per-adjacency export revision; exact lifecycle is part of the digest wire decision"
+      - name: digest
+        type: ByteArray
+        size_bytes: 8
+        description: "First 64 bits of SHA-256 over canonical destination-sorted RouteStatement, routeCost, and hopCount entries"
+
+  - name: PAYLOAD_MANIFEST
+    frame_type: "0x20"
+    description: "E2E-encrypted finite message/transfer offer"
+    encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
+    fields:
+      - name: kind
+        type: PayloadKind
+        size_bytes: 1
+      - name: id
+        type: UInt
+        size_bytes: 4
+        description: "MessageId or TransferId interpreted by kind; zero invalid"
+      - name: origin
+        type: PeerIdentity
+        size_bytes: 16
+      - name: destination
+        type: PeerIdentity
+        size_bytes: 16
+      - name: priority
+        type: Priority
+        size_bytes: 1
+      - name: timeToLive
+        type: UInt
+        size_bytes: 4
+        unit: milliseconds
+      - name: totalLength
+        type: ULong
+        size_bytes: 8
+        valid_values: "1..Long.MAX_VALUE"
+      - name: chunkSize
+        type: UShort
+        size_bytes: 2
+        valid_values: "1..65535"
+      - name: chunkCount
+        type: UInt
+        size_bytes: 4
+        valid_values: "1..UInt.MAX_VALUE"
+        invariant: "ceil(totalLength / chunkSize) == chunkCount using checked arithmetic"
+
+  - name: PAYLOAD_DECISION
+    frame_type: "0x21"
+    description: "E2E-encrypted acceptance or typed rejection of a manifest"
+    encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
+    fields:
+      - name: kind
+        type: PayloadKind
+        size_bytes: 1
+      - name: id
+        type: UInt
+        size_bytes: 4
+      - name: decision
+        type: PayloadDecision
+        size_bytes: 1
+      - name: reason
+        type: PayloadRejectionReason
+        size_bytes: 1
+        presence: "decision == REJECTED"
+
+  - name: PAYLOAD_CHUNK
+    frame_type: "0x22"
+    description: "Minimal E2E-encrypted payload chunk; offset/length/finality derive from accepted manifest"
+    encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
+    fields:
+      - name: kind
+        type: PayloadKind
+        size_bytes: 1
+      - name: id
+        type: UInt
+        size_bytes: 4
+      - name: index
+        type: UInt
+        size_bytes: 4
+      - name: payload
+        type: ByteArray
+        description: "Exact manifest chunkSize except final remaining length"
+
+  - name: PAYLOAD_ACKNOWLEDGMENT
+    frame_type: "0x23"
+    description: "Fixed 256-chunk sliding selective acknowledgment"
+    encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
+    fields:
+      - name: kind
+        type: PayloadKind
+        size_bytes: 1
+      - name: id
+        type: UInt
+        size_bytes: 4
+      - name: start
+        type: UInt
+        size_bytes: 4
+        description: "All lower chunk indices cumulatively acknowledged; bitmap bit n represents start + n"
+      - name: bitmap
+        type: ByteArray
+        size_bytes: 32
+
+  - name: PAYLOAD_CANCELLATION
+    frame_type: "0x24"
+    description: "Idempotent E2E-encrypted message/transfer cancellation"
+    encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
+    fields:
+      - name: kind
+        type: PayloadKind
+        size_bytes: 1
+      - name: id
+        type: UInt
+        size_bytes: 4
+      - name: reason
+        type: TransferFailureReason
+
+  - name: KEY_ROTATION
+    frame_type: "0x40"
+    description: "Signed long-term key continuity proof; retained in the installation-lifetime rotation chain"
+    encryption: "Carried inside hop-encrypted control traffic; signatures remain end-to-end verifiable"
+    fields:
+      - name: version
+        type: UByte
+        size_bytes: 1
+      - name: appHash
+        type: ByteArray
+        size_bytes: 16
+        derivation: "first128Bits(SHA-256('MeshLink app-id v1' || UTF8(appId)))"
+      - name: peerIdentity
+        type: PeerIdentity
+        size_bytes: 16
+        description: "Stable public identity; unchanged by rotation"
+      - name: oldGeneration
+        type: UInt
+        size_bytes: 4
+      - name: newGeneration
+        type: UInt
+        size_bytes: 4
+        description: "Must equal oldGeneration + 1"
+      - name: newIdentityKey
+        type: IdentityKey
+        size_bytes: 32
+      - name: newHandshakeKey
+        type: HandshakeKey
+        size_bytes: 32
+      - name: reason
+        type: KeyRotationReason
+        description: "PERIODIC, MANUAL, or SECURITY_EVENT"
+      - name: continuitySignature
+        type: ByteArray
+        size_bytes: 64
+        description: "Previous Ed25519 private key signs the canonical proof body"
+      - name: possessionSignature
+        type: ByteArray
+        size_bytes: 64
+        description: "New Ed25519 private key signs the same canonical proof body"
+
+route_statement:
+  description: "Mandatory destination-signed immutable routing identity/freshness statement"
+  fields:
+    - name: version
+      type: UByte
+      size_bytes: 1
+    - name: appHash
+      type: ByteArray
+      size_bytes: 16
+      derivation: "first128Bits(SHA-256('MeshLink app-id v1' || UTF8(appId)))"
+    - name: destination
+      type: PeerIdentity
+      size_bytes: 16
+    - name: sequenceNumber
+      type: UInt
+      size_bytes: 4
+    - name: identityBinding
+      type: IdentityBinding
+    - name: signature
+      type: ByteArray
+      size_bytes: 64
+      description: "Destination Ed25519 signature over the canonical statement body"
+
+routing_control_records:
+  encryption: "Hop AEAD after adjacent Noise authentication; no plaintext mode"
+  records:
+    - name: ROUTE_SEQUENCE_ADVANCEMENT
+      frame_type: "0x04"
+      fields:
+        - name: requester
+          type: PeerIdentity
+          size_bytes: 16
+        - name: destination
+          type: PeerIdentity
+          size_bytes: 16
+        - name: sequenceNumber
+          type: UInt
+          size_bytes: 4
+          description: "Value the destination must surpass"
+        - name: requestId
+          type: UInt
+          size_bytes: 4
+        - name: hopLimit
+          type: UByte
+          size_bytes: 1
+          maximum: 16
+          description: "Same fixed maximumHopCount used by routed envelopes; independent of requester priority"
+    - name: ROUTE_SYNCHRONIZATION
+      frame_type: "0x05"
+      description: "Receiver requests synchronization after RouteImport digest mismatch"
+      fields:
+        - name: revision
+          type: UInt
+          size_bytes: 4
+    - name: ROUTE_SNAPSHOT
+      frame_type: "0x06"
+      description: "Complete canonical RouteExport response, atomically replacing one sender's RouteImport after validation"
+      fields:
+        - name: revision
+          type: UInt
+          size_bytes: 4
+        - name: advertisements
+          type: "List<RouteAdvertisement>"
+  sequence_request_policy:
+    initial_unicast_delay_ms: 0
+    fan_out_delay_ms: 500
+    attempt_timeout_ms: 3000
+    dedup_retention_seconds: 30
+    maximum_attempts_per_destination_per_minute: 3
+  synchronization:
+    split_horizon: "RouteExport excludes candidates whose nextHop is the recipient; explicit withdrawal replaces poison reverse"
+    export: "Canonical advertisements last sent to one neighbor"
+    import: "Canonical wire advertisements last accepted from one neighbor before local cost/policy"
+    revision: "Per-adjacency UInt; zero on fresh hop Noise session, incremented whenever RouteExport changes, compared modularly"
+    digest: "First 64 bits of SHA-256 over canonical fields, never raw FlatBuffer bytes"
+    digest_input: "Destination-sorted RouteStatement, routeCost, and hopCount"
+    digest_exclusions: "nextHop, local linkQuality, timers, feasible distance, diagnostics"
+
+noise_epoch_control:
+  description: "Control records carried under a pending fresh IK epoch to commit Noise session renewal across flaky links"
+  encryption: "Authenticated with pending new-epoch directional keys"
+  delivery: "Idempotent semantic handling; each retry uses a fresh record counter and never reuses an AEAD nonce"
+  records:
+    - name: EPOCH_COMMIT
+      frame_type: "0x41"
+      sender: preferred_initiator
+      fields:
+        - name: newEpoch
+          type: UInt
+          size_bytes: 4
+        - name: finalOldOutboundCounter
+          type: ULong
+          size_bytes: 8
+        - name: handshakeHash
+          type: ByteArray
+          size_bytes: 32
+    - name: EPOCH_ACKNOWLEDGEMENT
+      frame_type: "0x42"
+      sender: responder
+      fields:
+        - name: newEpoch
+          type: UInt
+          size_bytes: 4
+        - name: finalOldOutboundCounter
+          type: ULong
+          size_bytes: 8
+        - name: handshakeHash
+          type: ByteArray
+          size_bytes: 32
+  activation:
+    responder: "Activates new outbound epoch after sending EPOCH_ACKNOWLEDGEMENT"
+    initiator: "Activates new outbound epoch after validating EPOCH_ACKNOWLEDGEMENT"
+  old_epoch_drain:
+    timeout_seconds: 30
+    maximum_counter: "Authenticated peer finalOldOutboundCounter"
+    close_condition: "All expected records received, timeout reached, or hard expiry reached — whichever occurs first"
+  pending_application_records: "May be authenticated into a bounded queue but are not delivered before local activation"
+
+gatt_service:
+  service_uuid_32: "0x4D455348"
+  service_uuid_128: "4D455348-0000-1000-8000-00805F9B34FB"
+  private_component_allocation:
+    service: "0x0000"
+    metadata: "0x0001"
+    channel: "0x0002"
+    reserved: "0x0003-0x00FF"
+  assigned_by_bluetooth_sig: false
+  characteristics:
+    - name: METADATA
+      uuid: "4D455348-0001-1000-8000-00805F9B34FB"
+      properties:
+        - read
+    - name: CHANNEL
+      uuid: "4D455348-0002-1000-8000-00805F9B34FB"
+      properties:
+        - write
+        - write_without_response
+        - notify
+        - indicate
+  subscription_gate: "Noise cannot start until CHANNEL notification/indication subscription is confirmed"
+
+gatt_metadata:
+  description: "Untrusted fixed bootstrap record read before Noise and transcript-bound before any field is authoritative"
+  fields:
+    - name: version
+      type: UByte
+      size_bytes: 1
+    - name: appHash
+      type: ByteArray
+      size_bytes: 16
+      derivation: "first128Bits(SHA-256('MeshLink app-id v1' || UTF8(appId)))"
+    - name: peerIdentity
+      type: PeerIdentity
+      size_bytes: 16
+      description: "Claim only until IK/XX succeeds"
+    - name: keyGeneration
+      type: UInt
+      size_bytes: 4
+      description: "Hint for current pin or rotation-recovery selection; never updates trust by itself"
+    - name: psm
+      type: UShort
+      size_bytes: 2
+      valid_values_v1: "0x0000 or 0x0080-0x00FF"
+      description: "Authoritative after Noise transcript validation; 16-bit width preserves future range flexibility"
+    - name: nonce
+      type: ByteArray
+      size_bytes: 16
+      description: "Fresh per physical GATT connection and mixed with canonical metadata into the Noise prologue"
+  excluded:
+    - peerHint
+    - privateKeys
+    - noiseState
+    - routeState
+    - transferState
+    - TransportHandle
+
+gatt_fragment:
+  description: "Connection-local strict in-order bearer fragmentation; no flags or record identifier"
+  maximum_frame_length: 65535
+  pre_auth_maximum_frame_length: 4096
+  fields:
+    - name: index
+      type: UShort
+      size_bytes: 2
+      byte_order: little_endian
+      description: "Zero starts a record; continuation must equal previous index + 1"
+    - name: totalLength
+      type: UShort
+      size_bytes: 2
+      byte_order: little_endian
+      presence: "index == 0"
+      valid_values: "1-65535"
+    - name: payload
+      type: ByteArray
+      size: remaining_characteristic_value
+  completion: "accumulatedLength == totalLength"
+  invalidation: "Gap, wrap, overflow, timeout, conflicting duplicate, disconnect, or malformed start discards active record; ignore continuations until next index zero"
+  concurrency: "One active record per direction per (TransportHandle, ConnectionContext.generation)"
+
+l2cap_frame:
+  description: "Length-prefixed MeshLink Wire Codec frame over ordered L2CAP stream"
+  fields:
+    - name: length
+      type: UShort
+      size_bytes: 2
+      byte_order: little_endian
+      valid_values: "1-65535"
+    - name: frameBytes
+      type: ByteArray
+      size: length
+
+discovery_advertisement:
+  description: "Connectable, undirected legacy BLE advertisement carrying a private 32-bit protocol marker and a dynamic 128-bit metadata UUID"
+  connectable: true
+  directed: false
+  legacy: true
+  estimated_total_bytes_with_flags: 27
+  service_uuids:
+    - name: protocol_marker
+      type: UInt
+      size_bytes: 4
+      value: "0x4D455348"
+      assigned_by_bluetooth_sig: false
+      description: "Private, unassigned 32-bit UUID spelling 'MESH' in ASCII; known scan-filter value"
+    - name: discovery_metadata
+      type: ByteArray
+      size_bytes: 16
+      dynamic: true
+      description: "128-bit service UUID containing the packed fields below; fast-path hint with GATT metadata fallback"
+  metadata_fields:
+    - name: packed_header
+      type: UByte
+      size_bytes: 1
+      bit_layout:
+        protocol_version: "bits 0-2 (3 bits)"
+        platform: "bits 3-5 (3 bits): 0=Android, 1=iOS, 2=Desktop, 3-7=Reserved"
+        power_mode: "bits 6-7 (2 bits): 0=HIGH, 1=MEDIUM, 2=LOW, 3=Reserved"
+    - name: mesh_hash
+      type: UInt
+      bits: 16
+      byte_order: little_endian
+      description: "Application isolation filter derived from appId"
+    - name: capability_flags
+      type: UByte
+      size_bytes: 1
+      bits:
+        l2cap_available: 0
+        reserved: "1-7 (must be zero)"
+      description: "Untrusted preconnection capability hint; actual PSM is available only through transcript-bound GATT metadata"
+    - name: peer_hint
+      type: ByteArray
+      size_bytes: 12
+      generation: "Independent platform CSPRNG value; generated on advertising start and at a best-effort uniform interval from 10 through 20 minutes"
+      persistence: none
+      description: "Rotating unauthenticated discovery hint. Never sent through GATT, included in identity bindings, or used as canonical identity/trust."
+
+frame_type_enum:
+  description: "Explicit UByte codes; encoders never use declaration ordinal"
+  - name: MESH_ENVELOPE
+    code: "0x00"
+  - name: ROUTE_ADVERTISEMENT
+    code: "0x01"
+  - name: ROUTE_WITHDRAWAL
+    code: "0x02"
+  - name: ROUTE_DIGEST
+    code: "0x03"
+  - name: ROUTE_SEQUENCE_ADVANCEMENT
+    code: "0x04"
+  - name: ROUTE_SYNCHRONIZATION
+    code: "0x05"
+  - name: ROUTE_SNAPSHOT
+    code: "0x06"
+  - name: PAYLOAD_MANIFEST
+    code: "0x20"
+  - name: PAYLOAD_DECISION
+    code: "0x21"
+  - name: PAYLOAD_CHUNK
+    code: "0x22"
+  - name: PAYLOAD_ACKNOWLEDGMENT
+    code: "0x23"
+  - name: PAYLOAD_CANCELLATION
+    code: "0x24"
+  - name: KEY_ROTATION
+    code: "0x40"
+  - name: EPOCH_COMMIT
+    code: "0x41"
+  - name: EPOCH_ACKNOWLEDGEMENT
+    code: "0x42"
+
+notes:
+  - "Frame codes are explicit UByte values grouped by protocol area; declaration ordinal is never serialized, duplicate codes fail tests, and unknown codes are dropped before payload parsing."
+  - "Discovery metadata is unauthenticated; the fixed MeshLink GATT service exposes full PeerIdentity, protocol context, and 16-bit PSM when the dynamic UUID is unavailable. peerHint remains advertisement-only."
+  - "A TransportHandle change with the same mapped peerHint may skip full identity resolution but every new physical connection still requires IK/XX authentication."
+  - "All routing control (advertisement, withdrawal, digest, sequence advancement, synchronization, snapshot) is hop-AEAD protected after adjacent Noise authentication; no plaintext mode exists."
+  - "KEY_ROTATION is hop-encrypted and dual-signed; routing SeqNo remains independent and never resets during key rotation."
+  - "Payload identity is (authenticated origin PeerIdentity, kind, UInt id); kind appears in every payload frame and must match the accepted manifest."
+  - "PayloadAcknowledgment uses a fixed 32-byte bitmap: all indices below start are cumulative, bit n represents start+n."

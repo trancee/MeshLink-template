@@ -15,20 +15,20 @@ echo ""
 # 1. Check all required YAML files exist
 echo "1. Checking required YAML spec files..."
 REQUIRED_SPECS=(
-    "enums.yaml"
-    "data-models.yaml"
-    "state-machines.yaml"
-    "wire-frames.yaml"
-    "diagnostic-events.yaml"
-    "settings.yaml"
-    "cross-ref-index.yaml"
+    "codecs/enums.yaml"
+    "codecs/models.yaml"
+    "codecs/frames.yaml"
+    "protocol/state-machines.yaml"
+    "catalogs/diagnostic-events.yaml"
+    "catalogs/settings.yaml"
+    "traceability/specification-map.yaml"
 )
 
 for spec in "${REQUIRED_SPECS[@]}"; do
     if [[ -f "$SPECS_DIR/$spec" ]]; then
         echo "  ✓ $spec"
     else
-        echo "  ✗ MISSING: $spec"
+        echo "  ✗ MISSING: specs/$spec"
         exit 1
     fi
 done
@@ -89,7 +89,7 @@ echo "  (Full enum validation requires Kotlin AST parsing - run detekt/Kover)"
 # 5. Validate settings.yaml matches MeshLinkSettings.kt
 echo ""
 echo "5. Checking settings consistency..."
-if grep -q "powerMode:" "$SPECS_DIR/settings.yaml" && grep -q "PowerMode" "$MESHLINK_SRC/MeshLinkSettings.kt"; then
+if grep -q "powerMode:" "$SPECS_DIR/catalogs/settings.yaml" && grep -q "PowerMode" "$MESHLINK_SRC/MeshLinkSettings.kt"; then
     echo "  ✓ settings.yaml and MeshLinkSettings.kt both reference PowerMode"
 else
     echo "  ⚠ Could not verify settings consistency"
