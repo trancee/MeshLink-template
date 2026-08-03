@@ -70,7 +70,10 @@ kotlin {
     }
 
     sourceSets {
-        commonMain.dependencies { implementation(libs.skie.configuration.annotations) }
+        commonMain.dependencies {
+            implementation(libs.skie.configuration.annotations)
+            implementation(libs.kotlinx.coroutines.core)
+        }
         commonTest.dependencies { implementation(kotlin("test")) }
     }
 }

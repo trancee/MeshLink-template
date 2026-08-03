@@ -90,7 +90,7 @@ wire_frames:
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
       - name: kind
-        type: PayloadKind
+        type: TransferKind
         size_bytes: 1
       - name: id
         type: UInt
@@ -129,7 +129,7 @@ wire_frames:
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
       - name: kind
-        type: PayloadKind
+        type: TransferKind
         size_bytes: 1
       - name: id
         type: UInt
@@ -148,7 +148,7 @@ wire_frames:
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
       - name: kind
-        type: PayloadKind
+        type: TransferKind
         size_bytes: 1
       - name: id
         type: UInt
@@ -166,7 +166,7 @@ wire_frames:
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
       - name: kind
-        type: PayloadKind
+        type: TransferKind
         size_bytes: 1
       - name: id
         type: UInt
@@ -185,7 +185,7 @@ wire_frames:
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
       - name: kind
-        type: PayloadKind
+        type: TransferKind
         size_bytes: 1
       - name: id
         type: UInt

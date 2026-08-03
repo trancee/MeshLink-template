@@ -66,6 +66,34 @@ committing or pushing. See
 [About MeshLink's module structure](docs/explanation/module-structure.md)
 for what each module is for.
 
+## Test File Organization
+
+1. **1:1 Mapping** — Each source file gets exactly one test file with the same base name + `Test` suffix:
+   - `TransferId.kt` → `TransferIdTest.kt`
+   - `MessageId.kt` → `MessageIdTest.kt`
+   - `TransferSession.kt` → `TransferSessionTest.kt`
+
+2. **Package Matching** — Test files live in the same package as the source under `commonTest/`:
+   - `src/commonMain/kotlin/ch/trancee/meshlink/model/TransferId.kt`
+   - `src/commonTest/kotlin/ch/trancee/meshlink/model/TransferIdTest.kt`
+
+3. **Single Responsibility** — Test files test ONLY their corresponding source file:
+   - No mixed tests (e.g., TransferSession tests in TransferIdTest.kt)
+   - Shared/contract types tested in dedicated contract test files (e.g., `PublicApiContractTest.kt`)
+
+## Test Patterns
+
+- Use constructor directly: `TransferId(42u)` not `TransferId.fromUInt(42u)`
+- Only use factory methods (`fromUInt`, `fromBytes`) when explicitly testing those functions
+- Compare raw values via `toUInt()` / `toByteArray()` — avoid `(id as Any).toString()` coercion
+- Always import packages — never use fully qualified class names in code body:
+  - `import ch.trancee.meshlink.model.PeerIdentity` then use `PeerIdentity.ZERO`
+  - Not: `ch.trancee.meshlink.model.PeerIdentity.ZERO`
+- One Act per test; Arrange/Act/Assert visually separated (blank line between each)
+- Test names use backticks with descriptive sentences:
+  - `` `zero id has fixed representation` ``
+  - `` `decimal id round trips through toString and fromUInt` ``
+
 ## Engineering rules
 
 Binding rules on code quality, testing, cross-platform consistency,

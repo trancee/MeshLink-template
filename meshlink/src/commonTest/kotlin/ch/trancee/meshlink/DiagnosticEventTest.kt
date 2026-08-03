@@ -69,7 +69,7 @@ class DiagnosticEventTest {
             noiseEvent(identity),
             DiagnosticEvent.RouteDigestMismatchEvent(identity, 1u, 2u),
             DiagnosticEvent.TransferSessionTransitionEvent(
-                TransferId.fromHex("4"),
+                id = TransferId(4u),
                 identity,
                 TransferState.TRANSFERRING,
                 10L,
@@ -77,7 +77,7 @@ class DiagnosticEventTest {
                 null,
             ),
             DiagnosticEvent.TransferFailureEvent(
-                TransferId.fromHex("4"),
+                id = TransferId(4u),
                 identity,
                 TransferFailureReason.Unrecoverable("failure"),
             ),
@@ -167,7 +167,7 @@ class DiagnosticEventTest {
                     failureReason = NoiseFailureReason.HANDSHAKE_MESSAGE_MALFORMED,
                 ),
                 DiagnosticEvent.TransferSessionTransitionEvent(
-                    id = TransferId.fromHex("5"),
+                    id = TransferId(5u),
                     peerIdentity = identity,
                     state = TransferState.FAILED,
                     offset = 0L,
@@ -175,7 +175,7 @@ class DiagnosticEventTest {
                     reason = null,
                 ),
                 DiagnosticEvent.TransferSessionTransitionEvent(
-                    id = TransferId.fromHex("6"),
+                    id = TransferId(6u),
                     peerIdentity = identity,
                     state = TransferState.EXPIRED,
                     offset = 0L,

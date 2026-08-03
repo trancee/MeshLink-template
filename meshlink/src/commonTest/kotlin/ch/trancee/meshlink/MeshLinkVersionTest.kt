@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 class MeshLinkVersionTest {
     @Test
     fun `version is set`() {
-        assertEquals(MeshLinkVersion(0, 0, 0), MeshLink.VERSION)
+        assertEquals(MeshLinkVersion(0, 1, 0), MeshLink.VERSION)
     }
 
     @Test

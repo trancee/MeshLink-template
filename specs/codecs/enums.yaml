@@ -100,7 +100,7 @@ enums:
         code: "0x42"
         encryption: "Pending new-epoch AEAD"
 
-  - name: PayloadKind
+  - name: TransferKind
     package: ch.trancee.meshlink.transfer
     visibility: internal
     storage: UByte
@@ -108,7 +108,7 @@ enums:
     values:
       - name: MESSAGE
         code: "0x00"
-      - name: TRANSFER
+      - name: PAYLOAD
         code: "0x01"
 
   - name: PayloadDecision

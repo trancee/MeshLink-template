@@ -1,0 +1,64 @@
+package ch.trancee.meshlink.model
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+
+class MessageHandleTest {
+
+    @Test
+    fun `MessageHandle has required API`() {
+        val channel = Channel<TransferResult>()
+        val status =
+            MutableStateFlow(
+                TransferStatus(
+                    state = TransferState.AWAITING_DECISION,
+                    offset = 0L,
+                    total = 100L,
+                    retryCount = 0,
+                    transferResult = null,
+                    diagnosticCode = null,
+                    diagnosticSeverity = null,
+                )
+            )
+
+        val handle =
+            MessageHandle(id = MessageId(1u), status = status, outcome = channel, cancel = {})
+
+        assertEquals(MessageId(1u), handle.id)
+        assertNotNull(handle.status)
+        assertNotNull(handle.outcome)
+        assertNotNull(handle.cancel)
+    }
+
+    @Test
+    fun `MessageHandle await returns terminal outcome`() =
+        kotlinx.coroutines.runBlocking {
+            // Use buffered channel to avoid deadlock on rendezvous send/receive
+            val channel = Channel<TransferResult>(1)
+            val status =
+                MutableStateFlow(
+                    TransferStatus(
+                        state = TransferState.AWAITING_DECISION,
+                        offset = 0L,
+                        total = 100L,
+                        retryCount = 0,
+                        transferResult = null,
+                        diagnosticCode = null,
+                        diagnosticSeverity = null,
+                    )
+                )
+
+            val handle =
+                MessageHandle(id = MessageId(1u), status = status, outcome = channel, cancel = {})
+
+            // Send outcome to buffered channel (won't suspend)
+            channel.send(TransferResult.COMPLETED)
+
+            val result = handle.await()
+
+            assertEquals(TransferResult.COMPLETED, result)
+        }
+}

@@ -50,25 +50,10 @@ public value class TransferId(public val value: UInt) : Comparable<TransferId> {
             }
             return TransferId(bytes.toUIntBE())
         }
-
-        /**
-         * Creates a [TransferId] from a hexadecimal string.
-         *
-         * @param hex at most 8 hex characters (32-bit); leading zeros optional.
-         */
-        public fun fromHex(hex: String): TransferId {
-            require(hex.length <= TRANSFER_ID_HEX_LENGTH) {
-                "TransferId hex must be at most $TRANSFER_ID_HEX_LENGTH chars (32-bit)"
-            }
-            return TransferId(hex.toUInt(HEX_RADIX))
-        }
     }
 
-    override fun toString(): String =
-        value.toString(HEX_RADIX).padStart(TRANSFER_ID_HEX_LENGTH, '0')
+    override fun toString(): String = value.toString()
 }
 
 private const val TRANSFER_ID_BYTE_LENGTH: Int = 4
-private const val TRANSFER_ID_HEX_LENGTH: Int = 8
-private const val HEX_RADIX: Int = 16
 private const val TRANSFER_ID_INCREMENT: UInt = 1u

@@ -103,7 +103,7 @@ MESSAGE and TRANSFER operations:
 
 ```kotlin
 class Transfer {
-    val kind: PayloadKind
+    val kind: TransferKind
     val id: UInt
     val status: StateFlow<TransferStatus>
 }
