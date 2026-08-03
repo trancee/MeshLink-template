@@ -1,6 +1,5 @@
 package ch.trancee.meshlink
 
-import ch.trancee.meshlink.model.DataPlaneBearer
 import ch.trancee.meshlink.model.DecryptFailureReason
 import ch.trancee.meshlink.model.DiagnosticSeverity
 import ch.trancee.meshlink.model.FrameType
@@ -18,9 +17,10 @@ import ch.trancee.meshlink.model.PeerState
 import ch.trancee.meshlink.model.PeerTrust
 import ch.trancee.meshlink.model.Priority
 import ch.trancee.meshlink.model.RegulatoryRegion
-import ch.trancee.meshlink.model.TransferDeliveryOutcome
+import ch.trancee.meshlink.model.TransferResult
 import ch.trancee.meshlink.model.TransferState
 import ch.trancee.meshlink.model.TransportFallbackReason
+import ch.trancee.meshlink.model.TransportLayer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -45,11 +45,11 @@ class EnumCoverageTest {
                 NoiseRole.entries,
                 NoiseFailureReason.entries,
                 TransferState.entries,
-                DataPlaneBearer.entries,
+                TransportLayer.entries,
                 PeerState.entries,
                 PeerTrust.entries,
                 DiagnosticSeverity.entries,
-                TransferDeliveryOutcome.entries,
+                TransferResult.entries,
                 KeyRotationState.entries,
                 PeerLifecycle.entries,
             )
@@ -60,7 +60,7 @@ class EnumCoverageTest {
         // Assert
         names.forEach { assertNotNull(it) }
         assertEquals(5, PeerTrust.entries.size)
-        assertEquals(5, TransferDeliveryOutcome.entries.size)
+        assertEquals(5, TransferResult.entries.size)
         assertEquals(5, MeshLinkState.entries.size)
     }
 }

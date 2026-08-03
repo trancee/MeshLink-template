@@ -64,46 +64,4 @@ class PowerModeTest {
         assertEquals(30.seconds, settings.retryBudget)
         assertEquals(30.seconds, settings.disconnectGracePeriod)
     }
-
-    @Test
-    fun `companion object highSettings is accessible and correct`() {
-        val settings = PowerMode.Companion.highSettings
-        assertEquals(20, settings.scanDutyCycle)
-        assertEquals(100.milliseconds, settings.advertisementInterval)
-        assertEquals((7.5).milliseconds, settings.activeConnectionInterval)
-        assertEquals(15.milliseconds, settings.idleConnectionInterval)
-        assertEquals(8, settings.concurrentConnectionLimit)
-        assertEquals(512, settings.chunkSize)
-        assertEquals(10, settings.retryLimit)
-        assertEquals(60.seconds, settings.retryBudget)
-        assertEquals(15.seconds, settings.disconnectGracePeriod)
-    }
-
-    @Test
-    fun `companion object mediumSettings is accessible and correct`() {
-        val settings = PowerMode.Companion.mediumSettings
-        assertEquals(10, settings.scanDutyCycle)
-        assertEquals(500.milliseconds, settings.advertisementInterval)
-        assertEquals(15.milliseconds, settings.activeConnectionInterval)
-        assertEquals(30.milliseconds, settings.idleConnectionInterval)
-        assertEquals(4, settings.concurrentConnectionLimit)
-        assertEquals(256, settings.chunkSize)
-        assertEquals(5, settings.retryLimit)
-        assertEquals(30.seconds, settings.retryBudget)
-        assertEquals(30.seconds, settings.disconnectGracePeriod)
-    }
-
-    @Test
-    fun `companion object lowSettings is accessible and correct`() {
-        val settings = PowerMode.Companion.lowSettings
-        assertEquals(5, settings.scanDutyCycle)
-        assertEquals(1000.milliseconds, settings.advertisementInterval)
-        assertEquals(30.milliseconds, settings.activeConnectionInterval)
-        assertEquals(60.milliseconds, settings.idleConnectionInterval)
-        assertEquals(2, settings.concurrentConnectionLimit)
-        assertEquals(128, settings.chunkSize)
-        assertEquals(3, settings.retryLimit)
-        assertEquals(15.seconds, settings.retryBudget)
-        assertEquals(45.seconds, settings.disconnectGracePeriod)
-    }
 }

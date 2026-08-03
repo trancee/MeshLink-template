@@ -183,7 +183,7 @@ Transition logic lives in `TransferCoordinator.kt`. Scoreboard completeness chec
 active transfer (TRANSFERRING), with explicit handling for route loss
 (ROUTE_UNAVAILABLE) and retransmission (RETRANSMITTING). Terminal states are
 exhaustive: COMPLETED, CANCELLED, FAILED, EXPIRED. Non-terminal progress is
-represented by state + offset, not a separate delivery outcome.
+represented by state + offset, not a separate transfer result.
 
 ## Configuration Model
 
@@ -214,7 +214,7 @@ Machine-readable reference: [specs/catalogs/diagnostic-events.yaml](../../../spe
 |-------|-------------|
 | route | `RouteDecryptFailureEvent`, `RouteDigestMismatchEvent` |
 | transport | `TransportFallbackEvent` |
-| transfer | `TransferDataPlaneBearerEvent`, `TransferSessionTransitionEvent`, `TransferFailureEvent` |
+| transfer | `TransportLayerEvent`, `TransferSessionTransitionEvent`, `TransferFailureEvent` |
 | power | `PowerModeEffectiveEvent` |
 | handshake | `HandshakeEvent` |
 | key_rotation | `KeyRotationEvent` |

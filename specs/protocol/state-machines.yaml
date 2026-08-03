@@ -356,9 +356,9 @@ state_machines:
       - name: REVOKED
         description: "Key fully revoked, no longer accepted"
 
-  - name: TransferDeliveryOutcome
+  - name: TransferResult
     package: ch.trancee.meshlink
-    description: "Explicit, enumerated delivery outcomes surfaced to host apps. Non-terminal TransferStates return null (no outcome)."
+    description: "Explicit, enumerated transfer results surfaced to host apps. Non-terminal TransferStates return null (no outcome)."
     mapping:
       - transfer_state: COMPLETED
         outcome: SUCCESS
@@ -376,7 +376,7 @@ state_machines:
       - transfer_state: ROUTE_UNAVAILABLE
       - transfer_state: RETRANSMITTING
       - transfer_state: AWAITING_DECISION
-        outcome: null  # non-terminal; deliveryOutcome is null until terminal state
+        outcome: null  # non-terminal; transferResult is null until terminal state
 
   - name: RoutingUpdateTrigger
     package: ch.trancee.meshlink.routing

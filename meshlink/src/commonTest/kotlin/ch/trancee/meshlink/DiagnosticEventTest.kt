@@ -3,7 +3,6 @@ package ch.trancee.meshlink
 import ch.trancee.meshlink.diagnostics.DiagnosticEvent
 import ch.trancee.meshlink.diagnostics.HandshakeId
 import ch.trancee.meshlink.diagnostics.NoiseSessionId
-import ch.trancee.meshlink.model.DataPlaneBearer
 import ch.trancee.meshlink.model.DecryptFailureReason
 import ch.trancee.meshlink.model.DiagnosticSeverity
 import ch.trancee.meshlink.model.HandshakePattern
@@ -19,6 +18,7 @@ import ch.trancee.meshlink.model.TransferFailureReason
 import ch.trancee.meshlink.model.TransferId
 import ch.trancee.meshlink.model.TransferState
 import ch.trancee.meshlink.model.TransportFallbackReason
+import ch.trancee.meshlink.model.TransportLayer
 import ch.trancee.meshlink.model.VerificationLevel
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -54,9 +54,9 @@ class DiagnosticEventTest {
                 identity,
                 TransportFallbackReason.L2CAP_STREAM_ERROR,
             ),
-            DiagnosticEvent.TransferDataPlaneBearerEvent(
-                TransferId.fromHex("1"),
-                DataPlaneBearer.GATT,
+            DiagnosticEvent.TransportLayerEvent(
+                id = TransferId(1u),
+                transport = TransportLayer.GATT,
             ),
             powerEvent(),
             DiagnosticEvent.HandshakeEvent(

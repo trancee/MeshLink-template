@@ -71,7 +71,7 @@ diagnostic_events:
         type: Instant
         default: "Clock.System.now()"
 
-  - name: TransferDataPlaneBearerEvent
+  - name: TransportLayerEvent
     category: transfer
     description: "Data plane bearer selected for a logical transfer."
     fields:
@@ -79,7 +79,7 @@ diagnostic_events:
         type: TransferId
         description: "Contextual finite-payload identifier"
       - name: bearer
-        type: DataPlaneBearer
+        type: TransportLayer
         description: "GATT or L2CAP bearer in use"
       - name: occurredAt
         type: Instant
@@ -286,8 +286,8 @@ exception_error_codes:
     transport: []
     internal: [INTERNAL_ERROR, SERIALIZATION_FAILED]
 
-delivery_outcomes:
-  description: "Terminal outcomes only. Non-terminal progress is represented by TransferState; deliveryOutcome remains null until terminal. Maps to TransferDeliveryOutcome enum and mapTransferDeliveryOutcome()."
+transfer_results:
+  description: "Terminal outcomes only. Non-terminal progress is represented by TransferState; transferResult remains null until terminal. Maps to TransferResult enum and mapTransferResult()."
   outcomes:
     - name: COMPLETED
       source_state: COMPLETED

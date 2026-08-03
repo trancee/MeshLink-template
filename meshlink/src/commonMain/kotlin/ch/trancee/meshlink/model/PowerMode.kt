@@ -18,14 +18,14 @@ public enum class PowerMode {
     public val settings: PowerModeSettings
         get() =
             when (this) {
-                HIGH -> highSettings
-                MEDIUM -> mediumSettings
-                LOW -> lowSettings
+                HIGH -> high()
+                MEDIUM -> medium()
+                LOW -> low()
             }
 
     public companion object {
         /** Settings for HIGH power mode. */
-        internal val highSettings: PowerModeSettings =
+        internal fun high(): PowerModeSettings =
             PowerModeSettings(
                 scanDutyCycle = 20,
                 advertisementInterval = 100.milliseconds,
@@ -39,7 +39,7 @@ public enum class PowerMode {
             )
 
         /** Settings for MEDIUM power mode. */
-        internal val mediumSettings: PowerModeSettings =
+        internal fun medium(): PowerModeSettings =
             PowerModeSettings(
                 scanDutyCycle = 10,
                 advertisementInterval = 500.milliseconds,
@@ -53,7 +53,7 @@ public enum class PowerMode {
             )
 
         /** Settings for LOW power mode. */
-        internal val lowSettings: PowerModeSettings =
+        internal fun low(): PowerModeSettings =
             PowerModeSettings(
                 scanDutyCycle = 5,
                 advertisementInterval = 1000.milliseconds,

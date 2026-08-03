@@ -35,8 +35,8 @@ public enum class Priority {
     LOW,
 }
 
-/** Explicit internal MeshLink Wire Codec frame codes. */
-internal enum class FrameType(public val code: UByte) {
+/** Explicit MeshLink Wire Codec frame codes. */
+public enum class FrameType(public val code: UByte) {
     MESH_ENVELOPE(FrameCode.MESH_ENVELOPE),
     ROUTE_ADVERTISEMENT(FrameCode.ROUTE_ADVERTISEMENT),
     ROUTE_WITHDRAWAL(FrameCode.ROUTE_WITHDRAWAL),
@@ -92,8 +92,8 @@ public enum class TransportFallbackReason {
     LOCAL_POLICY,
 }
 
-/** Data-plane bearer in use for a payload operation. */
-public enum class DataPlaneBearer {
+/** Transport layer in use for a payload operation. */
+public enum class TransportLayer {
     GATT,
     L2CAP,
 }
@@ -176,8 +176,8 @@ public enum class DiagnosticSeverity {
     ERROR,
 }
 
-/** Terminal payload delivery outcomes. */
-public enum class TransferDeliveryOutcome {
+/** Terminal payload transfer result. */
+public enum class TransferResult {
     COMPLETED,
     CANCELLED,
     EXPIRED,

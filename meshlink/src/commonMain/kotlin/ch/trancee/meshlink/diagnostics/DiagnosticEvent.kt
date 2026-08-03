@@ -1,6 +1,5 @@
 package ch.trancee.meshlink.diagnostics
 
-import ch.trancee.meshlink.model.DataPlaneBearer
 import ch.trancee.meshlink.model.DecryptFailureReason
 import ch.trancee.meshlink.model.DiagnosticSeverity
 import ch.trancee.meshlink.model.HandshakePattern
@@ -16,6 +15,7 @@ import ch.trancee.meshlink.model.TransferFailureReason
 import ch.trancee.meshlink.model.TransferId
 import ch.trancee.meshlink.model.TransferState
 import ch.trancee.meshlink.model.TransportFallbackReason
+import ch.trancee.meshlink.model.TransportLayer
 import ch.trancee.meshlink.model.VerificationLevel
 import kotlin.jvm.JvmInline
 import kotlin.time.Clock
@@ -70,9 +70,9 @@ public sealed interface DiagnosticEvent {
         override val severity: DiagnosticSeverity = DiagnosticSeverity.WARN
     }
 
-    public data class TransferDataPlaneBearerEvent(
+    public data class TransportLayerEvent(
         public val id: TransferId,
-        public val bearer: DataPlaneBearer,
+        public val transport: TransportLayer,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
         override val code: DiagnosticCode = DiagnosticCodes.TRANSFER_BEARER

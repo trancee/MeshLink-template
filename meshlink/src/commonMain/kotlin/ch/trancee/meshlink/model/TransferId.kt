@@ -10,8 +10,7 @@ import kotlin.jvm.JvmInline
  * SPEC-ANCHOR: transfer-id-model
  */
 @JvmInline
-public value class TransferId private constructor(private val value: UInt) :
-    Comparable<TransferId> {
+public value class TransferId(public val value: UInt) : Comparable<TransferId> {
     /** Raw 32-bit unsigned value, for wire serialization and deserialization. */
     public fun toUInt(): UInt = value
 

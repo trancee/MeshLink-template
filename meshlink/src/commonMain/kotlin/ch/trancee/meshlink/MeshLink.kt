@@ -1,17 +1,17 @@
 package ch.trancee.meshlink
 
-import co.touchlab.skie.configuration.annotations.SuppressSkieWarning
-
 /**
- * Placeholder entry point for the MeshLink public API.
+ * MeshLink SDK entry point. Instance-based — construct with [MeshLinkSettings] and a
+ * [MeshLinkEnvironment].
  *
- * This exists only to give the Gradle skeleton a real compilation unit and a stable [MeshLink]
- * symbol for the Binary Compatibility Validator baseline. It will be replaced by the actual
- * protocol API as MeshLink's TDD-driven implementation work begins (see PROJECT.md and
- * docs/decisions/).
+ * Placeholder for BCV baseline. Real implementation will handle lifecycle, peer management,
+ * transfer, routing, and diagnostics. This placeholder exists only to give the Gradle skeleton a
+ * real compilation unit and a stable [MeshLink] symbol for the Binary Compatibility Validator
+ * baseline.
  */
-@SuppressSkieWarning.NameCollision
-public object MeshLink {
+public class MeshLink private constructor() {
     /** The MeshLink library version. Replaced once real versioning exists. */
-    public const val VERSION: String = "0.0.0"
+    public companion object {
+        public val VERSION: MeshLinkVersion = MeshLinkVersion(0, 0, 0)
+    }
 }

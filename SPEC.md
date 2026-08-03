@@ -369,6 +369,29 @@ RSSI normalization and the quadratic link-cost conversion are specified in §8.
 
 **SPEC-ANCHOR**: `identity-key-model`, `handshake-key-model`
 
+### 3.10.1 MeshLinkVersion {#meshlink-version}
+
+**Semantic version for MeshLink releases.** Structured as `major.minor.patch` with `Comparable` support for ordering.
+
+```kotlin
+public data class MeshLinkVersion(
+    public val major: Int,
+    public val minor: Int,
+    public val patch: Int,
+) : Comparable<MeshLinkVersion> {
+    public companion object {
+        public fun parse(version: String): MeshLinkVersion
+    }
+    override fun toString(): String  // "major.minor.patch"
+    override fun compareTo(other: MeshLinkVersion): Int
+}
+```
+
+- `MeshLink.VERSION` exposes the current library version as a `MeshLinkVersion`
+- `parse("1.2.3")` constructs from a semver string; throws `IllegalArgumentException` on malformed input
+- Comparison is major → minor → patch, matching standard semver ordering
+- **SPEC-ANCHOR**: `meshlink-version`
+
 ### 3.11 Enums (Shared) {#type-model}
 
 | Enum | Values | Notes |
@@ -380,7 +403,7 @@ RSSI normalization and the quadratic link-cost conversion are specified in §8.
 | `FrameType` | `MESH_ENVELOPE(0x00)`; routing `0x01`–`0x06`; transfer `0x20`–`0x24`; key/epoch `0x40`–`0x42` | Explicit UByte codes; never enum ordinals |
 | `DecryptFailureReason` | `AUTHENTICATION_TAG_MISMATCH`, `REPLAY_DETECTED`, `SEQUENCE_NUMBER_MISMATCH`, `KEY_UNAVAILABLE`, `MALFORMED_FRAME` | |
 | `TransportFallbackReason` | `L2CAP_UNAVAILABLE`, `L2CAP_CONNECT_FAILED`, `L2CAP_OPEN_TIMEOUT`, `L2CAP_STREAM_ERROR`, `L2CAP_STALLED`, `L2CAP_DROPPED_MID_TRANSFER`, `LOCAL_POLICY` | |
-| `DataPlaneBearer` | `GATT`, `L2CAP` | |
+| `TransportLayer` | `GATT`, `L2CAP` | |
 | `RegulatoryRegion` | `DEFAULT`, `EU` | EU clamps adv≥300ms, scan≤70% |
 | `NoiseLayer` | `HOP_BY_HOP`, `END_TO_END` | |
 | `NoiseSessionState` | `DISCONNECTED`, `HANDSHAKING_XX`, `HANDSHAKING_IK`, `ESTABLISHED`, `RENEWING`, `FAILED` | |
@@ -388,7 +411,7 @@ RSSI normalization and the quadratic link-cost conversion are specified in §8.
 | `NoiseFailureReason` | `HANDSHAKE_TIMEOUT`, `HANDSHAKE_MESSAGE_MALFORMED`, `HANDSHAKE_MESSAGE_OUT_OF_ORDER`, `REMOTE_STATIC_KEY_MISMATCH`, `REMOTE_STATIC_KEY_UNKNOWN`, `REKEY_REJECTED`, `TRANSPORT_CLOSED`, `MAX_RETRIES_EXCEEDED`, `INTERNAL_ERROR` | |
 | `PowerMode` | `HIGH`, `MEDIUM`, `LOW` | See §10 for parameters |
 | `VerificationLevel` | `FULL`, `TOFU_PIN`, `NONE` | Handshake verification achieved |
-| `TransferDeliveryOutcome` | `COMPLETED`, `CANCELLED`, `EXPIRED`, `UNRECOVERABLE_FAILURE`, `TRUST_FAILURE` | Terminal outcome; non-terminal progress is TransferState |
+| `TransferResult` | `COMPLETED`, `CANCELLED`, `EXPIRED`, `UNRECOVERABLE_FAILURE`, `TRUST_FAILURE` | Terminal outcome; non-terminal progress is TransferState |
 | `PeerState` | `CONNECTED`, `DISCONNECTED` | Public API |
 | `PeerLifecycle` (internal) | `CONNECTED`, `DISCONNECTED`, `GONE` | Internal runtime tracking |
 | `PeerTrust` | `UNVERIFIED`, `VERIFYING`, `TRUSTED`, `MISMATCHED`, `REVOKED` | Trust classification per known peer |
@@ -867,7 +890,7 @@ All operations on secret data (private keys, shared secrets, session keys, KDF o
 
 **ADR**: docs/decisions/crypto/replay-window.md
 
-### 7.6 Error Hierarchy (Sealed) {#delivery-outcome}
+### 7.6 Error Hierarchy (Sealed) {#transfer-result}
 
 ```text
 MeshLinkException
@@ -1244,7 +1267,7 @@ sealed interface DiagnosticEvent {
     data class NoiseSessionEvent(...) : DiagnosticEvent           // 0x04xx crypto
     data class RouteDecryptFailureEvent(...) : DiagnosticEvent   // 0x05xx routing
     data class RouteDigestMismatchEvent(...) : DiagnosticEvent   // 0x05xx routing
-    data class TransferDataPlaneBearerEvent(...) : DiagnosticEvent  // 0x06xx transfer
+    data class TransportLayerEvent(...) : DiagnosticEvent  // 0x06xx transfer
     data class TransferSessionTransitionEvent(...) : DiagnosticEvent // 0x06xx transfer
     data class TransferFailureEvent(...) : DiagnosticEvent      // 0x06xx transfer
     data class TransportFallbackEvent(...) : DiagnosticEvent    // 0x09xx transport

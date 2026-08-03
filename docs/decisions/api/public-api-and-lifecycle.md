@@ -120,7 +120,7 @@ awaiting a host-provided `TransferSink`; `accept(sink)` and `reject()` are
 idempotent. Both handles expose one atomic `StateFlow<TransferStatus>`, an
 awaitable terminal outcome, and explicit idempotent cancellation. `TransferStatus`
 contains `state`, `offset`, `total`, `retryCount`, and nullable
-`deliveryOutcome`. `offset` is the highest contiguous payload boundary credited
+`transferResult`. `offset` is the highest contiguous payload boundary credited
 as acknowledged outgoing or sink-accepted incoming data; out-of-order progress
 remains represented by SACK state.
 

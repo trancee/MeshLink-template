@@ -51,7 +51,7 @@ enums:
 
   - name: FrameType
     package: ch.trancee.meshlink.wire
-    visibility: internal
+    visibility: public
     description: "Explicit UByte wire codes grouped by protocol area; encoding never uses enum ordinal."
     values:
       - name: MESH_ENVELOPE
@@ -155,10 +155,10 @@ enums:
         ordinal: 5
       - name: LOCAL_POLICY
         ordinal: 6
-  - name: TransferDeliveryOutcome
+  - name: TransferResult
     package: ch.trancee.meshlink.model
     visibility: public
-    description: "Terminal payload delivery outcome surfaced to host apps."
+    description: "Terminal payload transfer result surfaced to host apps."
     values:
       - name: COMPLETED
         ordinal: 0
@@ -171,7 +171,7 @@ enums:
       - name: TRUST_FAILURE
         ordinal: 4
 
-  - name: DataPlaneBearer
+  - name: TransportLayer
     package: ch.trancee.meshlink.model
     description: "Data plane bearer in use for a transfer session."
     values:

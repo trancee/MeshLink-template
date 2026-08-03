@@ -1,6 +1,7 @@
 package ch.trancee.meshlink.proof
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import ch.trancee.meshlink.MeshLinkVersion
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.test.assertEquals
@@ -14,6 +15,6 @@ import kotlin.test.assertEquals
 class MeshLinkProofTest {
     @Test
     fun libraryVersionUnderTest_matchesMeshLink() {
-        assertEquals("0.0.0", MeshLinkProof.libraryVersionUnderTest())
+        assertEquals(MeshLinkVersion(0, 0, 0), MeshLinkProof.libraryVersionUnderTest())
     }
 }
