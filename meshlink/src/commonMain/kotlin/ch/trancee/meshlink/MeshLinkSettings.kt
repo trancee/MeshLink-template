@@ -28,7 +28,7 @@ public data class RoutingSettings(
 
 public data class DiagnosticsSettings(
     public val eventBufferSize: Int = 1000,
-    public val emitToLog: Boolean = false,
+    public val emitLog: Boolean = false,
 )
 
 public data class MeshLinkSettings(
@@ -57,7 +57,7 @@ public class MeshLinkSettingsBuilder {
 
     public var transferMaxRetries: Int = 5
     public var transferChunkSize: Int = 256
-    public var maxTransfersPerPeer: Int = 3
+    public var transferMaxTransfersPerPeer: Int = 3
 
     public var routeAdvertisementChangeThreshold: Int = 3
     public var routeDigestInterval: Duration = 5.minutes
@@ -65,7 +65,7 @@ public class MeshLinkSettingsBuilder {
     public var maxRoutes: Int = 256
 
     public var diagnosticsEventBufferSize: Int = 1000
-    public var emitToLog: Boolean = false
+    public var diagnosticsEmitLog: Boolean = false
 
     public fun keyRotation(block: KeyRotationSettingsBuilder.() -> Unit) {
         KeyRotationSettingsBuilder().apply(block).also { builder ->
@@ -79,7 +79,7 @@ public class MeshLinkSettingsBuilder {
         TransferSettingsBuilder().apply(block).also { builder ->
             transferMaxRetries = builder.maxRetries
             transferChunkSize = builder.chunkSize
-            maxTransfersPerPeer = builder.maxTransfersPerPeer
+            transferMaxTransfersPerPeer = builder.maxTransfersPerPeer
         }
     }
 
@@ -95,7 +95,7 @@ public class MeshLinkSettingsBuilder {
     public fun diagnostics(block: DiagnosticsSettingsBuilder.() -> Unit) {
         DiagnosticsSettingsBuilder().apply(block).also { builder ->
             diagnosticsEventBufferSize = builder.eventBufferSize
-            emitToLog = builder.emitToLog
+            diagnosticsEmitLog = builder.emitLog
         }
     }
 
@@ -113,7 +113,7 @@ public class MeshLinkSettingsBuilder {
         }
         require(transferMaxRetries >= 0) { "maxRetries must not be negative" }
         require(transferChunkSize > 0) { "chunkSize must be positive" }
-        require(maxTransfersPerPeer in MIN_TRANSFERS_PER_PEER..MAX_TRANSFERS_PER_PEER) {
+        require(transferMaxTransfersPerPeer in MIN_TRANSFERS_PER_PEER..MAX_TRANSFERS_PER_PEER) {
             "maxTransfersPerPeer must be between 1 and 3"
         }
         require(routeAdvertisementChangeThreshold >= 0) {
@@ -141,7 +141,7 @@ public class MeshLinkSettingsBuilder {
                 TransferSettings(
                     maxRetries = transferMaxRetries,
                     chunkSize = transferChunkSize,
-                    maxTransfersPerPeer = maxTransfersPerPeer,
+                    maxTransfersPerPeer = transferMaxTransfersPerPeer,
                 ),
             routing =
                 RoutingSettings(
@@ -153,7 +153,7 @@ public class MeshLinkSettingsBuilder {
             diagnostics =
                 DiagnosticsSettings(
                     eventBufferSize = diagnosticsEventBufferSize,
-                    emitToLog = emitToLog,
+                    emitLog = diagnosticsEmitLog,
                 ),
         )
     }
@@ -180,7 +180,7 @@ public class RoutingSettingsBuilder {
 
 public class DiagnosticsSettingsBuilder {
     public var eventBufferSize: Int = 1000
-    public var emitToLog: Boolean = false
+    public var emitLog: Boolean = false
 }
 
 private const val MAX_APP_ID_BYTES: Int = 255

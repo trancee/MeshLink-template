@@ -71,7 +71,7 @@ flows.
 
 ## Platform logging
 
-`DiagnosticsSettings.emitToLog` is opt-in and defaults to `false`. When enabled,
+`DiagnosticsSettings.emitLog` is opt-in and defaults to `false`. When enabled,
 an internal consumer maps events to Logcat on Android and unified logging on
 iOS. Logging uses structured identifiers and the common severity catalog.
 

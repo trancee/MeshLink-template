@@ -8,6 +8,7 @@ import ch.trancee.meshlink.model.HandshakePattern
 import ch.trancee.meshlink.model.KeyRotationReason
 import ch.trancee.meshlink.model.KeyRotationState
 import ch.trancee.meshlink.model.KeyType
+import ch.trancee.meshlink.model.MeshLinkState
 import ch.trancee.meshlink.model.NoiseFailureReason
 import ch.trancee.meshlink.model.NoiseLayer
 import ch.trancee.meshlink.model.NoiseRole
@@ -30,6 +31,7 @@ class EnumCoverageTest {
         // Arrange
         val enums =
             listOf(
+                MeshLinkState.entries,
                 KeyType.entries,
                 KeyRotationReason.entries,
                 HandshakePattern.entries,
@@ -59,5 +61,6 @@ class EnumCoverageTest {
         names.forEach { assertNotNull(it) }
         assertEquals(5, PeerTrust.entries.size)
         assertEquals(5, TransferDeliveryOutcome.entries.size)
+        assertEquals(5, MeshLinkState.entries.size)
     }
 }

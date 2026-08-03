@@ -4,6 +4,8 @@ import ch.trancee.meshlink.model.PowerMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 class PowerModeTest {
     @Test
@@ -22,42 +24,86 @@ class PowerModeTest {
     fun `HIGH settings has all expected values`() {
         val settings = PowerMode.HIGH.settings
         assertEquals(20, settings.scanDutyCycle)
-        assertEquals(100, settings.advertisementInterval)
-        assertEquals(7.5, settings.activeConnectionInterval)
-        assertEquals(15.0, settings.idleConnectionInterval)
+        assertEquals(100.milliseconds, settings.advertisementInterval)
+        assertEquals((7.5).milliseconds, settings.activeConnectionInterval)
+        assertEquals(15.milliseconds, settings.idleConnectionInterval)
         assertEquals(8, settings.concurrentConnectionLimit)
         assertEquals(512, settings.chunkSize)
         assertEquals(10, settings.retryLimit)
-        assertEquals(60, settings.retryBudget)
-        assertEquals(15, settings.disconnectGracePeriod)
+        assertEquals(60.seconds, settings.retryBudget)
+        assertEquals(15.seconds, settings.disconnectGracePeriod)
     }
 
     @Test
     fun `LOW settings has all expected values`() {
         val settings = PowerMode.LOW.settings
         assertEquals(5, settings.scanDutyCycle)
-        assertEquals(1000, settings.advertisementInterval)
-        assertEquals(30.0, settings.activeConnectionInterval)
-        assertEquals(60.0, settings.idleConnectionInterval)
+        assertEquals(1000.milliseconds, settings.advertisementInterval)
+        assertEquals(30.milliseconds, settings.activeConnectionInterval)
+        assertEquals(60.milliseconds, settings.idleConnectionInterval)
         assertEquals(2, settings.concurrentConnectionLimit)
         assertEquals(128, settings.chunkSize)
         assertEquals(3, settings.retryLimit)
-        assertEquals(15, settings.retryBudget)
-        assertEquals(45, settings.disconnectGracePeriod)
+        assertEquals(15.seconds, settings.retryBudget)
+        assertEquals(45.seconds, settings.disconnectGracePeriod)
     }
 
     @Test
-    fun `HIGH_SETTINGS scanDutyCycle`() {
-        assertEquals(20, PowerMode.HIGH_SETTINGS.scanDutyCycle)
+    fun `MEDIUM settings has all expected values`() {
+        // Arrange
+        val settings = PowerMode.MEDIUM.settings
+
+        // Act & Assert
+        assertEquals(10, settings.scanDutyCycle)
+        assertEquals(500.milliseconds, settings.advertisementInterval)
+        assertEquals(15.milliseconds, settings.activeConnectionInterval)
+        assertEquals(30.milliseconds, settings.idleConnectionInterval)
+        assertEquals(4, settings.concurrentConnectionLimit)
+        assertEquals(256, settings.chunkSize)
+        assertEquals(5, settings.retryLimit)
+        assertEquals(30.seconds, settings.retryBudget)
+        assertEquals(30.seconds, settings.disconnectGracePeriod)
     }
 
     @Test
-    fun `MEDIUM_SETTINGS scanDutyCycle`() {
-        assertEquals(10, PowerMode.MEDIUM_SETTINGS.scanDutyCycle)
+    fun `companion object highSettings is accessible and correct`() {
+        val settings = PowerMode.Companion.highSettings
+        assertEquals(20, settings.scanDutyCycle)
+        assertEquals(100.milliseconds, settings.advertisementInterval)
+        assertEquals((7.5).milliseconds, settings.activeConnectionInterval)
+        assertEquals(15.milliseconds, settings.idleConnectionInterval)
+        assertEquals(8, settings.concurrentConnectionLimit)
+        assertEquals(512, settings.chunkSize)
+        assertEquals(10, settings.retryLimit)
+        assertEquals(60.seconds, settings.retryBudget)
+        assertEquals(15.seconds, settings.disconnectGracePeriod)
     }
 
     @Test
-    fun `LOW_SETTINGS scanDutyCycle`() {
-        assertEquals(5, PowerMode.LOW_SETTINGS.scanDutyCycle)
+    fun `companion object mediumSettings is accessible and correct`() {
+        val settings = PowerMode.Companion.mediumSettings
+        assertEquals(10, settings.scanDutyCycle)
+        assertEquals(500.milliseconds, settings.advertisementInterval)
+        assertEquals(15.milliseconds, settings.activeConnectionInterval)
+        assertEquals(30.milliseconds, settings.idleConnectionInterval)
+        assertEquals(4, settings.concurrentConnectionLimit)
+        assertEquals(256, settings.chunkSize)
+        assertEquals(5, settings.retryLimit)
+        assertEquals(30.seconds, settings.retryBudget)
+        assertEquals(30.seconds, settings.disconnectGracePeriod)
+    }
+
+    @Test
+    fun `companion object lowSettings is accessible and correct`() {
+        val settings = PowerMode.Companion.lowSettings
+        assertEquals(5, settings.scanDutyCycle)
+        assertEquals(1000.milliseconds, settings.advertisementInterval)
+        assertEquals(30.milliseconds, settings.activeConnectionInterval)
+        assertEquals(60.milliseconds, settings.idleConnectionInterval)
+        assertEquals(2, settings.concurrentConnectionLimit)
+        assertEquals(128, settings.chunkSize)
+        assertEquals(3, settings.retryLimit)
+        assertEquals(15.seconds, settings.retryBudget)
+        assertEquals(45.seconds, settings.disconnectGracePeriod)
     }
 }

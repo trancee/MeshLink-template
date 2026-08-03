@@ -29,6 +29,7 @@ cross_references:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/IdentityKey.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/HandshakeKey.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferFailureReason.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/MeshLinkState.kt"
     specs:
       - "specs/codecs/models.yaml"
       - "specs/codecs/enums.yaml"
@@ -214,6 +215,7 @@ spec_anchors_in_code:
   - "handshake-key-model" # HandshakeKey.kt
   - "transfer-failure-reason-model" # TransferFailureReason.kt
   - "identity-key-model" # IdentityKey.kt
+  - "meshlink-state" # MeshLinkState.kt
 
 implementation_status:
   implemented:
@@ -223,6 +225,7 @@ implementation_status:
     - "IdentityKey"
     - "PeerState"
     - "All enums in TypeModel.kt"
+    - "MeshLinkState"
     - "DiagnosticEvent sealed hierarchy"
     - "PowerMode"
     - "HandshakeKey"
@@ -234,7 +237,7 @@ implementation_status:
     - "Internal non-Comparable SeqNo and persisted source-owned sequence allocator"
     - "RouteCandidate, LinkQuality, additive cost, EWMA, and hysteresis"
     - "RouteStatement and mandatory destination signatures"
-    - "RouteCoordinator"},{
+    - "RouteCoordinator"
     - "RouteDigestTracker"
     - "RouteAdvertisementPlanner"
     - "TransferCoordinator"

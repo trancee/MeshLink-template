@@ -7,7 +7,7 @@ public final class ch/trancee/meshlink/DiagnosticsSettings {
 	public final fun copy (IZ)Lch/trancee/meshlink/DiagnosticsSettings;
 	public static synthetic fun copy$default (Lch/trancee/meshlink/DiagnosticsSettings;IZILjava/lang/Object;)Lch/trancee/meshlink/DiagnosticsSettings;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getEmitToLog ()Z
+	public final fun getEmitLog ()Z
 	public final fun getEventBufferSize ()I
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
@@ -15,9 +15,9 @@ public final class ch/trancee/meshlink/DiagnosticsSettings {
 
 public final class ch/trancee/meshlink/DiagnosticsSettingsBuilder {
 	public fun <init> ()V
-	public final fun getEmitToLog ()Z
+	public final fun getEmitLog ()Z
 	public final fun getEventBufferSize ()I
-	public final fun setEmitToLog (Z)V
+	public final fun setEmitLog (Z)V
 	public final fun setEventBufferSize (I)V
 }
 
@@ -84,13 +84,12 @@ public final class ch/trancee/meshlink/MeshLinkSettingsBuilder {
 	public final fun diagnostics (Lkotlin/jvm/functions/Function1;)V
 	public final fun getAppId ()Ljava/lang/String;
 	public final fun getBackgroundOperation ()Z
+	public final fun getDiagnosticsEmitLog ()Z
 	public final fun getDiagnosticsEventBufferSize ()I
-	public final fun getEmitToLog ()Z
 	public final fun getKeyRotationCompromiseGracePeriod-UwyO8pc ()J
 	public final fun getKeyRotationGracePeriod-UwyO8pc ()J
 	public final fun getKeyRotationInterval-UwyO8pc ()J
 	public final fun getMaxRoutes ()I
-	public final fun getMaxTransfersPerPeer ()I
 	public final fun getPowerMode ()Lch/trancee/meshlink/model/PowerMode;
 	public final fun getRegulatoryRegion ()Lch/trancee/meshlink/model/RegulatoryRegion;
 	public final fun getRouteAdvertisementChangeThreshold ()I
@@ -98,17 +97,17 @@ public final class ch/trancee/meshlink/MeshLinkSettingsBuilder {
 	public final fun getRouteExpiry-UwyO8pc ()J
 	public final fun getTransferChunkSize ()I
 	public final fun getTransferMaxRetries ()I
+	public final fun getTransferMaxTransfersPerPeer ()I
 	public final fun keyRotation (Lkotlin/jvm/functions/Function1;)V
 	public final fun routing (Lkotlin/jvm/functions/Function1;)V
 	public final fun setAppId (Ljava/lang/String;)V
 	public final fun setBackgroundOperation (Z)V
+	public final fun setDiagnosticsEmitLog (Z)V
 	public final fun setDiagnosticsEventBufferSize (I)V
-	public final fun setEmitToLog (Z)V
 	public final fun setKeyRotationCompromiseGracePeriod-LRDsOJo (J)V
 	public final fun setKeyRotationGracePeriod-LRDsOJo (J)V
 	public final fun setKeyRotationInterval-LRDsOJo (J)V
 	public final fun setMaxRoutes (I)V
-	public final fun setMaxTransfersPerPeer (I)V
 	public final fun setPowerMode (Lch/trancee/meshlink/model/PowerMode;)V
 	public final fun setRegulatoryRegion (Lch/trancee/meshlink/model/RegulatoryRegion;)V
 	public final fun setRouteAdvertisementChangeThreshold (I)V
@@ -116,6 +115,7 @@ public final class ch/trancee/meshlink/MeshLinkSettingsBuilder {
 	public final fun setRouteExpiry-LRDsOJo (J)V
 	public final fun setTransferChunkSize (I)V
 	public final fun setTransferMaxRetries (I)V
+	public final fun setTransferMaxTransfersPerPeer (I)V
 	public final fun transfer (Lkotlin/jvm/functions/Function1;)V
 }
 
@@ -576,6 +576,17 @@ public final class ch/trancee/meshlink/model/KeyType : java/lang/Enum {
 	public static fun values ()[Lch/trancee/meshlink/model/KeyType;
 }
 
+public final class ch/trancee/meshlink/model/MeshLinkState : java/lang/Enum {
+	public static final field CONFIGURED Lch/trancee/meshlink/model/MeshLinkState;
+	public static final field PAUSED Lch/trancee/meshlink/model/MeshLinkState;
+	public static final field RUNNING Lch/trancee/meshlink/model/MeshLinkState;
+	public static final field STOPPED Lch/trancee/meshlink/model/MeshLinkState;
+	public static final field UNINITIALIZED Lch/trancee/meshlink/model/MeshLinkState;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lch/trancee/meshlink/model/MeshLinkState;
+	public static fun values ()[Lch/trancee/meshlink/model/MeshLinkState;
+}
+
 public final class ch/trancee/meshlink/model/MutableScoreboard {
 	public synthetic fun <init> (ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun getTotalChunks-pVg5ArA ()I
@@ -685,32 +696,29 @@ public final class ch/trancee/meshlink/model/PowerMode : java/lang/Enum {
 }
 
 public final class ch/trancee/meshlink/model/PowerMode$Companion {
-	public final fun getHIGH_SETTINGS ()Lch/trancee/meshlink/model/PowerModeSettings;
-	public final fun getLOW_SETTINGS ()Lch/trancee/meshlink/model/PowerModeSettings;
-	public final fun getMEDIUM_SETTINGS ()Lch/trancee/meshlink/model/PowerModeSettings;
 }
 
 public final class ch/trancee/meshlink/model/PowerModeSettings {
-	public fun <init> (IIDDIIIII)V
+	public synthetic fun <init> (IJJJIIIJJLkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()I
-	public final fun component2 ()I
-	public final fun component3 ()D
-	public final fun component4 ()D
+	public final fun component2-UwyO8pc ()J
+	public final fun component3-UwyO8pc ()J
+	public final fun component4-UwyO8pc ()J
 	public final fun component5 ()I
 	public final fun component6 ()I
 	public final fun component7 ()I
-	public final fun component8 ()I
-	public final fun component9 ()I
-	public final fun copy (IIDDIIIII)Lch/trancee/meshlink/model/PowerModeSettings;
-	public static synthetic fun copy$default (Lch/trancee/meshlink/model/PowerModeSettings;IIDDIIIIIILjava/lang/Object;)Lch/trancee/meshlink/model/PowerModeSettings;
+	public final fun component8-UwyO8pc ()J
+	public final fun component9-UwyO8pc ()J
+	public final fun copy-JKF-vGk (IJJJIIIJJ)Lch/trancee/meshlink/model/PowerModeSettings;
+	public static synthetic fun copy-JKF-vGk$default (Lch/trancee/meshlink/model/PowerModeSettings;IJJJIIIJJILjava/lang/Object;)Lch/trancee/meshlink/model/PowerModeSettings;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getActiveConnectionInterval ()D
-	public final fun getAdvertisementInterval ()I
+	public final fun getActiveConnectionInterval-UwyO8pc ()J
+	public final fun getAdvertisementInterval-UwyO8pc ()J
 	public final fun getChunkSize ()I
 	public final fun getConcurrentConnectionLimit ()I
-	public final fun getDisconnectGracePeriod ()I
-	public final fun getIdleConnectionInterval ()D
-	public final fun getRetryBudget ()I
+	public final fun getDisconnectGracePeriod-UwyO8pc ()J
+	public final fun getIdleConnectionInterval-UwyO8pc ()J
+	public final fun getRetryBudget-UwyO8pc ()J
 	public final fun getRetryLimit ()I
 	public final fun getScanDutyCycle ()I
 	public fun hashCode ()I
@@ -732,6 +740,12 @@ public final class ch/trancee/meshlink/model/RegulatoryRegion : java/lang/Enum {
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lch/trancee/meshlink/model/RegulatoryRegion;
 	public static fun values ()[Lch/trancee/meshlink/model/RegulatoryRegion;
+}
+
+public final class ch/trancee/meshlink/model/RoutingPolicy {
+	public static final field INSTANCE Lch/trancee/meshlink/model/RoutingPolicy;
+	public static final field MAX_HOPS I
+	public final fun ttl-5sfh64U (Lch/trancee/meshlink/model/Priority;)J
 }
 
 public final class ch/trancee/meshlink/model/Scoreboard {
@@ -795,8 +809,8 @@ public final class ch/trancee/meshlink/model/SeqNo$Companion {
 
 public final class ch/trancee/meshlink/model/TransferDeliveryOutcome : java/lang/Enum {
 	public static final field CANCELLED Lch/trancee/meshlink/model/TransferDeliveryOutcome;
-	public static final field SUCCESS Lch/trancee/meshlink/model/TransferDeliveryOutcome;
-	public static final field TIMEOUT Lch/trancee/meshlink/model/TransferDeliveryOutcome;
+	public static final field COMPLETED Lch/trancee/meshlink/model/TransferDeliveryOutcome;
+	public static final field EXPIRED Lch/trancee/meshlink/model/TransferDeliveryOutcome;
 	public static final field TRUST_FAILURE Lch/trancee/meshlink/model/TransferDeliveryOutcome;
 	public static final field UNRECOVERABLE_FAILURE Lch/trancee/meshlink/model/TransferDeliveryOutcome;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
@@ -853,11 +867,6 @@ public final class ch/trancee/meshlink/model/TransferId$Companion {
 	public final fun fromHex-fr-QhS8 (Ljava/lang/String;)I
 	public final fun fromUInt-lr_89RA (I)I
 	public final fun getZERO-O05vZdo ()I
-}
-
-public final class ch/trancee/meshlink/model/TransferOutcomeMapper {
-	public static final field INSTANCE Lch/trancee/meshlink/model/TransferOutcomeMapper;
-	public final fun map (Lch/trancee/meshlink/model/TransferState;Lch/trancee/meshlink/model/TransferFailureReason;)Lch/trancee/meshlink/model/TransferDeliveryOutcome;
 }
 
 public final class ch/trancee/meshlink/model/TransferSession {

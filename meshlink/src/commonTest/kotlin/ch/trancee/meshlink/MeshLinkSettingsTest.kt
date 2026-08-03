@@ -27,7 +27,7 @@ class MeshLinkSettingsTest {
         assertEquals(15.minutes, actual.routing.routeExpiry)
         assertEquals(256, actual.routing.maxRoutes)
         assertEquals(1000, actual.diagnostics.eventBufferSize)
-        assertFalse(actual.diagnostics.emitToLog)
+        assertFalse(actual.diagnostics.emitLog)
     }
 
     @Test
@@ -35,13 +35,13 @@ class MeshLinkSettingsTest {
         // Arrange
         val builder = MeshLinkSettingsBuilder()
         builder.appId = "com.example.mesh"
-        assertFalse(builder.emitToLog)
+        assertFalse(builder.diagnosticsEmitLog)
 
         // Act
         val actual = builder.build()
 
         // Assert
-        assertFalse(actual.diagnostics.emitToLog)
+        assertFalse(actual.diagnostics.emitLog)
     }
 
     @Test
@@ -61,7 +61,7 @@ class MeshLinkSettingsTest {
             }
             diagnostics {
                 eventBufferSize = 500
-                emitToLog = true
+                emitLog = true
             }
         }
 
@@ -78,6 +78,6 @@ class MeshLinkSettingsTest {
         assertEquals(10.minutes, actual.routing.routeExpiry)
         assertEquals(100, actual.routing.maxRoutes)
         assertEquals(500, actual.diagnostics.eventBufferSize)
-        assertTrue(actual.diagnostics.emitToLog)
+        assertTrue(actual.diagnostics.emitLog)
     }
 }

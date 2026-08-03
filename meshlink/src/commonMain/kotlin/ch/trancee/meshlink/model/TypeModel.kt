@@ -178,9 +178,9 @@ public enum class DiagnosticSeverity {
 
 /** Terminal payload delivery outcomes. */
 public enum class TransferDeliveryOutcome {
-    SUCCESS,
+    COMPLETED,
     CANCELLED,
-    TIMEOUT,
+    EXPIRED,
     UNRECOVERABLE_FAILURE,
     TRUST_FAILURE,
 }

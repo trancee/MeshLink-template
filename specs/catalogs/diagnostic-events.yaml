@@ -287,13 +287,13 @@ exception_error_codes:
     internal: [INTERNAL_ERROR, SERIALIZATION_FAILED]
 
 delivery_outcomes:
-  description: "Terminal outcomes only. Non-terminal progress is represented by TransferState; TransferStatus.deliveryOutcome remains null until terminal. Maps to TransferDeliveryOutcome enum and TransferOutcomeMapper."
+  description: "Terminal outcomes only. Non-terminal progress is represented by TransferState; deliveryOutcome remains null until terminal. Maps to TransferDeliveryOutcome enum and mapTransferDeliveryOutcome()."
   outcomes:
-    - name: SUCCESS
+    - name: COMPLETED
       source_state: COMPLETED
     - name: CANCELLED
       source_state: CANCELLED
-    - name: TIMEOUT
+    - name: EXPIRED
       source_state: EXPIRED
     - name: UNRECOVERABLE_FAILURE
       source_state: FAILED

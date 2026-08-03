@@ -23,6 +23,7 @@ import ch.trancee.meshlink.model.VerificationLevel
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 class DiagnosticEventTest {
     @Test
@@ -91,13 +92,13 @@ class DiagnosticEventTest {
             10,
             500.milliseconds,
             15.milliseconds,
-            500.milliseconds,
-            5_000.milliseconds,
+            30.milliseconds,
+            5.seconds,
             4,
             256,
             5,
-            30_000.milliseconds,
-            30_000.milliseconds,
+            30.seconds,
+            30.seconds,
         )
 
     private fun rotationEvent(identity: PeerIdentity): DiagnosticEvent.KeyRotationEvent =

@@ -220,7 +220,7 @@ Machine-readable reference: [specs/catalogs/diagnostic-events.yaml](../../../spe
 | key_rotation | `KeyRotationEvent` |
 | noise | `NoiseSessionEvent` |
 
-Events are machine-observable through `MeshLink.diagnostics` and may also be mirrored to platform logging when `DiagnosticsSettings.emitToLog` is enabled.
+Events are machine-observable through `MeshLink.diagnostics` and may also be mirrored to platform logging when `DiagnosticsSettings.emitLog` is enabled.
 
 **Rationale:** Sealed interface hierarchy ensures exhaustive handling. Event codes use
 explicit stable ranges aligned with exception error codes (0x01xx config, 0x04xx

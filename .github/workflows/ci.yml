@@ -34,6 +34,9 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      - name: Install codebase-memory-mcp
+        run: npm install -g codebase-memory-mcp
+
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@v4
 

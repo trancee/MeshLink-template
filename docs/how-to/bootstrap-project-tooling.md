@@ -35,6 +35,7 @@ installing anything or touching Git config.
 | `actionlint` | manual/CI use when editing `.github/workflows/` | GitHub Actions workflow lint |
 | `shellcheck` | manual use when editing `.githooks/*` or `scripts/*.sh` | shell script lint (hooks only run `bash -n`, a syntax check — `shellcheck` catches real bugs `bash -n` misses) |
 | `lychee` | `scripts/check-markdown.sh`, `.githooks/pre-commit`/`pre-push`, CI | verifies Markdown links (relative file paths, anchors, and — outside `--offline` mode — external URLs) actually resolve |
+| `codebase-memory-mcp` | `.mcp.json`, subagents | Code-intelligence MCP server (graph search, architecture analysis, code indexing) — exposes `xd://mcp__codebase_memory_mcp_*` tools |
 
 `scripts/bootstrap.sh` only hard-checks `git`, `gh`, and `node` itself
 (`npm`/`npx` are bundled with Node; `python3`/`pip`/`pipx` aren't invoked by
@@ -62,6 +63,11 @@ commonly installed:
   (`actionlint` usually isn't packaged; the script covers it. The script
   doesn't call `apt` itself — install `yamllint` manually first, or use
   `pip install --user yamllint`, if you're on Debian/Ubuntu without brew.)
+
+`codebase-memory-mcp` provides code intelligence for subagents. Install via npm
+(`npm install -g codebase-memory-mcp` — npm ships with Node.js, a hard
+requirement above) or the official installer:
+`curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash`. The bootstrap script uses the npm method.
 
 `scripts/bootstrap.sh` exists for the cases the above don't cover (no
 matching package, stale package version, or a from-scratch CI-like

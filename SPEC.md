@@ -48,7 +48,7 @@ Mobile devices need to communicate securely without internet, backend servers, o
 | Offline operation | Zero connectivity required once permissions granted |
 | Persisted state | Only trust pin (identity material + first/verified instants); no plaintext or full identifiers cached |
 | Pending state | In-memory only; does not survive process restart |
-| Delivery outcomes | Explicit terminal: `SUCCESS`, `CANCELLED`, `TIMEOUT`, `UNRECOVERABLE_FAILURE`, `TRUST_FAILURE`; non-terminal progress is `null` (see §3.6 TransferState, §11.4) |
+| Delivery outcomes | Explicit terminal: `COMPLETED`, `CANCELLED`, `EXPIRED`, `UNRECOVERABLE_FAILURE`, `TRUST_FAILURE`; non-terminal progress is `null` (see §3.6 TransferState, §11.4) |
 | Wire compatibility | Backward-compatible evolution; breaking changes require major version bump + migration |
 | Performance budgets | See [§12](#12-build--quality-constraints) |
 | Runtime dependency | Maximum one Maven artifact: `kotlinx-coroutines-core`. Crypto uses platform APIs or pure-Kotlin fallbacks |
@@ -388,7 +388,7 @@ RSSI normalization and the quadratic link-cost conversion are specified in §8.
 | `NoiseFailureReason` | `HANDSHAKE_TIMEOUT`, `HANDSHAKE_MESSAGE_MALFORMED`, `HANDSHAKE_MESSAGE_OUT_OF_ORDER`, `REMOTE_STATIC_KEY_MISMATCH`, `REMOTE_STATIC_KEY_UNKNOWN`, `REKEY_REJECTED`, `TRANSPORT_CLOSED`, `MAX_RETRIES_EXCEEDED`, `INTERNAL_ERROR` | |
 | `PowerMode` | `HIGH`, `MEDIUM`, `LOW` | See §10 for parameters |
 | `VerificationLevel` | `FULL`, `TOFU_PIN`, `NONE` | Handshake verification achieved |
-| `TransferDeliveryOutcome` | `SUCCESS`, `CANCELLED`, `TIMEOUT`, `UNRECOVERABLE_FAILURE`, `TRUST_FAILURE` | Terminal outcome; non-terminal progress is TransferState |
+| `TransferDeliveryOutcome` | `COMPLETED`, `CANCELLED`, `EXPIRED`, `UNRECOVERABLE_FAILURE`, `TRUST_FAILURE` | Terminal outcome; non-terminal progress is TransferState |
 | `PeerState` | `CONNECTED`, `DISCONNECTED` | Public API |
 | `PeerLifecycle` (internal) | `CONNECTED`, `DISCONNECTED`, `GONE` | Internal runtime tracking |
 | `PeerTrust` | `UNVERIFIED`, `VERIFYING`, `TRUSTED`, `MISMATCHED`, `REVOKED` | Trust classification per known peer |
@@ -1378,7 +1378,7 @@ val settings = meshLinkSettings {
     
     diagnostics {
         eventBufferSize = 1000
-        emitToLog = true
+        emitLog = true
     }
 }
 ```
@@ -1419,7 +1419,7 @@ data class RoutingSettings(
 
 data class DiagnosticsSettings(
     val eventBufferSize: Int = 1000,
-    val emitToLog: Boolean = false
+    val emitLog: Boolean = false
 )
 ```
 

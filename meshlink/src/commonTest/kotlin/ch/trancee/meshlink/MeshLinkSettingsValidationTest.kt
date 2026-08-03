@@ -103,7 +103,7 @@ class MeshLinkSettingsValidationTest {
         // Arrange
         val builder = MeshLinkSettingsBuilder()
         builder.appId = "com.example.mesh"
-        builder.maxTransfersPerPeer = 0
+        builder.transferMaxTransfersPerPeer = 0
 
         // Act / Assert
         assertFailsWith<IllegalArgumentException> { builder.build() }
@@ -114,7 +114,7 @@ class MeshLinkSettingsValidationTest {
         // Arrange
         val builder = MeshLinkSettingsBuilder()
         builder.appId = "com.example.mesh"
-        builder.maxTransfersPerPeer = 4
+        builder.transferMaxTransfersPerPeer = 4
 
         // Act / Assert
         assertFailsWith<IllegalArgumentException> { builder.build() }
@@ -147,7 +147,7 @@ class MeshLinkSettingsValidationTest {
         // Arrange
         val builder = MeshLinkSettingsBuilder()
         builder.appId = "com.example.mesh"
-        builder.maxTransfersPerPeer = 1
+        builder.transferMaxTransfersPerPeer = 1
         builder.maxRoutes = 1
 
         // Act
@@ -163,7 +163,7 @@ class MeshLinkSettingsValidationTest {
         // Arrange
         val builder = MeshLinkSettingsBuilder()
         builder.appId = "com.example.mesh"
-        builder.maxTransfersPerPeer = 3
+        builder.transferMaxTransfersPerPeer = 3
         builder.maxRoutes = 256
 
         // Act

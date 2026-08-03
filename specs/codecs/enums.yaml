@@ -41,13 +41,13 @@ enums:
     values:
       - name: HIGH
         ordinal: 0
-        default_time_to_live_minutes: 10
+        defaultTimeToLiveMinutes: 10
       - name: NORMAL
         ordinal: 1
-        default_time_to_live_minutes: 5
+        defaultTimeToLiveMinutes: 5
       - name: LOW
         ordinal: 2
-        default_time_to_live_minutes: 1
+        defaultTimeToLiveMinutes: 1
 
   - name: FrameType
     package: ch.trancee.meshlink.wire
@@ -160,11 +160,11 @@ enums:
     visibility: public
     description: "Terminal payload delivery outcome surfaced to host apps."
     values:
-      - name: SUCCESS
+      - name: COMPLETED
         ordinal: 0
       - name: CANCELLED
         ordinal: 1
-      - name: TIMEOUT
+      - name: EXPIRED
         ordinal: 2
       - name: UNRECOVERABLE_FAILURE
         ordinal: 3
@@ -365,7 +365,7 @@ enums:
         description: "Explicitly revoked by user/application"
 
   - name: MeshLinkState
-    package: ch.trancee.meshlink
+    package: ch.trancee.meshlink.model
     visibility: public
     description: "MeshLink instance lifecycle state."
     values:

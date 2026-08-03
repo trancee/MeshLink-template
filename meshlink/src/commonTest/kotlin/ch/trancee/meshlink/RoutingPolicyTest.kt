@@ -12,7 +12,7 @@ class RoutingPolicyTest {
         // Arrange
 
         // Act
-        val lifetimes = Priority.entries.map(RoutingPolicy::ttlFor)
+        val lifetimes = Priority.entries.map(RoutingPolicy::ttl)
 
         // Assert
         assertEquals(listOf(10.minutes, 5.minutes, 1.minutes), lifetimes)

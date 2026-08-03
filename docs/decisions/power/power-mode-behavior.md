@@ -24,7 +24,7 @@ MeshLink requires power-aware operation: discrete power modes governing scan dut
 |-----------|-----------|
 | **Scan duty cycle** | Linear relationship with BLE current draw (studies show ~1:1) |
 | **Advertisement interval** | Shorter = faster discovery, but exponential power cost; 100ms/500ms/1000ms cover practical range |
-| **Connection interval** | Quantized in 1.25ms units; 7.5ms (6 units) = Android floor; 15ms = iOS throughput/power sweet spot |
+| **Connection interval** | Quantized in 1.25 ms units (BLE Link Layer spec); 7.5 ms (6 units) = Android floor, 15 ms = iOS throughput/power sweet spot. See [Punchthrough: BLE Connection Interval & Throughput](https://punchthrough.com/ble-connection-interval-throughput/). Values: 7.5/15/30 ms (HIGH→LOW); idle intervals: 15/30/60 ms |
 | **Chunk size** | Fits within BLE MTU (23–251B) after L2CAP/GATT headers (4B), ChaCha20-Poly1305 overhead (16B nonce+tag), framing |
 | **Max retries / retry budget** | Balanced against battery drain and resource exhaustion; scales with mode's aggressiveness |
 

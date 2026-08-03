@@ -47,8 +47,9 @@ require_hard() {
   fi
 }
 
-# git, gh, and node (for markdownlint-cli2 via npx) are the bootstrap's
-# own dependencies, so they can't be auto-installed by this script.
+# git, gh, and node (for markdownlint-cli2 via npx and codebase-memory-mcp
+# via npm) are the bootstrap's own dependencies, so they can't be auto-installed
+# by this script.
 require_hard git "Install via your OS package manager (e.g. apt install git, brew install git)."
 require_hard gh "Install via https://github.com/cli/cli#installation, then run: gh auth login"
 require_hard node "Install via https://nodejs.org, your OS package manager, or a version manager (nvm/fnm)."
@@ -154,6 +155,20 @@ else
   missing_hard+=("yamllint")
 fi
 
+# Install codebase-memory-mcp — the code-intelligence MCP server configured
+# in .mcp.json. Subagents rely on it for graph search, architecture analysis,
+# and other code-intelligence tools. It's an npm package; npm ships with node.
+if [[ "$check_only" -eq 1 ]]; then
+  command -v codebase-memory-mcp >/dev/null 2>&1 \
+    && echo "[bootstrap] OK: codebase-memory-mcp ($(command -v codebase-memory-mcp))" \
+    || echo "[bootstrap] MISSING: codebase-memory-mcp (--check-only, not installing)"
+elif command -v npm >/dev/null 2>&1; then
+  install_if_missing codebase-memory-mcp npm install -g codebase-memory-mcp
+else
+  echo "[bootstrap] No npm found; codebase-memory-mcp needs manual installation" >&2
+  missing_hard+=("codebase-memory-mcp")
+fi
+
 if [[ ${#missing_hard[@]} -gt 0 ]]; then
   echo "[bootstrap] Some tools could not be installed automatically." >&2
   echo "[bootstrap] See docs/how-to/bootstrap-project-tooling.md for manual steps." >&2
@@ -181,7 +196,7 @@ for hook in .githooks/pre-commit .githooks/pre-push .githooks/commit-msg; do
   fi
 done
 
-for tool in git gh node gitleaks yamllint actionlint shellcheck lychee; do
+for tool in git gh node gitleaks yamllint actionlint shellcheck lychee codebase-memory-mcp; do
   command -v "$tool" >/dev/null 2>&1 || {
     echo "[bootstrap] $tool is still missing after bootstrap." >&2
     exit 1

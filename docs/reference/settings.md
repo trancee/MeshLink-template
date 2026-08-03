@@ -41,7 +41,7 @@ val settings = meshLinkSettings {
     
     diagnostics {
         eventBufferSize = 1000
-        emitToLog = true
+        emitLog = true
     }
 }
 ```

@@ -3,54 +3,54 @@ package ch.trancee.meshlink
 import ch.trancee.meshlink.model.PeerIdentity
 import ch.trancee.meshlink.model.TransferDeliveryOutcome
 import ch.trancee.meshlink.model.TransferFailureReason
-import ch.trancee.meshlink.model.TransferOutcomeMapper
 import ch.trancee.meshlink.model.TransferState
+import ch.trancee.meshlink.model.mapTransferDeliveryOutcome
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class TransferDeliveryOutcomeTest {
 
     @Test
-    fun `COMPLETED maps to SUCCESS`() {
+    fun `COMPLETED maps to COMPLETED`() {
         assertEquals(
-            TransferDeliveryOutcome.SUCCESS,
-            TransferOutcomeMapper.map(TransferState.COMPLETED, null),
+            TransferDeliveryOutcome.COMPLETED,
+            mapTransferDeliveryOutcome(TransferState.COMPLETED, null),
         )
     }
 
     @Test
     fun `AWAITING_DECISION has no terminal outcome`() {
-        assertEquals(null, TransferOutcomeMapper.map(TransferState.AWAITING_DECISION, null))
+        assertEquals(null, mapTransferDeliveryOutcome(TransferState.AWAITING_DECISION, null))
     }
 
     @Test
     fun `TRANSFERRING has no terminal outcome`() {
-        assertEquals(null, TransferOutcomeMapper.map(TransferState.TRANSFERRING, null))
+        assertEquals(null, mapTransferDeliveryOutcome(TransferState.TRANSFERRING, null))
     }
 
     @Test
     fun `RETRANSMITTING has no terminal outcome`() {
-        assertEquals(null, TransferOutcomeMapper.map(TransferState.RETRANSMITTING, null))
+        assertEquals(null, mapTransferDeliveryOutcome(TransferState.RETRANSMITTING, null))
     }
 
     @Test
     fun `ROUTE_UNAVAILABLE has no terminal outcome`() {
-        assertEquals(null, TransferOutcomeMapper.map(TransferState.ROUTE_UNAVAILABLE, null))
+        assertEquals(null, mapTransferDeliveryOutcome(TransferState.ROUTE_UNAVAILABLE, null))
     }
 
     @Test
     fun `CANCELLED maps to CANCELLED`() {
         assertEquals(
             TransferDeliveryOutcome.CANCELLED,
-            TransferOutcomeMapper.map(TransferState.CANCELLED, null),
+            mapTransferDeliveryOutcome(TransferState.CANCELLED, null),
         )
     }
 
     @Test
-    fun `EXPIRED maps to TIMEOUT`() {
+    fun `EXPIRED maps to EXPIRED`() {
         assertEquals(
-            TransferDeliveryOutcome.TIMEOUT,
-            TransferOutcomeMapper.map(TransferState.EXPIRED, null),
+            TransferDeliveryOutcome.EXPIRED,
+            mapTransferDeliveryOutcome(TransferState.EXPIRED, null),
         )
     }
 
@@ -58,7 +58,7 @@ class TransferDeliveryOutcomeTest {
     fun `FAILED with Unrecoverable maps to UNRECOVERABLE_FAILURE`() {
         assertEquals(
             TransferDeliveryOutcome.UNRECOVERABLE_FAILURE,
-            TransferOutcomeMapper.map(
+            mapTransferDeliveryOutcome(
                 TransferState.FAILED,
                 TransferFailureReason.Unrecoverable("error"),
             ),
@@ -69,7 +69,7 @@ class TransferDeliveryOutcomeTest {
     fun `FAILED with TrustFailure maps to TRUST_FAILURE`() {
         assertEquals(
             TransferDeliveryOutcome.TRUST_FAILURE,
-            TransferOutcomeMapper.map(
+            mapTransferDeliveryOutcome(
                 TransferState.FAILED,
                 TransferFailureReason.TrustFailure(PeerIdentity.ZERO),
             ),
@@ -80,7 +80,7 @@ class TransferDeliveryOutcomeTest {
     fun `FAILED with null reason maps to UNRECOVERABLE_FAILURE`() {
         assertEquals(
             TransferDeliveryOutcome.UNRECOVERABLE_FAILURE,
-            TransferOutcomeMapper.map(TransferState.FAILED, null),
+            mapTransferDeliveryOutcome(TransferState.FAILED, null),
         )
     }
 }
