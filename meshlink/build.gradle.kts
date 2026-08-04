@@ -45,6 +45,11 @@ kotlin {
     explicitApi()
     jvmToolchain(21)
 
+    compilerOptions {
+        // Suppress pre-existing warning in ConstantTimeTest.kt for unsigned types.
+        optIn.add("kotlin.ExperimentalUnsignedTypes")
+    }
+
     android {
         namespace = "ch.trancee.meshlink"
         compileSdk = 36
@@ -107,6 +112,10 @@ kover {
         }
     }
 }
+
+// Guarantee the XML report runs whenever ./gradlew check executes,
+// even if tests were previously cached.
+tasks.check { dependsOn(tasks.koverXmlReport) }
 
 skie {
     isEnabled.set(true)

@@ -24,9 +24,9 @@ public final class ch/trancee/meshlink/DiagnosticsSettingsBuilder {
 public final class ch/trancee/meshlink/JvmMeshLinkEnvironment : ch/trancee/meshlink/MeshLinkEnvironment {
 	public fun <init> ()V
 	public fun acquireRadioLease (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun getBleDispatcher ()Lkotlinx/coroutines/CoroutineDispatcher;
 	public fun getComputeDispatcher ()Lkotlinx/coroutines/CoroutineDispatcher;
 	public fun getMonotonicClock ()Lch/trancee/meshlink/MonotonicClock;
+	public fun getRadioDispatcher ()Lkotlinx/coroutines/CoroutineDispatcher;
 	public fun getSecureStorage ()Lch/trancee/meshlink/SecureStorage;
 	public fun releaseRadioLease (Lch/trancee/meshlink/RadioLease;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
@@ -90,8 +90,8 @@ public final class ch/trancee/meshlink/MeshLink {
 	public final fun revokeTrust-RblRkQ0 (Lkotlin/Pair;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun sendMessage-_YHG8HU (Lkotlin/Pair;[BLch/trancee/meshlink/model/TransferOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun sendMessage-_YHG8HU$default (Lch/trancee/meshlink/MeshLink;Lkotlin/Pair;[BLch/trancee/meshlink/model/TransferOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public final fun sendTransfer-_YHG8HU (Lkotlin/Pair;Lch/trancee/meshlink/model/TransferSource;Lch/trancee/meshlink/model/TransferOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun sendTransfer-_YHG8HU$default (Lch/trancee/meshlink/MeshLink;Lkotlin/Pair;Lch/trancee/meshlink/model/TransferSource;Lch/trancee/meshlink/model/TransferOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun sendPayload-_YHG8HU (Lkotlin/Pair;Lch/trancee/meshlink/model/TransferSource;Lch/trancee/meshlink/model/TransferOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun sendPayload-_YHG8HU$default (Lch/trancee/meshlink/MeshLink;Lkotlin/Pair;Lch/trancee/meshlink/model/TransferSource;Lch/trancee/meshlink/model/TransferOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun setPowerMode (Lch/trancee/meshlink/model/PowerMode;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun start (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun stop (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -104,9 +104,9 @@ public final class ch/trancee/meshlink/MeshLink$Companion {
 
 public abstract interface class ch/trancee/meshlink/MeshLinkEnvironment {
 	public abstract fun acquireRadioLease (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun getBleDispatcher ()Lkotlinx/coroutines/CoroutineDispatcher;
 	public abstract fun getComputeDispatcher ()Lkotlinx/coroutines/CoroutineDispatcher;
 	public abstract fun getMonotonicClock ()Lch/trancee/meshlink/MonotonicClock;
+	public abstract fun getRadioDispatcher ()Lkotlinx/coroutines/CoroutineDispatcher;
 	public abstract fun getSecureStorage ()Lch/trancee/meshlink/SecureStorage;
 	public abstract fun releaseRadioLease (Lch/trancee/meshlink/RadioLease;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
@@ -1156,12 +1156,12 @@ public final class ch/trancee/meshlink/model/StorageException : ch/trancee/meshl
 }
 
 public final class ch/trancee/meshlink/model/Transfer {
-	public synthetic fun <init> (Lch/trancee/meshlink/model/TransferKind;ILkotlinx/coroutines/flow/StateFlow;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Lch/trancee/meshlink/model/TransferKind;
-	public final fun component2-pVg5ArA ()I
+	public synthetic fun <init> (ILch/trancee/meshlink/model/TransferKind;Lkotlinx/coroutines/flow/StateFlow;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-pVg5ArA ()I
+	public final fun component2 ()Lch/trancee/meshlink/model/TransferKind;
 	public final fun component3 ()Lkotlinx/coroutines/flow/StateFlow;
-	public final fun copy-OsBMiQA (Lch/trancee/meshlink/model/TransferKind;ILkotlinx/coroutines/flow/StateFlow;)Lch/trancee/meshlink/model/Transfer;
-	public static synthetic fun copy-OsBMiQA$default (Lch/trancee/meshlink/model/Transfer;Lch/trancee/meshlink/model/TransferKind;ILkotlinx/coroutines/flow/StateFlow;ILjava/lang/Object;)Lch/trancee/meshlink/model/Transfer;
+	public final fun copy-OzbTU-A (ILch/trancee/meshlink/model/TransferKind;Lkotlinx/coroutines/flow/StateFlow;)Lch/trancee/meshlink/model/Transfer;
+	public static synthetic fun copy-OzbTU-A$default (Lch/trancee/meshlink/model/Transfer;ILch/trancee/meshlink/model/TransferKind;Lkotlinx/coroutines/flow/StateFlow;ILjava/lang/Object;)Lch/trancee/meshlink/model/Transfer;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getId-pVg5ArA ()I
 	public final fun getKind ()Lch/trancee/meshlink/model/TransferKind;

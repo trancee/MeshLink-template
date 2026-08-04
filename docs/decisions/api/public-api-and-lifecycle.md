@@ -99,12 +99,12 @@ low-severity events only with a summarized overflow event.
 ### Messages and transfers
 
 `transfers` exposes one immutable public `Transfer` snapshot type for both finite
-MESSAGE and TRANSFER operations:
+MESSAGE and PAYLOAD operations:
 
 ```kotlin
 class Transfer {
-    val kind: TransferKind
     val id: UInt
+    val kind: TransferKind
     val status: StateFlow<TransferStatus>
 }
 ```
@@ -114,7 +114,7 @@ in-memory payload and returns `MessageHandle`.
 Delivered `Message` values expose contextual `id: MessageId`, stable
 `origin: PeerIdentity`, and local `completedAt: Instant`; relay/source transport
 identity and sender-provided time are not exposed.
-`sendTransfer` accepts a random-access `TransferSource` and returns
+`sendPayload` accepts a random-access `TransferSource` and returns
 `TransferHandle`. Incoming finite transfers appear as `IncomingTransfer` while
 awaiting a host-provided `TransferSink`; `accept(sink)` and `reject()` are
 idempotent. Both handles expose one atomic `StateFlow<TransferStatus>`, an
@@ -124,7 +124,7 @@ contains `state`, `offset`, `total`, `retryCount`, and nullable
 as acknowledged outgoing or sink-accepted incoming data; out-of-order progress
 remains represented by SACK state.
 
-The v0.1 payload kinds are `MESSAGE` and `TRANSFER`; open-ended streams are out
+The v0.1 payload kinds are `MESSAGE` and `PAYLOAD`; open-ended streams are out
 of scope. `MessageId` and `TransferId` are distinct semantic types that share
 the same four-byte wire slot according to payload kind. See the
 [transfer identifier decision](../transfer/transfer-identifier.md).

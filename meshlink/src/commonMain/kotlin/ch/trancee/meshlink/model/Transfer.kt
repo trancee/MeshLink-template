@@ -8,11 +8,11 @@ import kotlinx.coroutines.flow.StateFlow
  * Exposed via [MeshLink.transfers] StateFlow.
  */
 public data class Transfer(
-    /** Discriminates MESSAGE vs PAYLOAD wire format. */
-    public val kind: TransferKind,
-
     /** Origin-scoped identifier. */
     public val id: UInt,
+
+    /** Discriminates MESSAGE vs PAYLOAD wire format. */
+    public val kind: TransferKind,
 
     /** Current transfer status. */
     public val status: StateFlow<TransferStatus>,

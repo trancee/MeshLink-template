@@ -1,8 +1,5 @@
 package ch.trancee.meshlink.model
 
-import kotlin.ExperimentalUnsignedTypes
-import kotlin.OptIn
-
 /**
  * Stable explicit error codes for all [MeshLinkException] subtypes.
  *
@@ -22,7 +19,6 @@ import kotlin.OptIn
  * SPEC-ANCHOR: error-code
  */
 @Suppress("MagicNumber")
-@OptIn(ExperimentalUnsignedTypes::class)
 public enum class ErrorCode(private val value: Int) {
 
     // Configuration (0x01xx)

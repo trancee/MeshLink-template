@@ -89,13 +89,13 @@ wire_frames:
     description: "E2E-encrypted finite message/transfer offer"
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
-      - name: kind
-        type: TransferKind
-        size_bytes: 1
       - name: id
         type: UInt
         size_bytes: 4
         description: "MessageId or TransferId interpreted by kind; zero invalid"
+      - name: kind
+        type: TransferKind
+        size_bytes: 1
       - name: origin
         type: PeerIdentity
         size_bytes: 16
@@ -128,12 +128,12 @@ wire_frames:
     description: "E2E-encrypted acceptance or typed rejection of a manifest"
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
-      - name: kind
-        type: TransferKind
-        size_bytes: 1
       - name: id
         type: UInt
         size_bytes: 4
+      - name: kind
+        type: TransferKind
+        size_bytes: 1
       - name: decision
         type: PayloadDecision
         size_bytes: 1
@@ -147,12 +147,12 @@ wire_frames:
     description: "Minimal E2E-encrypted payload chunk; offset/length/finality derive from accepted manifest"
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
-      - name: kind
-        type: TransferKind
-        size_bytes: 1
       - name: id
         type: UInt
         size_bytes: 4
+      - name: kind
+        type: TransferKind
+        size_bytes: 1
       - name: index
         type: UInt
         size_bytes: 4
@@ -165,12 +165,12 @@ wire_frames:
     description: "Fixed 256-chunk sliding selective acknowledgement"
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
-      - name: kind
-        type: TransferKind
-        size_bytes: 1
       - name: id
         type: UInt
         size_bytes: 4
+      - name: kind
+        type: TransferKind
+        size_bytes: 1
       - name: start
         type: UInt
         size_bytes: 4
@@ -184,12 +184,12 @@ wire_frames:
     description: "Idempotent E2E-encrypted message/transfer cancellation"
     encryption: "E2E Noise record inside hop-encrypted MESH_ENVELOPE"
     fields:
-      - name: kind
-        type: TransferKind
-        size_bytes: 1
       - name: id
         type: UInt
         size_bytes: 4
+      - name: kind
+        type: TransferKind
+        size_bytes: 1
       - name: reason
         type: TransferFailureReason
 

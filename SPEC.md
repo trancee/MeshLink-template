@@ -129,7 +129,7 @@ class MeshLink(
         options: TransferOptions = TransferOptions.DEFAULT,
     ): MessageHandle
 
-    suspend fun sendTransfer(
+    suspend fun sendPayload(
         destination: PeerIdentity,
         source: TransferSource,
         options: TransferOptions = TransferOptions.DEFAULT,
@@ -311,7 +311,7 @@ sealed interface TransferFailureReason {
 ### 3.8 TransferId and MessageId {#transfer-id-model}
 
 A payload is identified by `(authenticated origin PeerIdentity, PayloadKind, id)`,
-where `id` is a `TransferId` for `TRANSFER` payloads or `MessageId` for `MESSAGE`
+where `id` is a `TransferId` for `PAYLOAD` payloads or `MessageId` for `MESSAGE`
 payloads. Both share the same 32-bit `UInt` wire slot; `kind` determines
 interpretation and zero is reserved as invalid for either.
 
@@ -1076,7 +1076,7 @@ configurable as the other.
 ### 9.1 Manifest and Acceptance
 
 Every finite payload starts with an E2E-encrypted PayloadManifest carrying kind
-(MESSAGE/TRANSFER), source-owned ID, origin/destination, priority,
+(MESSAGE/PAYLOAD), source-owned ID, origin/destination, priority,
 timeToLive, totalLength, chunkSize, and chunkCount.
 
 Messages up to 64 KiB auto-accept under a 2 MiB global incomplete-message budget.

@@ -14,8 +14,9 @@ import ch.trancee.meshlink.model.TransferHandle
 import ch.trancee.meshlink.model.TransferOptions
 import ch.trancee.meshlink.model.TransferResult
 import ch.trancee.meshlink.model.TransferSource
-import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 private const val MAX_APP_ID_BYTES = 255
@@ -57,7 +58,7 @@ private constructor(
         public fun create(settings: MeshLinkSettings, environment: MeshLinkEnvironment): MeshLink {
             // Validate settings
             require(settings.appId.isNotBlank()) { "appId must not be blank" }
-            require(settings.appId.toByteArray(StandardCharsets.UTF_8).size <= MAX_APP_ID_BYTES) {
+            require(settings.appId.encodeToByteArray().size <= MAX_APP_ID_BYTES) {
                 "appId exceeds $MAX_APP_ID_BYTES bytes"
             }
 
@@ -66,25 +67,26 @@ private constructor(
     }
 
     /** Current lifecycle state. */
-    public val state: StateFlow<MeshLinkState> = TODO()
+    public val state: StateFlow<MeshLinkState> = MutableStateFlow(MeshLinkState.CONFIGURED)
 
     /** Known peers snapshot (includes unverified, verifying, trusted, mismatched, revoked). */
-    public val knownPeers: StateFlow<List<KnownPeer>> = TODO()
+    public val knownPeers: StateFlow<List<KnownPeer>> = MutableStateFlow(emptyList())
 
     /** Active transfers snapshot. */
-    public val transfers: StateFlow<List<Transfer>> = TODO()
+    public val transfers: StateFlow<List<Transfer>> = MutableStateFlow(emptyList())
 
     /** Incoming complete messages flow. */
-    public val messages: Flow<Message> = TODO()
+    public val messages: Flow<Message> = MutableSharedFlow()
 
     /** Diagnostic events flow. */
-    public val diagnostics: Flow<DiagnosticEvent> = TODO()
+    public val diagnostics: Flow<DiagnosticEvent> = MutableSharedFlow()
 
     /** Current power mode. */
-    public val powerMode: StateFlow<PowerMode> = TODO()
+    public val powerMode: StateFlow<PowerMode> = MutableStateFlow(PowerMode.MEDIUM)
 
     /** Effective power settings after regulatory/platform clamping. */
-    public val effectivePowerSettings: StateFlow<PowerModeSettings> = TODO()
+    public val effectivePowerSettings: StateFlow<PowerModeSettings> =
+        MutableStateFlow(PowerMode.MEDIUM.settings)
 
     /**
      * Starts the MeshLink instance.
@@ -173,7 +175,7 @@ private constructor(
     }
 
     /**
-     * Sends a TRANSFER (large payload, requires host sink on receiver).
+     * Sends a PAYLOAD (large payload, requires host sink on receiver).
      *
      * @param destination target peer identity
      * @param source random-access source for payload data
@@ -182,7 +184,7 @@ private constructor(
      * @throws TransferException if transfer cannot be initiated
      */
     @Suppress("UNUSED_PARAMETER")
-    public suspend fun sendTransfer(
+    public suspend fun sendPayload(
         destination: PeerIdentity,
         source: TransferSource,
         options: TransferOptions = TransferOptions.DEFAULT,

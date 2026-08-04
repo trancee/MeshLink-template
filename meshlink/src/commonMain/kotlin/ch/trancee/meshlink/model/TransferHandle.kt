@@ -4,9 +4,9 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Handle for an outbound TRANSFER operation.
+ * Handle for an outbound PAYLOAD operation.
  *
- * Returned by [MeshLink.sendTransfer]. Provides status observation and cancellation.
+ * Returned by [MeshLink.sendPayload]. Provides status observation and cancellation.
  */
 public class TransferHandle
 internal constructor(

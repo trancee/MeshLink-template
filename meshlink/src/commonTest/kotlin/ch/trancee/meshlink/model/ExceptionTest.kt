@@ -38,7 +38,7 @@ class ExceptionTest {
         assertEquals(ErrorCode.TRANSFER_TIMEOUT, transferEx.errorCode)
 
         // All are MeshLinkException
-        val all =
+        val all: List<Any> =
             listOf(
                 configEx,
                 lifecycleEx,

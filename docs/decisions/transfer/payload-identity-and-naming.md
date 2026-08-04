@@ -11,7 +11,7 @@ Every finite payload is identified by:
 ```
 
 - `origin` is the PeerIdentity of the installation that created the payload.
-- `kind` is MESSAGE or TRANSFER.
+- `kind` is MESSAGE or PAYLOAD.
 - `id` is the MessageId or TransferId interpreted by kind.
 
 This identity survives relay forwarding, route change, hop reconnection,

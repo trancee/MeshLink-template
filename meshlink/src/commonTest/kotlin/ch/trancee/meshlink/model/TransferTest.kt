@@ -21,10 +21,10 @@ class TransferTest {
                 )
             )
 
-        val transfer = Transfer(kind = TransferKind.PAYLOAD, id = 123u, status = status)
+        val transfer = Transfer(id = 123u, kind = TransferKind.PAYLOAD, status = status)
 
-        assertEquals(TransferKind.PAYLOAD, transfer.kind)
         assertEquals(123u, transfer.id)
+        assertEquals(TransferKind.PAYLOAD, transfer.kind)
         assertEquals(TransferState.AWAITING_DECISION, transfer.status.value.state)
     }
 }

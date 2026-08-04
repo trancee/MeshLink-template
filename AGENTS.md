@@ -33,7 +33,7 @@ New clone? Run `./scripts/bootstrap.sh` once before anything else — see
    [Quality Gates](CONSTITUTION.md#quality-gates) for the commit format and
    the feature-branch requirement. AI-assisted commits MUST include a
    `Co-authored-by:` trailer identifying the agent.
-6. Before opening a PR, run the `/code-review` skill and resolve any
+6. Before opening a PR, run the code `/review` skill and resolve any
    genuine issues it finds.
 7. Use the `gh` CLI for GitHub operations (issues, PRs, repos, workflow
    runs) instead of raw API calls.

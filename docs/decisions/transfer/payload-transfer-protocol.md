@@ -11,7 +11,7 @@
 ## Why two payload kinds
 
 MeshLink has two finite payload kinds: `MESSAGE` (≤64 KiB, in-memory) and
-`TRANSFER` (unbounded, random-access `TransferSource`/`TransferSink`).
+`PAYLOAD` (unbounded, random-access `TransferSource`/`TransferSink`).
 
 **Rationale:** Small messages benefit from automatic acceptance and bounded
 memory. Large transfers require explicit host cooperation (source/sink) because
