@@ -53,11 +53,11 @@ class IncomingTransferTest {
         val incoming = createIncomingTransfer()
         val sink =
             object : TransferSink {
-                override suspend fun write(offset: Long, data: ByteArray) = Unit
+                override suspend fun write(offset: Long, bytes: ByteArray) = Unit
 
                 override suspend fun complete() = Unit
 
-                override suspend fun fail(result: TransferResult) = Unit
+                override suspend fun abort(cause: MeshLinkException?) = Unit
             }
 
         assertFailsWith<NotImplementedError> { runBlocking { incoming.accept(sink) } }

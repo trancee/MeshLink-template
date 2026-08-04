@@ -154,7 +154,17 @@ encoding. Booleans accept only `0x00` and `0x01`; enum values use explicit
 contract codes; no varints, platform alignment, or implicit numeric conversion
 exists in v0.1. Signed values preserve two's-complement bit patterns. Decoders
 range-check before conversion to Kotlin values, producing identical byte vectors
-on JVM, Android, iOS, and Native.
+
+### Layer separation: wire codec vs. model serialization
+
+The little-endian encoding above applies to **frame envelope fields and all on-wire scalar fields** defined in `frames.yaml`. It is distinct from the **model-layer serialization** used by value classes for storage and cross-platform comparison (e.g., `PeerIdentity.toByteArray()`, `SeqNo.toByteArray()`), which use big-endian via `BigEndianConversions.kt`.
+
+This separation is intentional:
+
+- **Wire codec (this document)**: little-endian — matches the platform endianness of all target architectures (x86, ARMv7, ARM64, RISC-V) and avoids byte-swap overhead in hot paths.
+- **Model serialization**: big-endian — provides human-readable hex output, deterministic ordering, and is not constrained by BLE transport performance.
+
+When a model value is encoded into a wire frame (e.g., a 16-byte `PeerIdentity` inside a `MESH_ENVELOPE` payload), the `FrameWriter` reads the model bytes directly without byte-swapping; the field's `type` in `frames.yaml` determines its wire encoding, and fixed-width byte types (`Byte[N]`) inherit the model layer's byte order. Only explicitly typed scalar fields (`UShort`, `UInt`, `ULong`) undergo little-endian encoding.
 
 ## Nested data and allocation limits
 

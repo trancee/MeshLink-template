@@ -41,7 +41,23 @@ validated by the Noise transcript. PeerIdentity/keyGeneration are claims used
 only to select IK, XX, or rotation recovery; keyGeneration never changes trust
 alone. `psm` is authoritative only after
 Noise; v0.1 accepts `0x0000` or `0x0080`–`0x00FF` while retaining a 16-bit width.
-peerHint and TransportHandle are excluded.
+
+### PSM allocation policy
+
+The 16-bit `psm` field is **never a static, application-chosen value**. L2CAP CoC
+PSMs in the dynamic range are assigned by the operating system when the server
+registers an L2CAP CoC service. On Android, `BluetoothServerSocket` with an
+`L2CAP` socket type receives a PSM from the Bluetooth stack. On iOS,
+`CBL2CAPChannel` exposes a PSM after the channel is published.
+
+`0x0000` indicates "L2CAP not available on this peer/installation" — the central
+falls back to GATT for all traffic. `0x0080`–`0x00FF` is the v0.1 dynamic range
+accepted without truncation when both peers support L2CAP.
+
+The advertisement carries only an L2CAP-availability capability bit (see ADR
+`connectable-advertisement.md`). The actual PSM is obtainable only from trusted
+GATT metadata after Noise authentication, which prevents an attacker from
+redirecting L2CAP traffic to an arbitrary PSM.
 
 ## Subscription gate
 

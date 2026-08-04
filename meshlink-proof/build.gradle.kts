@@ -10,7 +10,7 @@ plugins {
 
 android {
     namespace = "ch.trancee.meshlink.proof"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 26

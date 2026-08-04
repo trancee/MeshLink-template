@@ -8,7 +8,7 @@ class TransferSinkTest {
     fun `TransferSink interface exists`() {
         val sink =
             object : TransferSink {
-                override suspend fun write(offset: Long, data: ByteArray) {
+                override suspend fun write(offset: Long, bytes: ByteArray) {
                     // Empty implementation for compile test
                 }
 
@@ -16,7 +16,7 @@ class TransferSinkTest {
                     // Empty implementation for compile test
                 }
 
-                override suspend fun fail(result: TransferResult) {
+                override suspend fun abort(cause: MeshLinkException?) {
                     // Empty implementation for compile test
                 }
             }

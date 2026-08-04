@@ -20,6 +20,37 @@ breaking peer recognition. The hint is untrusted because only the dual-signed
 rotation proof establishes continuity. An attacker could advertise any generation
 value; we only trust it after cryptographic validation.
 
+## Application hash (appHash)
+
+`appHash` is the 128-bit application isolation identifier derived from the `appId`
+configured in `MeshLinkSettings`. It is never derived from peer identity or keys:
+
+```text
+appHash = first128Bits(SHA-256("MeshLink app-id v1" || UTF8(appId)))
+```
+
+In Kotlin, `AppHash` is a `@JvmInline value class` backed by `Pair<ULong, ULong>`
+(two 64-bit limbs), matching the `PeerIdentity` representation pattern. The
+`Pair<ULong, ULong>` backing:
+
+- **JVM**: `@JvmInline` provides zero-allocation value semantics — no `ByteArray`
+  object is heap-allocated when an `AppHash` is created or passed to functions.
+- **Kotlin/Native (iOS)**: `ULong` is a 64-bit primitive stored directly in the
+  `Pair` object — no boxing occurs. A `ByteArray` would allocate a separate array
+  object with header overhead; `Pair<ULong, ULong>` avoids that.
+- **Android**: Same as JVM via `@JvmInline`.
+
+`AppHash.toByteArray()` yields a 16-byte big-endian representation for canonical
+wire field encoding. Two MeshLink instances with different `appId`
+values produce different `appHash` values and **never** interoperate, even if they
+share the same `meshHash`.
+
+**Rationale:** The 128-bit width prevents birthday-scale collision attacks that
+a 16-bit `meshHash` cannot. Using the same `Pair<ULong, ULong>` backing as
+`PeerIdentity` keeps the encoding consistent across all 128-bit identity-class
+values and avoids platform-specific `ByteArray` allocation patterns in
+cross-platform code.
+
 ## What fail closed does not mean
 
 - It does not require crashing the process.

@@ -225,6 +225,7 @@ spec_anchors_in_code:
   - "diagnostic-event" # DiagnosticEvent.kt
   - "power-mode-settings" # PowerMode.kt
   - "replay-window" # ReplayWindow.kt
+  - "app-hash" # AppHash.kt (ch/trancee/meshlink/model/AppHash.kt)
 
 implementation_status:
   implemented:
@@ -260,6 +261,7 @@ implementation_status:
     - "Virtual mesh harness"
     - "Custom MeshLink Wire Codec (frames, enums, models, bounded reader/writer)"
     - "TransferId and source-owned persisted range allocator"
+    - "AppHash type and derivation (documented in ADR identity-binding-and-fail-closed.md; Pair<ULong,ULong> representation)"
 
 test_files_by_layer:
   data_model:

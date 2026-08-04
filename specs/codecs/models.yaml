@@ -12,7 +12,7 @@ data_models:
       - name: parts
         type: "Pair<ULong, ULong>"
         visibility: private
-        description: "Lower (first) and upper (second) 8 bytes of the 16-byte identity"
+        description: "Upper (first) and lower (second) 8 bytes of the 16-byte identity in big-endian order"
     methods:
       - name: toString
         return_type: String
@@ -120,7 +120,7 @@ data_models:
     type: class
     description: "Internal bounded-message/test scoreboard. Large-transfer wire ACK uses the fixed 256-chunk PayloadAcknowledgement window; this model is not a configurable wire encoding."
     constructors:
-      - name: Scoreboard(totalChunks: UInt)
+      - name: "Scoreboard(totalChunks: UInt)"
         description: "Dynamic bitfield sized for the actual chunk count."
     fields:
       - name: totalChunks
@@ -129,15 +129,6 @@ data_models:
       - name: byteSize
         type: Int
         description: "Number of bytes in the underlying bitfield — for wire-frame sizing"
-      - name: receivedCount
-        type: Int
-        description: "O(1) — cached; updated incrementally on markReceived/markMissing"
-      - name: missingCount
-        type: Int
-        description: "O(1) — derived as totalChunks - receivedCount"
-      - name: isComplete
-        type: Boolean
-        description: "O(1) — true when all chunks received"
     functions:
       - name: markReceived
         params:
@@ -166,6 +157,15 @@ data_models:
       - name: missingChunks
         return_type: List<Int>
         description: "Allocates a list of missing chunk indices. Use missingSequence or forEachMissing for zero-allocation alternatives."
+      - name: receivedCount
+        return_type: Int
+        description: "O(1) — cached; updated incrementally on markReceived/markMissing"
+      - name: missingCount
+        return_type: Int
+        description: "O(1) — derived as totalChunks - receivedCount"
+      - name: isComplete
+        return_type: Boolean
+        description: "O(1) — true when all chunks received"
       - name: missingSequence
         return_type: Sequence<Int>
         description: "Lazy sequence of missing chunk indices — no list allocation."
@@ -205,15 +205,6 @@ data_models:
       - name: totalChunks
         type: UInt
         description: "Total number of chunks in this transfer"
-      - name: receivedCount
-        type: Int
-        description: "O(1) cached count, updated incrementally"
-      - name: missingCount
-        type: Int
-        description: "O(1) derived count"
-      - name: isComplete
-        type: Boolean
-        description: "O(1) — true when all chunks received"
     functions:
       - name: markReceived
         params:
@@ -324,9 +315,6 @@ data_models:
       - name: retryCount
         type: Int
         description: "Number of retransmit attempts made so far"
-      - name: result
-        type: "TransferResult?"
-        description: "Terminal outcome; null while non-terminal"
 
   - name: TransferId
     package: ch.trancee.meshlink.model
@@ -468,4 +456,37 @@ data_models:
         description: "Creates a HandshakeKey from a 32-byte ByteArray"
       - name: toByteArray
         return_type: ByteArray
-        description: "Returns the raw key bytes"
+
+  - name: AppHash
+    package: ch.trancee.meshlink.model
+    type: value_class
+    description: "128-bit application isolation hash derived from appid. Never derived from peer identity or keys. Two MeshLink instances with different appId values never interoperate. Backed by Pair<ULong, ULong> matching the PeerIdentity representation pattern to avoid ByteArray allocation in hot paths."
+    fields:
+      - name: value
+        type: "Pair<ULong, ULong>"
+        visibility: private
+        description: "Upper (first) and lower (second) 8 bytes of the 16-byte appHash in big-endian order"
+    methods:
+      - name: toString
+        return_type: String
+        description: "32-character hex representation (16 chars per ULong, zero-padded)"
+      - name: toByteArray
+        return_type: ByteArray
+        description: "16-byte big-endian representation for canonical wire field encoding"
+    companion_functions:
+      - name: derive
+        params:
+          - name: appId
+            type: String
+        return_type: AppHash
+        description: "first128Bits(SHA-256('MeshLink app-id v1' || UTF8(appId)))"
+      - name: fromBytes
+        params:
+          - name: bytes
+            type: ByteArray
+        return_type: AppHash
+        description: "Creates an AppHash from a 16-byte ByteArray"
+    functions:
+      - name: toByteArray
+        return_type: ByteArray
+        description: "Returns the 16-byte big-endian representation"

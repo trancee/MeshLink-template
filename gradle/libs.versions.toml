@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.4.10"
-agp = "9.3.0"
-detekt = "2.0.0-alpha.5"
+agp = "9.3.1"
+detekt = "2.0.0-alpha.6"
 ktfmt-gradle = "0.26.0"
 kover = "0.9.9"
 binary-compatibility-validator = "0.18.1"

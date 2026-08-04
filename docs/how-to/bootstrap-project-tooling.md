@@ -9,6 +9,11 @@ Git hooks installed" in one step.
 ./scripts/bootstrap.sh
 ```
 
+> **Submodule note:** If you cloned without `--recurse-submodules`, run
+> `git submodule update --init --recursive` before building. The
+> `meshlink-crypto` submodule (Gradle composite build) is required for
+> `:meshlink` to compile.
+
 This verifies `git`, `gh`, and `node` (for `markdownlint-cli2` via `npx`)
 are present — `gh` also authenticated (`gh auth login` if not) — installs
 `gitleaks`, `actionlint`, `shellcheck`, and `lychee` if missing (via

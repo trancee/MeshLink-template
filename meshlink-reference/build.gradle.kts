@@ -19,7 +19,7 @@ kotlin {
 
     android {
         namespace = "ch.trancee.meshlink.reference"
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 26
     }
 

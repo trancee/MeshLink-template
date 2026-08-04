@@ -33,17 +33,37 @@ import kotlin.time.Instant
 
 @JvmInline public value class NoiseSessionId(public val value: UInt)
 
+/**
+ * Diagnostic event codes.
+ *
+ * Diagnostic codes use the 0x81xx–0x8Fxx range, aligned with (but never overlapping) the
+ * [ErrorCode] exception ranges (0x01xx–0x0Fxx). The high bit 0x8000 distinguishes diagnostics from
+ * error codes on the wire so a diagnostic event can never be mistaken for an exception.
+ *
+ * Category alignment:
+ * - 0x81xx: Configuration
+ * - 0x82xx: Permission
+ * - 0x83xx: Bluetooth
+ * - 0x84xx: Crypto
+ * - 0x85xx: Routing
+ * - 0x86xx: Transfer
+ * - 0x87xx: Storage
+ * - 0x88xx: Lifecycle
+ * - 0x89xx: Transport
+ * - 0x8Axx: Trust
+ * - 0x8Fxx: Internal
+ */
 public object DiagnosticCodes {
-    public val ROUTE_DECRYPTION_FAILED: DiagnosticCode = DiagnosticCode(0x0501u)
-    public val TRANSPORT_FALLBACK: DiagnosticCode = DiagnosticCode(0x0901u)
-    public val TRANSFER_BEARER: DiagnosticCode = DiagnosticCode(0x0601u)
-    public val POWER_MODE_SETTINGS: DiagnosticCode = DiagnosticCode(0x0102u)
-    public val HANDSHAKE: DiagnosticCode = DiagnosticCode(0x0401u)
-    public val KEY_ROTATION: DiagnosticCode = DiagnosticCode(0x0402u)
-    public val NOISE_SESSION: DiagnosticCode = DiagnosticCode(0x0403u)
-    public val ROUTE_DIGEST_MISMATCH: DiagnosticCode = DiagnosticCode(0x0502u)
-    public val TRANSFER_STATE: DiagnosticCode = DiagnosticCode(0x0602u)
-    public val TRANSFER_FAILURE: DiagnosticCode = DiagnosticCode(0x0603u)
+    public val ROUTE_DECRYPTION_FAILED: DiagnosticCode = DiagnosticCode(0x8501u)
+    public val TRANSPORT_FALLBACK: DiagnosticCode = DiagnosticCode(0x8901u)
+    public val TRANSFER_BEARER: DiagnosticCode = DiagnosticCode(0x8601u)
+    public val POWER_MODE_SETTINGS: DiagnosticCode = DiagnosticCode(0x8101u)
+    public val HANDSHAKE: DiagnosticCode = DiagnosticCode(0x8401u)
+    public val KEY_ROTATION: DiagnosticCode = DiagnosticCode(0x8402u)
+    public val NOISE_SESSION: DiagnosticCode = DiagnosticCode(0x8403u)
+    public val ROUTE_DIGEST_MISMATCH: DiagnosticCode = DiagnosticCode(0x8502u)
+    public val TRANSFER_STATE: DiagnosticCode = DiagnosticCode(0x8602u)
+    public val TRANSFER_FAILURE: DiagnosticCode = DiagnosticCode(0x8603u)
 }
 
 public sealed interface DiagnosticEvent {

@@ -72,7 +72,9 @@ public enum class PowerMode {
 }
 
 /** Settings parameters for a [PowerMode]. */
-public data class PowerModeSettings(
+@ConsistentCopyVisibility
+public data class PowerModeSettings
+internal constructor(
     /** Scan duty cycle as a percentage of the BLE connection interval. */
     public val scanDutyCycle: Int,
     /** Minimum advertisement interval. */

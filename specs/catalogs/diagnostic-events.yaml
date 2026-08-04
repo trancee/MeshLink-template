@@ -4,28 +4,28 @@
 # SPEC-ANCHOR: diagnostic-event
 
 diagnostic_code_ranges:
-  configuration: "0x01xx"
-  permission: "0x02xx"
-  bluetooth: "0x03xx"
-  crypto: "0x04xx"
-  routing: "0x05xx"
-  transfer: "0x06xx"
-  storage: "0x07xx"
-  lifecycle: "0x08xx"
-  transport: "0x09xx"
-  trust: "0x0Axx"
-  internal: "0x0Fxx"
+  configuration: "0x81xx"
+  permission: "0x82xx"
+  bluetooth: "0x83xx"
+  crypto: "0x84xx"
+  routing: "0x85xx"
+  transfer: "0x86xx"
+  storage: "0x87xx"
+  lifecycle: "0x88xx"
+  transport: "0x89xx"
+  trust: "0x8Axx"
+  internal: "0x8Fxx"
 
 event_category_to_code_range:
-  description: "Maps conceptual per-event category to wire diagnostic code range. Conceptual categories classify event types for host-side filtering; code ranges are the fixed 0x01–0x0F wire catalog."
+  description: "Maps conceptual per-event category to wire diagnostic code range. Conceptual categories classify event types for host-side filtering; diagnostic code ranges occupy the 0x81xx–0x8Fxx high-bit space, aligned with but disjoint from the Exception ErrorCode ranges (0x01xx–0x0Fxx)."
   mapping:
-    route: routing        # 0x05xx
-    transfer: transfer    # 0x06xx
-    transport: transport  # 0x09xx
-    power: configuration  # 0x01xx (power mode changes are configuration events)
-    handshake: crypto     # 0x04xx (Noise handshake is crypto-layer)
-    key_rotation: crypto  # 0x04xx (key rotation is crypto-layer)
-    noise: crypto         # 0x04xx (Noise session is crypto-layer)
+    route: routing        # 0x85xx
+    transfer: transfer    # 0x86xx
+    transport: transport  # 0x89xx
+    power: configuration  # 0x81xx (power mode changes are configuration events)
+    handshake: crypto     # 0x84xx (Noise handshake is crypto-layer)
+    key_rotation: crypto  # 0x84xx (key rotation is crypto-layer)
+    noise: crypto         # 0x84xx (Noise session is crypto-layer)
 
 common_event_fields:
   - name: code
@@ -40,7 +40,7 @@ redaction: "No raw handles, addresses, keys, ciphertext, payloads, or platform e
 
 diagnostic_events:
   - name: RouteDecryptFailureEvent
-    code: "0x0501"
+    code: "0x8501"
     category: route
     description: "A routed frame failed to decrypt at the link layer."
     fields:
@@ -59,7 +59,7 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: TransportFallbackEvent
-    code: "0x0901"
+    code: "0x8901"
     category: transport
     description: "Data plane fell back from L2CAP CoC to GATT."
     fields:
@@ -74,7 +74,7 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: TransferBearerEvent
-    code: "0x0601"
+    code: "0x8601"
     category: transfer
     description: "Data plane bearer selected for a logical transfer."
     fields:
@@ -89,7 +89,7 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: PowerModeEffectiveEvent
-    code: "0x0102"
+    code: "0x8101"
     category: power
     description: "Effective power mode parameters after regulatory clamping."
     fields:
@@ -134,7 +134,7 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: HandshakeEvent
-    code: "0x0401"
+    code: "0x8401"
     category: handshake
     description: "End-to-end or link-layer handshake completed or failed."
     fields:
@@ -151,7 +151,7 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: KeyRotationEvent
-    code: "0x0402"
+    code: "0x8402"
     category: key_rotation
     description: "Key rotation announcement processed by a peer."
     fields:
@@ -181,7 +181,7 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: NoiseSessionEvent
-    code: "0x0403"
+    code: "0x8403"
     category: noise
     description: "Noise session state transition."
     fields:
@@ -206,7 +206,7 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: RouteDigestMismatchEvent
-    code: "0x0502"
+    code: "0x8502"
     category: route
     description: "Route table digest mismatch triggered a full resync."
     fields:
@@ -224,7 +224,7 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: TransferSessionTransitionEvent
-    code: "0x0602"
+    code: "0x8602"
     category: transfer
     description: "Logical transfer state transition with highest contiguous boundary and optional result."
     fields:
@@ -251,7 +251,7 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: TransferFailureEvent
-    code: "0x0603"
+    code: "0x8603"
     category: transfer
     description: "Logical transfer reached a terminal failure state."
     fields:

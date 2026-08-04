@@ -3,8 +3,11 @@ package ch.trancee.meshlink.model
 /**
  * Random-access source for outbound transfer data.
  *
- * Implementations must be thread-safe. The SDK will call [read] concurrently from multiple
- * coroutines during retransmission; implement locking internally if needed.
+ * MeshLink does not read concurrently from one source. The [read] function is called sequentially
+ * for distinct missing chunks after selective acknowledgement; re-reads for arbitrary offset ranges
+ * are permitted but never concurrent. Implementations must return exactly the requested bytes for
+ * each non-final range and must not block indefinitely. Coroutine cancellation propagates through
+ * the read.
  */
 public interface TransferSource {
     /** Total payload size in bytes. */

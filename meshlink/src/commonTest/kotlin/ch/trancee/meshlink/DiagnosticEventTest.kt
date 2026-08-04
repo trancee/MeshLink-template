@@ -7,6 +7,7 @@ import ch.trancee.meshlink.diagnostics.NoiseSessionId
 import ch.trancee.meshlink.model.Bearer
 import ch.trancee.meshlink.model.DecryptFailureReason
 import ch.trancee.meshlink.model.DiagnosticSeverity
+import ch.trancee.meshlink.model.ErrorCode
 import ch.trancee.meshlink.model.HandshakePattern
 import ch.trancee.meshlink.model.KeyRotationReason
 import ch.trancee.meshlink.model.NoiseFailureReason
@@ -23,6 +24,7 @@ import ch.trancee.meshlink.model.TransportFallbackReason
 import ch.trancee.meshlink.model.VerificationLevel
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -38,7 +40,7 @@ class DiagnosticEventTest {
 
         // Assert
         assertEquals(10, events.size)
-        assertEquals(0x0501u, first.code.value)
+        assertEquals(0x8501u, first.code.value)
         assertEquals(1u, (first as DiagnosticEvent.RouteDecryptFailureEvent).frameType)
         assertEquals(10L, transfer.offset)
     }
@@ -65,6 +67,34 @@ class DiagnosticEventTest {
 
         // Assert
         assertEquals(codes.size, uniqueCodes.size)
+    }
+
+    @Test
+    fun `diagnostic codes do not collide with ErrorCode values`() {
+        // Arrange — all DiagnosticCode constants
+        val diagnosticCodes =
+            listOf(
+                DiagnosticCodes.ROUTE_DECRYPTION_FAILED,
+                DiagnosticCodes.TRANSPORT_FALLBACK,
+                DiagnosticCodes.TRANSFER_BEARER,
+                DiagnosticCodes.POWER_MODE_SETTINGS,
+                DiagnosticCodes.HANDSHAKE,
+                DiagnosticCodes.KEY_ROTATION,
+                DiagnosticCodes.NOISE_SESSION,
+                DiagnosticCodes.ROUTE_DIGEST_MISMATCH,
+                DiagnosticCodes.TRANSFER_STATE,
+                DiagnosticCodes.TRANSFER_FAILURE,
+            )
+        // ErrorCode UShort values are reserved for exceptions — diagnostics must not overlap
+        val errorCodeValues = ErrorCode.entries.map { it.code() }.toSet()
+
+        // Act & Assert — no DiagnosticCode shares a wire value with any ErrorCode
+        val collisions = diagnosticCodes.filter { it.value in errorCodeValues }
+        assertTrue(
+            collisions.isEmpty(),
+            "DiagnosticCode values must not collide with ErrorCode values, " +
+                "but found collisions: ${collisions.map { it.value }}",
+        )
     }
 
     private fun diagnosticEvents(): List<DiagnosticEvent> {

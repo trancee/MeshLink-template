@@ -1,0 +1,3 @@
+[submodule "meshlink-crypto"]
+	path = meshlink-crypto
+	url = https://github.com/trancee/MeshLink-crypto.git

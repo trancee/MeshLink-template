@@ -52,7 +52,7 @@ kotlin {
 
     android {
         namespace = "ch.trancee.meshlink"
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 26
         // Enables local unit tests (androidHostTest); device tests are not
         // needed here since :meshlink itself has no Android-specific code.
@@ -78,7 +78,13 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.skie.configuration.annotations)
             implementation(libs.kotlinx.coroutines.core)
+            // MeshLink-crypto :crypto module (composite build via settings.gradle.kts
+            // includeBuild). Provides SHA-256, HKDF, HMAC, X25519, Ed25519, and
+            // ChaCha20-Poly1305 with pure-Kotlin implementations and per-primitive
+            // native dispatch. See docs/explanation/module-structure.md.
+            implementation("ch.trancee.meshlink:crypto")
         }
+
         commonTest.dependencies { implementation(kotlin("test")) }
     }
 }
