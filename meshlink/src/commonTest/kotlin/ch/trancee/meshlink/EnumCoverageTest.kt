@@ -1,5 +1,6 @@
 package ch.trancee.meshlink
 
+import ch.trancee.meshlink.model.Bearer
 import ch.trancee.meshlink.model.DecryptFailureReason
 import ch.trancee.meshlink.model.DiagnosticSeverity
 import ch.trancee.meshlink.model.FrameType
@@ -20,7 +21,6 @@ import ch.trancee.meshlink.model.RegulatoryRegion
 import ch.trancee.meshlink.model.TransferResult
 import ch.trancee.meshlink.model.TransferState
 import ch.trancee.meshlink.model.TransportFallbackReason
-import ch.trancee.meshlink.model.TransportLayer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -45,7 +45,7 @@ class EnumCoverageTest {
                 NoiseRole.entries,
                 NoiseFailureReason.entries,
                 TransferState.entries,
-                TransportLayer.entries,
+                Bearer.entries,
                 PeerState.entries,
                 PeerTrust.entries,
                 DiagnosticSeverity.entries,

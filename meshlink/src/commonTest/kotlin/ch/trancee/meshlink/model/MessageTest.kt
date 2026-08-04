@@ -13,13 +13,13 @@ class MessageTest {
             Message(
                 id = MessageId(789u),
                 origin = PeerIdentity.generate(),
-                payload = "hello".toByteArray(),
+                payload = "hello".encodeToByteArray(),
                 completedAt = Clock.System.now(),
             )
 
         assertEquals(MessageId(789u), msg.id)
         assertNotNull(msg.origin)
-        assertEquals("hello".toByteArray().toList(), msg.payload.toList())
+        assertEquals("hello".encodeToByteArray().toList(), msg.payload.toList())
         assertNotNull(msg.completedAt)
     }
 }

@@ -85,7 +85,7 @@ private constructor(
     public val powerMode: StateFlow<PowerMode> = MutableStateFlow(PowerMode.MEDIUM)
 
     /** Effective power settings after regulatory/platform clamping. */
-    public val effectivePowerSettings: StateFlow<PowerModeSettings> =
+    internal val powerModeSettings: StateFlow<PowerModeSettings> =
         MutableStateFlow(PowerMode.MEDIUM.settings)
 
     /**
@@ -145,8 +145,8 @@ private constructor(
      * and transfer defaults remain fixed. Existing transfers retain their established chunk
      * framing; new transfers and connections use the updated settings.
      *
-     * A failed update leaves both [powerMode] and [effectivePowerSettings] at their previous
-     * successful values.
+     * A failed update leaves both [powerMode] and [powerModeSettings] at their previous successful
+     * values.
      *
      * @throws LifecycleException if not in RUNNING or PAUSED state
      * @throws ConfigurationException if power mode not available

@@ -62,7 +62,7 @@ class MeshLinkTest {
         assertEquals(emptyList<KnownPeer>(), meshLink.knownPeers.value)
         assertEquals(emptyList<Transfer>(), meshLink.transfers.value)
         assertEquals(PowerMode.MEDIUM, meshLink.powerMode.value)
-        assertNotNull(meshLink.effectivePowerSettings.value)
+        assertNotNull(meshLink.powerModeSettings.value)
     }
 
     @Test

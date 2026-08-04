@@ -79,7 +79,7 @@ diagnostic_events:
         type: TransferId
         description: "Contextual finite-payload identifier"
       - name: bearer
-        type: TransportLayer
+        type: Bearer
         description: "GATT or L2CAP bearer in use"
       - name: occurredAt
         type: Instant
@@ -276,7 +276,7 @@ exception_error_codes:
   categories:
     configuration: [INVALID_PARAMETER, INVALID_STATE]
     permission: [PERMISSION_DENIED]
-    bluetooth: [BLUETOOTH_DISABLED, COC_NOT_SUPPORTED, CONNECTION_FAILED, GATT_OPERATION_FAILED, L2CAP_CHANNEL_FAILED]
+    bluetooth: [BLUETOOTH_DISABLED, COC_NOT_SUPPORTED, CONNECTION_FAILED, GATT_OPERATION_FAILED, L2CAP_CHANNEL_FAILED, RADIO_IN_USE]
     storage: [STORAGE_UNAVAILABLE, STORAGE_CORRUPTED]
     crypto: [CRYPTO_OPERATION_FAILED, SIGNATURE_VERIFICATION_FAILED, REPLAY_DETECTED]
     trust: [PEER_NOT_FOUND, KEY_UNKNOWN, TRUST_VIOLATION]

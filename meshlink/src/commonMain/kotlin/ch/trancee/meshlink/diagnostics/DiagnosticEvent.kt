@@ -1,5 +1,6 @@
 package ch.trancee.meshlink.diagnostics
 
+import ch.trancee.meshlink.model.Bearer
 import ch.trancee.meshlink.model.DecryptFailureReason
 import ch.trancee.meshlink.model.DiagnosticSeverity
 import ch.trancee.meshlink.model.HandshakePattern
@@ -15,7 +16,6 @@ import ch.trancee.meshlink.model.TransferFailureReason
 import ch.trancee.meshlink.model.TransferId
 import ch.trancee.meshlink.model.TransferState
 import ch.trancee.meshlink.model.TransportFallbackReason
-import ch.trancee.meshlink.model.TransportLayer
 import ch.trancee.meshlink.model.VerificationLevel
 import kotlin.jvm.JvmInline
 import kotlin.time.Clock
@@ -37,7 +37,7 @@ public object DiagnosticCodes {
     public val ROUTE_DECRYPTION_FAILED: DiagnosticCode = DiagnosticCode(0x0501u)
     public val TRANSPORT_FALLBACK: DiagnosticCode = DiagnosticCode(0x0901u)
     public val TRANSFER_BEARER: DiagnosticCode = DiagnosticCode(0x0601u)
-    public val POWER_MODE_EFFECTIVE: DiagnosticCode = DiagnosticCode(0x0101u)
+    public val POWER_MODE_SETTINGS: DiagnosticCode = DiagnosticCode(0x0102u)
     public val HANDSHAKE: DiagnosticCode = DiagnosticCode(0x0401u)
     public val KEY_ROTATION: DiagnosticCode = DiagnosticCode(0x0402u)
     public val NOISE_SESSION: DiagnosticCode = DiagnosticCode(0x0403u)
@@ -72,7 +72,7 @@ public sealed interface DiagnosticEvent {
 
     public data class TransportLayerEvent(
         public val id: TransferId,
-        public val transport: TransportLayer,
+        public val bearer: Bearer,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
         override val code: DiagnosticCode = DiagnosticCodes.TRANSFER_BEARER
@@ -95,7 +95,7 @@ public sealed interface DiagnosticEvent {
         public val disconnectGracePeriod: Duration,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
-        override val code: DiagnosticCode = DiagnosticCodes.POWER_MODE_EFFECTIVE
+        override val code: DiagnosticCode = DiagnosticCodes.POWER_MODE_SETTINGS
         override val severity: DiagnosticSeverity = DiagnosticSeverity.INFO
     }
 

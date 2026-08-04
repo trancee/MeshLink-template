@@ -115,7 +115,7 @@ class MeshLink(
     val messages: Flow<Message>
     val diagnostics: Flow<DiagnosticEvent>
     val powerMode: StateFlow<PowerMode>
-    val effectivePowerSettings: StateFlow<PowerModeSettings>
+    val powerModeSettings: StateFlow<PowerModeSettings>
 
     suspend fun start()
     suspend fun pause()
@@ -403,7 +403,7 @@ public data class MeshLinkVersion(
 | `FrameType` | `MESH_ENVELOPE(0x00)`; routing `0x01`–`0x06`; transfer `0x20`–`0x24`; key/epoch `0x40`–`0x42` | Explicit UByte codes; never enum ordinals |
 | `DecryptFailureReason` | `AUTHENTICATION_TAG_MISMATCH`, `REPLAY_DETECTED`, `SEQUENCE_NUMBER_MISMATCH`, `KEY_UNAVAILABLE`, `MALFORMED_FRAME` | |
 | `TransportFallbackReason` | `L2CAP_UNAVAILABLE`, `L2CAP_CONNECT_FAILED`, `L2CAP_OPEN_TIMEOUT`, `L2CAP_STREAM_ERROR`, `L2CAP_STALLED`, `L2CAP_DROPPED_MID_TRANSFER`, `LOCAL_POLICY` | |
-| `TransportLayer` | `GATT`, `L2CAP` | |
+| `Bearer` | `GATT`, `L2CAP` | |
 | `RegulatoryRegion` | `DEFAULT`, `EU` | EU clamps adv≥300ms, scan≤70% |
 | `NoiseLayer` | `HOP_BY_HOP`, `END_TO_END` | |
 | `NoiseSessionState` | `DISCONNECTED`, `HANDSHAKING_XX`, `HANDSHAKING_IK`, `ESTABLISHED`, `RENEWING`, `FAILED` | |
@@ -1452,7 +1452,7 @@ data class DiagnosticsSettings(
 - **Imperative builder** retained for programmatic construction (e.g., from settings file)
 - Both paths produce identical `MeshLinkSettings` instances
 - Settings remain immutable for an instance except for runtime power-mode changes through `MeshLink.setPowerMode`
-- `PowerMode.settings` contains nominal values; `MeshLink.effectivePowerSettings` exposes values after regulatory and platform clamping
+- `PowerMode.settings` contains nominal values; `MeshLink.powerModeSettings` exposes values after regulatory and platform clamping
 - Diagnostics are collected from `MeshLink.diagnostics`; no callback is configured in settings
 - `MeshLinkSettings` is the **source of truth** for defaults — `specs/catalogs/settings.yaml` is checked against it. Static settings validation occurs at construction; runtime prerequisites are checked by `start()`.
 

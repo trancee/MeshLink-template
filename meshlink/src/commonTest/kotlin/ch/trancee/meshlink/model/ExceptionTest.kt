@@ -20,7 +20,7 @@ class ExceptionTest {
         val transferEx = TransferException(ErrorCode.TRANSFER_TIMEOUT, "timeout")
 
         val radioEx = RadioInUseException()
-        assertEquals(ErrorCode.BLUETOOTH_DISABLED, radioEx.errorCode)
+        assertEquals(ErrorCode.RADIO_IN_USE, radioEx.errorCode)
         assertEquals("BLE radio lease already held by another MeshLink instance", radioEx.message)
 
         val radioEx2 = RadioInUseException(ErrorCode.CONNECTION_FAILED, "custom msg")

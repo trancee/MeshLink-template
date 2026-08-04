@@ -73,7 +73,7 @@ public data class TransferException(
 
 /** BLE radio lease already held by another MeshLink instance. */
 public class RadioInUseException(
-    public override val errorCode: ErrorCode = ErrorCode.BLUETOOTH_DISABLED,
+    public override val errorCode: ErrorCode = ErrorCode.RADIO_IN_USE,
     public override val message: String =
         "BLE radio lease already held by another MeshLink instance",
 ) : MeshLinkException

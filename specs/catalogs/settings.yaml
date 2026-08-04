@@ -138,7 +138,7 @@ runtime_mutability:
     - name: powerMode
       command: setPowerMode
       observable_state: powerMode
-      effective_state: effectivePowerSettings
+      effective_state: powerModeSettings
       description: "Existing transfers retain established chunk framing; new transfers and connections use updated effective values"
   immutable_for_instance:
     - appId

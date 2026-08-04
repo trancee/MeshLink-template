@@ -65,7 +65,7 @@ meshLink.setPowerMode(PowerMode.LOW)
 ```
 
 `meshLink.powerMode` exposes the successfully selected mode.
-`meshLink.effectivePowerSettings` exposes resolved parameters after regulatory
+`meshLink.powerModeSettings` exposes resolved parameters after regulatory
 and platform clamping. Existing transfers retain their established chunk
 framing; new transfers and connections use the updated values.
 

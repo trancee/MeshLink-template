@@ -180,7 +180,7 @@ call `setPowerMode`; all routing, security, regulatory, persistence, backgroundO
 diagnostics capacity, and transfer defaults remain fixed.
 
 `PowerMode.settings` contains nominal mode values. `powerMode` exposes the
-successfully selected mode, while `effectivePowerSettings` exposes values after
+successfully selected mode, while `powerModeSettings` exposes values after
 regulatory and platform clamping. A failed update leaves both at their previous
 successful values. Existing transfers retain their established chunk framing;
 new transfers and connections use the updated settings.

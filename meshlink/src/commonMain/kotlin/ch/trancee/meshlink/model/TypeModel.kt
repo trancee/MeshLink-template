@@ -92,8 +92,8 @@ public enum class TransportFallbackReason {
     LOCAL_POLICY,
 }
 
-/** Transport layer in use for a payload operation. */
-public enum class TransportLayer {
+/** Data plane bearer in use for a payload operation. */
+public enum class Bearer {
     GATT,
     L2CAP,
 }

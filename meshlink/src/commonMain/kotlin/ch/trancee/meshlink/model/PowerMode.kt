@@ -15,7 +15,7 @@ public enum class PowerMode {
     LOW;
 
     /** Returns the settings for this power mode. */
-    public val settings: PowerModeSettings
+    internal val settings: PowerModeSettings
         get() =
             when (this) {
                 HIGH -> high()
@@ -69,7 +69,7 @@ public enum class PowerMode {
 }
 
 /** Settings parameters for a [PowerMode]. */
-public data class PowerModeSettings(
+internal data class PowerModeSettings(
     /** Scan duty cycle as a percentage of the BLE connection interval. */
     public val scanDutyCycle: Int,
     /** Minimum advertisement interval. */

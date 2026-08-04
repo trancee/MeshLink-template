@@ -34,6 +34,7 @@ public enum class ErrorCode(private val value: Int) {
     CONNECTION_FAILED(0x0303),
     GATT_OPERATION_FAILED(0x0304),
     L2CAP_CHANNEL_FAILED(0x0305),
+    RADIO_IN_USE(0x0306),
 
     // Crypto (0x04xx)
     CRYPTO_OPERATION_FAILED(0x0401),

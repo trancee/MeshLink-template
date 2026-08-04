@@ -1,8 +1,10 @@
 package ch.trancee.meshlink
 
+import ch.trancee.meshlink.diagnostics.DiagnosticCodes
 import ch.trancee.meshlink.diagnostics.DiagnosticEvent
 import ch.trancee.meshlink.diagnostics.HandshakeId
 import ch.trancee.meshlink.diagnostics.NoiseSessionId
+import ch.trancee.meshlink.model.Bearer
 import ch.trancee.meshlink.model.DecryptFailureReason
 import ch.trancee.meshlink.model.DiagnosticSeverity
 import ch.trancee.meshlink.model.HandshakePattern
@@ -18,7 +20,6 @@ import ch.trancee.meshlink.model.TransferFailureReason
 import ch.trancee.meshlink.model.TransferId
 import ch.trancee.meshlink.model.TransferState
 import ch.trancee.meshlink.model.TransportFallbackReason
-import ch.trancee.meshlink.model.TransportLayer
 import ch.trancee.meshlink.model.VerificationLevel
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -42,6 +43,30 @@ class DiagnosticEventTest {
         assertEquals(10L, transfer.offset)
     }
 
+    @Test
+    fun `diagnostic codes are unique`() {
+        // Arrange
+        val codes =
+            listOf(
+                DiagnosticCodes.ROUTE_DECRYPTION_FAILED,
+                DiagnosticCodes.TRANSPORT_FALLBACK,
+                DiagnosticCodes.TRANSFER_BEARER,
+                DiagnosticCodes.POWER_MODE_SETTINGS,
+                DiagnosticCodes.HANDSHAKE,
+                DiagnosticCodes.KEY_ROTATION,
+                DiagnosticCodes.NOISE_SESSION,
+                DiagnosticCodes.ROUTE_DIGEST_MISMATCH,
+                DiagnosticCodes.TRANSFER_STATE,
+                DiagnosticCodes.TRANSFER_FAILURE,
+            )
+
+        // Act
+        val uniqueCodes = codes.distinctBy { it.value }
+
+        // Assert
+        assertEquals(codes.size, uniqueCodes.size)
+    }
+
     private fun diagnosticEvents(): List<DiagnosticEvent> {
         val identity = PeerIdentity.ZERO
         return listOf(
@@ -54,10 +79,7 @@ class DiagnosticEventTest {
                 identity,
                 TransportFallbackReason.L2CAP_STREAM_ERROR,
             ),
-            DiagnosticEvent.TransportLayerEvent(
-                id = TransferId(1u),
-                transport = TransportLayer.GATT,
-            ),
+            DiagnosticEvent.TransportLayerEvent(id = TransferId(1u), bearer = Bearer.GATT),
             powerEvent(),
             DiagnosticEvent.HandshakeEvent(
                 HandshakeId(2u),

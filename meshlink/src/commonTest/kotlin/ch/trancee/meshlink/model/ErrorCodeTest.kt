@@ -21,6 +21,7 @@ class ErrorCodeTest {
         assertEquals(0x0303u, ErrorCode.CONNECTION_FAILED.toUShort())
         assertEquals(0x0304u, ErrorCode.GATT_OPERATION_FAILED.toUShort())
         assertEquals(0x0305u, ErrorCode.L2CAP_CHANNEL_FAILED.toUShort())
+        assertEquals(0x0306u, ErrorCode.RADIO_IN_USE.toUShort())
 
         // Crypto (0x04xx)
         assertEquals(0x0401u, ErrorCode.CRYPTO_OPERATION_FAILED.toUShort())

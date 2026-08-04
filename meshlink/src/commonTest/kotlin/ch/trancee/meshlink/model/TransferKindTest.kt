@@ -11,4 +11,15 @@ class TransferKindTest {
         assertEquals(2, TransferKind.values().size)
         assertTrue(TransferKind.MESSAGE != TransferKind.PAYLOAD)
     }
+
+    @Test
+    fun `TransferKind wire codes match spec`() {
+        // Arrange & Act
+        val messageCode = TransferKind.MESSAGE.code
+        val payloadCode = TransferKind.PAYLOAD.code
+
+        // Assert — matches specs/codecs/enums.yaml
+        assertEquals(0x00u, messageCode)
+        assertEquals(0x01u, payloadCode)
+    }
 }
