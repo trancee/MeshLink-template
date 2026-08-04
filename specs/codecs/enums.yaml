@@ -100,9 +100,9 @@ enums:
         code: "0x42"
         encryption: "Pending new-epoch AEAD"
 
-  - name: TransferKind
-    package: ch.trancee.meshlink.transfer
-    visibility: internal
+  - name: TransferType
+    package: ch.trancee.meshlink.model
+    visibility: public
     storage: UByte
     unknown: reject
     values:
@@ -307,32 +307,16 @@ enums:
 
   - name: TransferState
     package: ch.trancee.meshlink.model
-    description: "Public finite payload operation state."
+    description: "Non-terminal phase of a transfer session lifecycle."
     values:
       - name: AWAITING_DECISION
         ordinal: 0
-        terminal: false
       - name: TRANSFERRING
         ordinal: 1
-        terminal: false
       - name: ROUTE_UNAVAILABLE
         ordinal: 2
-        terminal: false
       - name: RETRANSMITTING
         ordinal: 3
-        terminal: false
-      - name: COMPLETED
-        ordinal: 4
-        terminal: true
-      - name: CANCELLED
-        ordinal: 5
-        terminal: true
-      - name: FAILED
-        ordinal: 6
-        terminal: true
-      - name: EXPIRED
-        ordinal: 7
-        terminal: true
 
   - name: PeerState
     package: ch.trancee.meshlink.model

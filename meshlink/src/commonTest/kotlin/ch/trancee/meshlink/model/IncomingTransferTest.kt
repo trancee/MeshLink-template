@@ -28,8 +28,8 @@ class IncomingTransferTest {
 
         val incoming =
             IncomingTransfer(
-                id = 456u,
-                kind = TransferKind.MESSAGE,
+                id = TransferId(456u),
+                type = TransferType.MESSAGE,
                 origin = PeerIdentity.generate(),
                 priority = Priority.NORMAL,
                 total = 1024L,
@@ -38,8 +38,8 @@ class IncomingTransferTest {
                 status = status,
             )
 
-        assertEquals(456u, incoming.id)
-        assertEquals(TransferKind.MESSAGE, incoming.kind)
+        assertEquals(TransferId(456u), incoming.id)
+        assertEquals(TransferType.MESSAGE, incoming.type)
         assertNotNull(incoming.origin)
         assertEquals(Priority.NORMAL, incoming.priority)
         assertEquals(1024L, incoming.total)
@@ -84,8 +84,8 @@ class IncomingTransferTest {
                 )
             )
         return IncomingTransfer(
-            id = 456u,
-            kind = TransferKind.MESSAGE,
+            id = TransferId(456u),
+            type = TransferType.MESSAGE,
             origin = PeerIdentity.generate(),
             priority = Priority.NORMAL,
             total = 1024L,

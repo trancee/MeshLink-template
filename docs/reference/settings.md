@@ -18,7 +18,7 @@ val settings = meshLinkSettings {
     appId = "com.example.myapp"
     powerMode = PowerMode.HIGH
     regulatoryRegion = RegulatoryRegion.EU
-    backgroundOperation = true
+    isBackground = true
     
     keyRotation {
         interval = Duration.days(1)
@@ -50,7 +50,7 @@ val settings = meshLinkSettings {
 
 | Class | Purpose |
 |-------|---------|
-| `MeshLinkSettings` | Top-level configuration, including immutable backgroundOperation opt-in |
+| `MeshLinkSettings` | Top-level configuration, including immutable isBackground opt-in |
 | `KeyRotationSettings` | Interval, grace periods |
 | `TransferSettings` | Retries, chunk size, concurrency, scoreboard |
 | `RoutingSettings` | Update intervals, thresholds, sync, expiry, feasibility, max entries |

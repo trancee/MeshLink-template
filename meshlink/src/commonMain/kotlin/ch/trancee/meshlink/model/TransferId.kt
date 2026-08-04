@@ -7,12 +7,14 @@ import kotlin.jvm.JvmInline
 /**
  * Four-byte identifier for a finite payload, scoped by its authenticated origin.
  *
+ * Shares the same 32-bit wire slot as [MessageId]; [TransferType] determines interpretation.
+ *
  * SPEC-ANCHOR: transfer-id-model
  */
 @JvmInline
 public value class TransferId(public val value: UInt) : Comparable<TransferId> {
     /** Raw 32-bit unsigned value, for wire serialization and deserialization. */
-    public fun toUInt(): UInt = value
+    public fun rawValue(): UInt = value
 
     /** Returns the 4-byte big-endian wire representation of this transfer ID. */
     public fun toByteArray(): ByteArray = value.toBytesBE()
@@ -32,7 +34,7 @@ public value class TransferId(public val value: UInt) : Comparable<TransferId> {
         /**
          * Creates a [TransferId] from a raw [UInt] value (e.g., read from the wire).
          *
-         * This is the deserialization counterpart to [toUInt], used when decoding payload frames.
+         * This is the deserialization counterpart to [rawValue], used when decoding payload frames.
          */
         public fun fromUInt(value: UInt): TransferId = TransferId(value)
 

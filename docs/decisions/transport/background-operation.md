@@ -31,7 +31,7 @@ Background integration is an explicit immutable setting:
 
 ```kotlin
 meshLinkSettings {
-    backgroundOperation = true
+    isBackground = true
 }
 ```
 
@@ -102,7 +102,7 @@ continuity permits fresh IK; it does not restore traffic sessions.
 
 ## Lifecycle interaction
 
-- `RUNNING` with backgroundOperation enabled requests background continuation.
+- `RUNNING` with isBackground enabled requests background continuation.
 - `PAUSED` intentionally suspends new discovery/admission even if background
   facilities exist, while retaining the environment radio lease.
 - `STOPPED` releases radio resources and unregisters process-local background

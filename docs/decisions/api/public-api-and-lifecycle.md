@@ -103,8 +103,8 @@ MESSAGE and PAYLOAD operations:
 
 ```kotlin
 class Transfer {
-    val id: UInt
-    val kind: TransferKind
+    val id: TransferId
+    val kind: TransferType
     val status: StateFlow<TransferStatus>
 }
 ```
@@ -176,7 +176,7 @@ trust again. Neither command accepts or exposes keys.
 ### Runtime configuration
 
 Settings are immutable for an instance except for power mode. Applications may
-call `setPowerMode`; all routing, security, regulatory, persistence, backgroundOperation,
+call `setPowerMode`; all routing, security, regulatory, persistence, isBackground,
 diagnostics capacity, and transfer defaults remain fixed.
 
 `PowerMode.settings` contains nominal mode values. `powerMode` exposes the

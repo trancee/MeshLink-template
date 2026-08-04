@@ -11,7 +11,7 @@ retained because MeshLink has not shipped.
 ## Vertical slice 1 — validated settings contract
 
 1. Replace obsolete public settings fields and types with the accepted settings
-   model (`backgroundOperation`, `routeDigestInterval`, `routeExpiry`,
+   model (`isBackground`, `routeDigestInterval`, `routeExpiry`,
    `maxRoutes`, `maxTransfersPerPeer`, diagnostics flow configuration) → verify:
    `./gradlew :meshlink:jvmTest --tests '*MeshLinkSettingsTest*' --rerun --no-build-cache`
 2. Add construction-time validation for appId, durations, route/transfer limits,

@@ -10,5 +10,5 @@ public sealed interface TransferFailureReason {
     public data class Unrecoverable(val message: String) : TransferFailureReason
 
     /** The failure is due to a trust policy violation (e.g. identity mismatch, revoked peer). */
-    public data class TrustFailure(val peerIdentity: PeerIdentity) : TransferFailureReason
+    public data class Trust(val peerIdentity: PeerIdentity) : TransferFailureReason
 }

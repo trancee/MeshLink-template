@@ -5,13 +5,8 @@
 state_machines:
   - name: TransferState
     package: ch.trancee.meshlink.model
-    description: "Lifecycle shared by finite MESSAGE and TRANSFER payload operations."
+    description: "Non-terminal lifecycle phase shared by finite MESSAGE and TRANSFER payload operations; terminal outcomes are surfaced via TransferResult."
     initial: AWAITING_DECISION
-    terminal_states:
-      - COMPLETED
-      - CANCELLED
-      - FAILED
-      - EXPIRED
     states:
       - name: AWAITING_DECISION
         description: "Validated manifest is awaiting automatic message capacity or host TransferSink decision"
@@ -21,31 +16,16 @@ state_machines:
         description: "Origin retains operation while routing recovers within timeToLive"
       - name: RETRANSMITTING
         description: "Missing chunks are selectively retransmitted under adaptive RTO"
-      - name: COMPLETED
-        description: "All payload chunks acknowledged and terminal completion confirmed"
-        terminal: true
-      - name: CANCELLED
-        description: "Local or remote idempotent PayloadCancellation completed"
-        terminal: true
-      - name: FAILED
-        description: "Rejected, unrecoverable, sink, protocol, or trust failure"
-        terminal: true
-      - name: EXPIRED
-        description: "Origin-owned monotonic timeToLive exhausted"
-        terminal: true
     transitions:
       - from: AWAITING_DECISION
         event: "PayloadDecision ACCEPTED"
         to: TRANSFERRING
       - from: AWAITING_DECISION
-        event: "Rejected, receiver unavailable/busy, sink failure, invalid manifest, or acceptance timeout"
-        to: FAILED
-      - from: AWAITING_DECISION
-        event: "Cancellation"
-        to: CANCELLED
+        event: "Route lost or receiver unavailable/busy"
+        to: ROUTE_UNAVAILABLE
       - from: TRANSFERRING
         event: "All chunks acknowledged"
-        to: COMPLETED
+        to: COMPLETED  # terminal → TransferResult
       - from: TRANSFERRING
         event: "Route lost"
         to: ROUTE_UNAVAILABLE
@@ -54,10 +34,10 @@ state_machines:
         to: RETRANSMITTING
       - from: TRANSFERRING
         event: "Cancellation"
-        to: CANCELLED
+        to: CANCELLED  # terminal → TransferResult
       - from: TRANSFERRING
         event: "Protocol, sink, or trust failure"
-        to: FAILED
+        to: FAILED  # terminal → TransferResult
       - from: ROUTE_UNAVAILABLE
         event: "Route and required E2E session recovered"
         to: TRANSFERRING
@@ -66,16 +46,16 @@ state_machines:
         to: TRANSFERRING
       - from: ROUTE_UNAVAILABLE
         event: "timeToLive exhausted"
-        to: EXPIRED
+        to: EXPIRED  # terminal → TransferResult
       - from: RETRANSMITTING
         event: "timeToLive exhausted"
-        to: EXPIRED
+        to: EXPIRED  # terminal → TransferResult
       - from: ROUTE_UNAVAILABLE
         event: "Cancellation"
-        to: CANCELLED
+        to: CANCELLED  # terminal → TransferResult
       - from: RETRANSMITTING
         event: "Cancellation"
-        to: CANCELLED
+        to: CANCELLED  # terminal → TransferResult
     protocol_limits:
 
   - name: NoiseSessionState
@@ -115,7 +95,7 @@ state_machines:
         event: "Renewal time or soft record threshold reached"
         to: RENEWING
       - from: RENEWING
-        event: "Fresh IK succeeds and atomically installs the new epoch"
+        event: "Fresh IK succeeds and atomic installs the new epoch"
         to: ESTABLISHED
       - from: RENEWING
         event: "Attempt fails before hard expiry or record limit; current epoch remains valid"
@@ -358,25 +338,28 @@ state_machines:
 
   - name: TransferResult
     package: ch.trancee.meshlink
-    description: "Explicit, enumerated transfer results surfaced to host apps. Non-terminal TransferStates return null (no outcome)."
+    description: "Explicit, enumerated terminal outcomes surfaced to host apps. Non-terminal TransferStates (TRANSFERRING, ROUTE_UNAVAILABLE, RETRANSMITTING, AWAITING_DECISION) return null until a terminal condition (completion, cancellation, expiration, or failure) occurs."
     mapping:
-      - transfer_state: COMPLETED
+      - terminal_state: COMPLETED
         outcome: SUCCESS
-      - transfer_state: CANCELLED
+      - terminal_state: CANCELLED
         outcome: CANCELLED
-      - transfer_state: EXPIRED
+      - terminal_state: EXPIRED
         outcome: TIMEOUT
-      - transfer_state: FAILED
+      - terminal_state: FAILED
         failure_reason: Unrecoverable
         outcome: UNRECOVERABLE_FAILURE
-      - transfer_state: FAILED
-        failure_reason: TrustFailure
+      - terminal_state: FAILED
+        failure_reason: Trust
         outcome: TRUST_FAILURE
       - transfer_state: TRANSFERRING
+        outcome: null
       - transfer_state: ROUTE_UNAVAILABLE
+        outcome: null
       - transfer_state: RETRANSMITTING
+        outcome: null
       - transfer_state: AWAITING_DECISION
-        outcome: null  # non-terminal; transferResult is null until terminal state
+        outcome: null
 
   - name: RoutingUpdateTrigger
     package: ch.trancee.meshlink.routing

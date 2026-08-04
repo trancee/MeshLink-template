@@ -1,27 +1,20 @@
 package ch.trancee.meshlink.model
 
 /**
- * Maps a [TransferState] (and optional [TransferFailureReason]) to a [TransferResult].
+ * Maps an optional [TransferFailureReason] to a [TransferResult].
+ *
+ * Terminal outcomes (COMPLETED, CANCELLED, EXPIRED) are sourced from external conditions
+ * (completion, cancellation, expiration) outside this function. Only failure-derived results are
+ * produced here: Trust → TRUST_FAILURE, Unrecoverable → UNRECOVERABLE_FAILURE. No failure reason
+ * (null) means no terminal failure result has occurred.
  *
  * See SPEC.md §7.6 and specs/protocol/state-machines.yaml (TransferResult).
  *
  * SPEC-ANCHOR: transfer-result
  */
-internal fun mapTransferResult(
-    state: TransferState,
-    failureReason: TransferFailureReason?,
-): TransferResult? =
-    when (state) {
-        TransferState.COMPLETED -> TransferResult.COMPLETED
-        TransferState.CANCELLED -> TransferResult.CANCELLED
-        TransferState.EXPIRED -> TransferResult.EXPIRED
-        TransferState.AWAITING_DECISION,
-        TransferState.TRANSFERRING,
-        TransferState.ROUTE_UNAVAILABLE,
-        TransferState.RETRANSMITTING -> null
-        TransferState.FAILED ->
-            when (failureReason) {
-                is TransferFailureReason.TrustFailure -> TransferResult.TRUST_FAILURE
-                else -> TransferResult.UNRECOVERABLE_FAILURE
-            }
+internal fun mapTransferResult(failureReason: TransferFailureReason?): TransferResult? =
+    when (failureReason) {
+        is TransferFailureReason.Trust -> TransferResult.TRUST_FAILURE
+        is TransferFailureReason.Unrecoverable -> TransferResult.UNRECOVERABLE_FAILURE
+        null -> null
     }

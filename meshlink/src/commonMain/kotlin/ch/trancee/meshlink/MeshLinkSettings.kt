@@ -35,7 +35,7 @@ public data class MeshLinkSettings(
     public val appId: String,
     public val powerMode: PowerMode = PowerMode.MEDIUM,
     public val regulatoryRegion: RegulatoryRegion = RegulatoryRegion.DEFAULT,
-    public val backgroundOperation: Boolean = false,
+    public val isBackground: Boolean = false,
     public val keyRotation: KeyRotationSettings = KeyRotationSettings(),
     public val transfer: TransferSettings = TransferSettings(),
     public val routing: RoutingSettings = RoutingSettings(),
@@ -49,7 +49,7 @@ public class MeshLinkSettingsBuilder {
     public var appId: String = ""
     public var powerMode: PowerMode = PowerMode.MEDIUM
     public var regulatoryRegion: RegulatoryRegion = RegulatoryRegion.DEFAULT
-    public var backgroundOperation: Boolean = false
+    public var isBackground: Boolean = false
 
     public var keyRotationInterval: Duration = 3.days
     public var keyRotationGracePeriod: Duration = 1.hours
@@ -130,7 +130,7 @@ public class MeshLinkSettingsBuilder {
             appId = appId,
             powerMode = powerMode,
             regulatoryRegion = regulatoryRegion,
-            backgroundOperation = backgroundOperation,
+            isBackground = isBackground,
             keyRotation =
                 KeyRotationSettings(
                     interval = keyRotationInterval,

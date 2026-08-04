@@ -203,7 +203,7 @@ differences hidden behind the environment factories and internal
         fun fromUInt(value: UInt): SeqNo = SeqNo(value)
         fun fromByteArray(bytes: ByteArray): SeqNo  // 4-byte big-endian deserialization
     }
-    fun toUInt(): UInt = value
+    fun rawValue(): UInt = value
     fun toByteArray(): ByteArray                    // 4-byte big-endian serialization
     val isZero: Boolean
     fun isNewerThan(other: SeqNo): Boolean = (value - other.value).toInt() > 0
@@ -217,7 +217,7 @@ differences hidden behind the environment factories and internal
 
 - Incremented **only on cold start** (`MeshLink.start()`)
 - Self-reported by destination in `RouteAdvertisement` frames
-- `toUInt()`/`fromUInt()` for logical wire serialization (value extraction)
+- `rawValue()`/`fromUInt()` for logical wire serialization (value extraction)
 - `toByteArray()`/`fromByteArray()` for 4-byte big-endian byte-level wire serialization
 - `isNewerThanOrEqualTo` used by Babel feasibility condition (RFC 8966 §3.7)
 - `distanceFrom` for route staleness diagnostics and gap analysis
@@ -272,6 +272,7 @@ data class TransferSession(
     val destination: PeerIdentity,
     val priority: Priority,
     val state: TransferState,
+    val result: TransferResult?,            // Terminal outcome; null while non-terminal
     val chunkSize: Int,                 // Bounded by peer MTU, selected by PowerMode
     val totalChunks: UInt,
     val scoreboard: Scoreboard,
@@ -294,17 +295,13 @@ data class TransferSession(
 | `TRANSFERRING` | No | Actively transferring |
 | `ROUTE_UNAVAILABLE` | No | Route lost, waiting for recovery |
 | `RETRANSMITTING` | No | Selectively retransmitting missing chunks under adaptive RTO |
-| `COMPLETED` | Yes | All chunks acknowledged and completion confirmed |
-| `CANCELLED` | Yes | Local or remote cancellation completed |
-| `FAILED` | Yes | Rejection, sink, protocol, trust, or unrecoverable failure |
-| `EXPIRED` | Yes | Origin's timeToLive exhausted |
 
 ### 3.7 TransferFailureReason (Sealed) {#transfer-failure-reason-model}
 
 ```kotlin
 sealed interface TransferFailureReason {
     data class Unrecoverable(val message: String) : TransferFailureReason
-    data class TrustFailure(val peerIdentity: PeerIdentity) : TransferFailureReason
+    data class Trust(val peerIdentity: PeerIdentity) : TransferFailureReason
 }
 ```
 
@@ -790,7 +787,7 @@ Health is not persisted.
 
 ### 6.6 Background Operation
 
-`MeshLinkSettings.backgroundOperation` is immutable and defaults to false. When
+`MeshLinkSettings.isBackground` is immutable and defaults to false. When
 true, start validates platform-authorized background integration.
 
 Android host apps own the connected-device foreground service, notification,
@@ -1378,7 +1375,7 @@ val settings = meshLinkSettings {
     appId = "com.example.myapp" // stable normalized UTF-8 application/profile ID; max 255 bytes
     powerMode = PowerMode.HIGH
     regulatoryRegion = RegulatoryRegion.EU
-    backgroundOperation = true
+    isBackground = true
     
     keyRotation {
         interval = Duration.days(1)
@@ -1414,7 +1411,7 @@ data class MeshLinkSettings(
     val appId: String,
     val powerMode: PowerMode,
     val regulatoryRegion: RegulatoryRegion,
-    val backgroundOperation: Boolean,
+    val isBackground: Boolean,
     val keyRotation: KeyRotationSettings,
     val transfer: TransferSettings,
     val routing: RoutingSettings,

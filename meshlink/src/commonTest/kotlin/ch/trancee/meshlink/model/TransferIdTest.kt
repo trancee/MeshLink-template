@@ -9,13 +9,13 @@ class TransferIdTest {
     @Test
     fun `zero id has fixed representation`() {
         val id = TransferId(0u)
-        assertEquals(0u, id.toUInt())
+        assertEquals(0u, id.rawValue())
     }
 
     @Test
     fun `nonzero id exposes decimal representation`() {
         val id = TransferId(42u)
-        assertEquals(42u, id.toUInt())
+        assertEquals(42u, id.rawValue())
     }
 
     @Test
@@ -23,7 +23,7 @@ class TransferIdTest {
         val expected = TransferId(42u)
         val actual = TransferId.fromUInt(expected.toString().toUInt())
         assertEquals(expected, actual)
-        assertEquals(42u, expected.toUInt())
+        assertEquals(42u, expected.rawValue())
     }
 
     @Test
@@ -33,15 +33,15 @@ class TransferIdTest {
     }
 
     @Test
-    fun `toUInt returns raw value`() {
+    fun `rawValue returns raw value`() {
         val id = TransferId(0xDEADBEEFu)
-        assertEquals(0xDEADBEEFu, id.toUInt())
+        assertEquals(0xDEADBEEFu, id.rawValue())
     }
 
     @Test
     fun `fromUInt creates id from raw value`() {
         val id = TransferId.fromUInt(0xCAFEBABEu)
-        assertEquals(0xCAFEBABEu, id.toUInt())
+        assertEquals(0xCAFEBABEu, id.rawValue())
     }
 
     @Test
@@ -73,11 +73,11 @@ class TransferIdTest {
     fun `inc operator increments with wrap`() {
         var id = TransferId(0u)
         id = id.inc()
-        assertEquals(1u, id.toUInt())
+        assertEquals(1u, id.rawValue())
 
         id = TransferId(0xFFFFFFFFu)
         id = id.inc()
-        assertEquals(0u, id.toUInt())
+        assertEquals(0u, id.rawValue())
     }
 
     @Test
@@ -94,7 +94,7 @@ class TransferIdTest {
 
     @Test
     fun `ZERO is accessible`() {
-        assertEquals(0u, TransferId.ZERO.toUInt())
+        assertEquals(0u, TransferId.ZERO.rawValue())
     }
 
     @Test
@@ -108,12 +108,12 @@ class TransferIdTest {
                     it[3] = 4
                 }
             )
-        assertEquals(0x01020304u, id.toUInt())
+        assertEquals(0x01020304u, id.rawValue())
     }
 
     @Test
     fun `fromUInt creates id from UInt`() {
         val id = TransferId.fromUInt(42u)
-        assertEquals(42u, id.toUInt())
+        assertEquals(42u, id.rawValue())
     }
 }

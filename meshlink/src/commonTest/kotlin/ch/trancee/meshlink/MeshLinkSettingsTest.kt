@@ -21,7 +21,7 @@ class MeshLinkSettingsTest {
         assertEquals("com.example.mesh", actual.appId)
         assertEquals(PowerMode.MEDIUM, actual.powerMode)
         assertEquals(RegulatoryRegion.DEFAULT, actual.regulatoryRegion)
-        assertFalse(actual.backgroundOperation)
+        assertFalse(actual.isBackground)
         assertEquals(3, actual.transfer.maxTransfersPerPeer)
         assertEquals(5.minutes, actual.routing.routeDigestInterval)
         assertEquals(15.minutes, actual.routing.routeExpiry)
@@ -51,7 +51,7 @@ class MeshLinkSettingsTest {
             appId = "com.example.mesh.dev"
             powerMode = PowerMode.HIGH
             regulatoryRegion = RegulatoryRegion.EU
-            backgroundOperation = true
+            isBackground = true
             transfer { maxTransfersPerPeer = 2 }
             routing {
                 routeAdvertisementChangeThreshold = 5
@@ -71,7 +71,7 @@ class MeshLinkSettingsTest {
         // Assert
         assertEquals(PowerMode.HIGH, actual.powerMode)
         assertEquals(RegulatoryRegion.EU, actual.regulatoryRegion)
-        assertTrue(actual.backgroundOperation)
+        assertTrue(actual.isBackground)
         assertEquals(2, actual.transfer.maxTransfersPerPeer)
         assertEquals(5, actual.routing.routeAdvertisementChangeThreshold)
         assertEquals(2.minutes, actual.routing.routeDigestInterval)

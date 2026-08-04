@@ -16,7 +16,7 @@ validation:
     - "permissions and Bluetooth availability"
     - "protected key storage accessibility"
     - "provider self-tests"
-    - "background integration when backgroundOperation is true"
+    - "background integration when isBackground is true"
     - "physical radio lease"
 
 settings:
@@ -38,7 +38,7 @@ settings:
         type: RegulatoryRegion
         default: "DEFAULT"
         description: "Regulatory region controlling BLE radio policy clamping"
-      - name: backgroundOperation
+      - name: isBackground
         type: Boolean
         default: false
         description: "Whether this instance validates and uses platform-authorized best-effort background BLE integration"
@@ -143,7 +143,7 @@ runtime_mutability:
   immutable_for_instance:
     - appId
     - regulatoryRegion
-    - backgroundOperation
+    - isBackground
     - keyRotation
     - transfer
     - routing

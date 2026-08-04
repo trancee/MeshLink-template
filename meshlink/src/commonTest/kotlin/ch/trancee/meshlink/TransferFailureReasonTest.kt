@@ -13,9 +13,9 @@ class TransferFailureReasonTest {
     }
 
     @Test
-    fun `TrustFailure carries peer identity`() {
+    fun `Trust carries peer identity`() {
         val peer = PeerIdentity.ZERO
-        val reason = TransferFailureReason.TrustFailure(peer)
+        val reason = TransferFailureReason.Trust(peer)
         assertEquals(peer, reason.peerIdentity)
     }
 }

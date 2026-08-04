@@ -297,6 +297,9 @@ data_models:
       - name: state
         type: TransferState
         description: "Current lifecycle state of this transfer"
+      - name: result
+        type: "TransferResult?"
+        description: "Terminal outcome of this transfer; null while in a non-terminal TransferState"
       - name: chunkSize
         type: Int
         description: "Selected chunk size in bytes (bounded by peer MTU)"
@@ -360,7 +363,7 @@ data_models:
           - name: message
             type: String
         description: "Generic error, cancel, retry budget exhausted, or non-trust transfer failure"
-      - name: TrustFailure
+      - name: Trust
         type: data_class
         fields:
           - name: peerIdentity

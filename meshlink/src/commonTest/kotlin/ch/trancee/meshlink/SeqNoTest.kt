@@ -19,7 +19,7 @@ class SeqNoTest {
 
         // Assert
         assertEquals(SeqNo(expected), seqNo)
-        assertEquals(expected, seqNo.toUInt())
+        assertEquals(expected, seqNo.rawValue())
     }
 
     @Test
@@ -31,17 +31,17 @@ class SeqNoTest {
         val seqNo = SeqNo.fromUInt(raw)
 
         // Assert
-        assertEquals(raw, seqNo.toUInt())
+        assertEquals(raw, seqNo.rawValue())
     }
 
     @Test
-    fun `toUInt roundtrips through fromUInt`() {
+    fun `rawValue roundtrips through fromUInt`() {
         // Arrange
         val raw = 0xCAFEBABEu
 
         // Act
         val seqNo = SeqNo.fromUInt(raw)
-        val restored = seqNo.toUInt()
+        val restored = seqNo.rawValue()
 
         // Assert
         assertEquals(raw, restored)
@@ -54,7 +54,7 @@ class SeqNoTest {
 
         // Act & Assert
         assertEquals(SeqNo(0u), zero)
-        assertEquals(0u, zero.toUInt())
+        assertEquals(0u, zero.rawValue())
         assertTrue(zero.isZero)
     }
 
@@ -64,8 +64,8 @@ class SeqNoTest {
         val max = SeqNo.MAX_VALUE
 
         // Assert
-        assertEquals(UInt.MAX_VALUE, max.toUInt())
-        assertEquals(0xFFFFFFFFu, max.toUInt())
+        assertEquals(UInt.MAX_VALUE, max.rawValue())
+        assertEquals(0xFFFFFFFFu, max.rawValue())
         assertFalse(max.isZero)
     }
 

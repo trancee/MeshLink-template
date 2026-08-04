@@ -85,7 +85,7 @@ healthy minutes or one error-free transfer of at least 1 MiB.
 
 ## Background Operation
 
-`MeshLinkSettings.backgroundOperation` defaults to false. When enabled, Android
+`MeshLinkSettings.isBackground` defaults to false. When enabled, Android
 host apps own the connected-device foreground service and notification; iOS
 host apps own Bluetooth background declarations and restoration forwarding.
 MeshLink owns BLE state and reconstruction. Execution is best effort, and active

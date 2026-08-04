@@ -253,7 +253,7 @@ diagnostic_events:
         description: "Destination peer for this transfer"
       - name: reason
         type: TransferFailureReason
-        description: "Unrecoverable (generic) or TrustFailure (identity mismatch/revocation)"
+        description: "Unrecoverable (generic) or Trust (identity mismatch/revocation)"
       - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
@@ -287,17 +287,17 @@ exception_error_codes:
     internal: [INTERNAL_ERROR, SERIALIZATION_FAILED]
 
 transfer_results:
-  description: "Terminal outcomes only. Non-terminal progress is represented by TransferState; transferResult remains null until terminal. Maps to TransferResult enum and mapTransferResult()."
+  description: "Terminal outcomes only. Non-terminal progress is represented by TransferState (AWAITING_DECISION, TRANSFERRING, ROUTE_UNAVAILABLE, RETRANSMITTING); transferResult remains null until a terminal condition occurs. Terminal outcomes (COMPLETED, CANCELLED, EXPIRED) come from external completion/cancellation/expiration conditions; failure outcomes are derived from TransferFailureReason via mapTransferResult()."
   outcomes:
     - name: COMPLETED
-      source_state: COMPLETED
+      terminal_state: COMPLETED
     - name: CANCELLED
-      source_state: CANCELLED
+      terminal_state: CANCELLED
     - name: EXPIRED
-      source_state: EXPIRED
+      terminal_state: EXPIRED
     - name: UNRECOVERABLE_FAILURE
-      source_state: FAILED
+      terminal_state: FAILED
       failure_reason: Unrecoverable
     - name: TRUST_FAILURE
-      source_state: FAILED
-      failure_reason: TrustFailure
+      terminal_state: FAILED
+      failure_reason: Trust

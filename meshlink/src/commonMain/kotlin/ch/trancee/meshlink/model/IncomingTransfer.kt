@@ -12,10 +12,10 @@ import kotlinx.coroutines.flow.StateFlow
 public class IncomingTransfer
 internal constructor(
     /** Origin-scoped identifier. */
-    public val id: UInt,
+    public val id: TransferId,
 
     /** Discriminates MESSAGE vs PAYLOAD wire formats. */
-    public val kind: TransferKind,
+    public val type: TransferType,
 
     /** Origin peer identity. */
     public val origin: PeerIdentity,

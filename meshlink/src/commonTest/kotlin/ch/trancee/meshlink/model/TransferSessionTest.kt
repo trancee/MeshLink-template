@@ -15,6 +15,7 @@ class TransferSessionTest {
                 destination = PeerIdentity.ZERO,
                 priority = Priority.NORMAL,
                 state = TransferState.TRANSFERRING,
+                result = null,
                 chunkSize = 256,
                 totalChunks = 1u,
                 scoreboard = Scoreboard(1u),
@@ -33,6 +34,7 @@ class TransferSessionTest {
                 session.destination,
                 session.priority,
                 session.state,
+                session.result,
                 session.chunkSize,
                 session.totalChunks,
                 session.scoreboard,
@@ -45,6 +47,6 @@ class TransferSessionTest {
             )
 
         // Assert
-        assertEquals(13, actual.size)
+        assertEquals(14, actual.size)
     }
 }

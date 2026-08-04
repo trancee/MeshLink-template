@@ -9,10 +9,10 @@ import kotlinx.coroutines.flow.StateFlow
  */
 public data class Transfer(
     /** Origin-scoped identifier. */
-    public val id: UInt,
+    public val id: TransferId,
 
     /** Discriminates MESSAGE vs PAYLOAD wire format. */
-    public val kind: TransferKind,
+    public val type: TransferType,
 
     /** Current transfer status. */
     public val status: StateFlow<TransferStatus>,

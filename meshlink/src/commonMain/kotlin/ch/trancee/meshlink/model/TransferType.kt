@@ -1,10 +1,10 @@
 package ch.trancee.meshlink.model
 
 /**
- * Transfer kind discriminates between MESSAGE and PAYLOAD wire formats. Internal to the transfer
- * layer; exposed via [Transfer.kind].
+ * Transfer type discriminates between MESSAGE and PAYLOAD wire formats. Internal to the transfer
+ * layer; exposed via [Transfer.type].
  */
-public enum class TransferKind(
+public enum class TransferType(
     /** Explicit wire code matching `specs/codecs/enums.yaml`. */
     public val code: UByte
 ) {

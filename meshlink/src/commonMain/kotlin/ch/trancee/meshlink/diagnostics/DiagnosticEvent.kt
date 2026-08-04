@@ -175,10 +175,9 @@ public sealed interface DiagnosticEvent {
     ) : DiagnosticEvent {
         override val code: DiagnosticCode = DiagnosticCodes.TRANSFER_STATE
         override val severity: DiagnosticSeverity =
-            when (state) {
-                TransferState.FAILED,
-                TransferState.EXPIRED -> DiagnosticSeverity.ERROR
-                else -> DiagnosticSeverity.INFO
+            when (reason) {
+                null -> DiagnosticSeverity.INFO
+                else -> DiagnosticSeverity.ERROR
             }
     }
 

@@ -191,18 +191,18 @@ class DiagnosticEventTest {
                 DiagnosticEvent.TransferSessionTransitionEvent(
                     id = TransferId(5u),
                     peerIdentity = identity,
-                    state = TransferState.FAILED,
+                    state = TransferState.TRANSFERRING,
                     offset = 0L,
                     total = 10L,
-                    reason = null,
+                    reason = TransferFailureReason.Unrecoverable("failure"),
                 ),
                 DiagnosticEvent.TransferSessionTransitionEvent(
                     id = TransferId(6u),
                     peerIdentity = identity,
-                    state = TransferState.EXPIRED,
+                    state = TransferState.ROUTE_UNAVAILABLE,
                     offset = 0L,
                     total = 10L,
-                    reason = null,
+                    reason = TransferFailureReason.Unrecoverable("expired"),
                 ),
             )
 

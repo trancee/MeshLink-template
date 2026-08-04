@@ -94,7 +94,7 @@ wire_frames:
         size_bytes: 4
         description: "MessageId or TransferId interpreted by kind; zero invalid"
       - name: kind
-        type: TransferKind
+        type: TransferType
         size_bytes: 1
       - name: origin
         type: PeerIdentity
@@ -132,7 +132,7 @@ wire_frames:
         type: UInt
         size_bytes: 4
       - name: kind
-        type: TransferKind
+        type: TransferType
         size_bytes: 1
       - name: decision
         type: PayloadDecision
@@ -151,7 +151,7 @@ wire_frames:
         type: UInt
         size_bytes: 4
       - name: kind
-        type: TransferKind
+        type: TransferType
         size_bytes: 1
       - name: index
         type: UInt
@@ -169,7 +169,7 @@ wire_frames:
         type: UInt
         size_bytes: 4
       - name: kind
-        type: TransferKind
+        type: TransferType
         size_bytes: 1
       - name: start
         type: UInt
@@ -188,7 +188,7 @@ wire_frames:
         type: UInt
         size_bytes: 4
       - name: kind
-        type: TransferKind
+        type: TransferType
         size_bytes: 1
       - name: reason
         type: TransferFailureReason

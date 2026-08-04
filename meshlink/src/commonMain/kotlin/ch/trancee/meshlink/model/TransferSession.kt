@@ -2,16 +2,12 @@ package ch.trancee.meshlink.model
 
 import kotlin.time.Instant
 
-/** State that a transfer session can be in. */
+/** Non-terminal phase of a transfer session lifecycle. */
 public enum class TransferState {
     AWAITING_DECISION,
     TRANSFERRING,
     ROUTE_UNAVAILABLE,
     RETRANSMITTING,
-    COMPLETED,
-    CANCELLED,
-    FAILED,
-    EXPIRED,
 }
 
 /**
@@ -32,8 +28,10 @@ public data class TransferSession(
     public val destination: PeerIdentity,
     /** QoS priority inherited from the originating RoutingMessage. */
     public val priority: Priority,
-    /** Current lifecycle state of this transfer. */
+    /** Current non-terminal lifecycle phase of this transfer. */
     public val state: TransferState,
+    /** Terminal outcome; null while the session is non-terminal. */
+    public val result: TransferResult?,
     /** Selected chunk size in bytes (bounded by peer MTU). */
     public val chunkSize: Int,
     /** Total number of chunks in this transfer. */

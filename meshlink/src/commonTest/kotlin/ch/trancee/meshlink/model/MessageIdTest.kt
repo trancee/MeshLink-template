@@ -9,13 +9,13 @@ class MessageIdTest {
     @Test
     fun `zero id has fixed representation`() {
         val id = MessageId(0u)
-        assertEquals(0u, id.toUInt())
+        assertEquals(0u, id.rawValue())
     }
 
     @Test
     fun `nonzero id exposes decimal representation`() {
         val id = MessageId(42u)
-        assertEquals(42u, id.toUInt())
+        assertEquals(42u, id.rawValue())
     }
 
     @Test
@@ -23,7 +23,7 @@ class MessageIdTest {
         val expected = MessageId(42u)
         val actual = MessageId.fromUInt(expected.toString().toUInt())
         assertEquals(expected, actual)
-        assertEquals(42u, expected.toUInt())
+        assertEquals(42u, expected.rawValue())
     }
 
     @Test
@@ -33,15 +33,15 @@ class MessageIdTest {
     }
 
     @Test
-    fun `toUInt returns raw value`() {
+    fun `rawValue returns raw value`() {
         val id = MessageId(0xDEADBEEFu)
-        assertEquals(0xDEADBEEFu, id.toUInt())
+        assertEquals(0xDEADBEEFu, id.rawValue())
     }
 
     @Test
     fun `fromUInt creates id from raw value`() {
         val id = MessageId.fromUInt(0xCAFEBABEu)
-        assertEquals(0xCAFEBABEu, id.toUInt())
+        assertEquals(0xCAFEBABEu, id.rawValue())
     }
 
     @Test
@@ -73,11 +73,11 @@ class MessageIdTest {
     fun `inc operator increments with wrap`() {
         var id = MessageId(0u)
         id = id.inc()
-        assertEquals(1u, id.toUInt())
+        assertEquals(1u, id.rawValue())
 
         id = MessageId(0xFFFFFFFFu)
         id = id.inc()
-        assertEquals(0u, id.toUInt())
+        assertEquals(0u, id.rawValue())
     }
 
     @Test
@@ -94,7 +94,7 @@ class MessageIdTest {
 
     @Test
     fun `ZERO is accessible`() {
-        assertEquals(0u, MessageId.ZERO.toUInt())
+        assertEquals(0u, MessageId.ZERO.rawValue())
     }
 
     @Test
@@ -108,12 +108,12 @@ class MessageIdTest {
                     it[3] = 4
                 }
             )
-        assertEquals(0x01020304u, id.toUInt())
+        assertEquals(0x01020304u, id.rawValue())
     }
 
     @Test
     fun `fromUInt creates id from UInt`() {
         val id = MessageId.fromUInt(42u)
-        assertEquals(42u, id.toUInt())
+        assertEquals(42u, id.rawValue())
     }
 }

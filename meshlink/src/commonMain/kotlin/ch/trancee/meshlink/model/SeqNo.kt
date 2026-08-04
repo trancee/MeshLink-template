@@ -28,7 +28,7 @@ public value class SeqNo(private val value: UInt) {
     override fun toString(): String = value.toString()
 
     /** Raw 32-bit unsigned value, for wire serialization and deserialization. */
-    public fun toUInt(): UInt = value
+    public fun rawValue(): UInt = value
 
     /** Factory and constants for [SeqNo]. */
     public companion object {
@@ -41,8 +41,8 @@ public value class SeqNo(private val value: UInt) {
         /**
          * Creates a [SeqNo] from a raw [UInt] value (e.g., read from the wire).
          *
-         * This is the deserialization counterpart to [toUInt], used when decoding `ROUTE_UPDATE`,
-         * `ROUTE_WITHDRAWAL`, and `KEY_ROTATION` frames.
+         * This is the deserialization counterpart to [rawValue], used when decoding
+         * `ROUTE_UPDATE`,` `ROUTE_WITHDRAWAL`, and `KEY_ROTATION` frames.
          */
         public fun fromUInt(value: UInt): SeqNo = SeqNo(value)
 

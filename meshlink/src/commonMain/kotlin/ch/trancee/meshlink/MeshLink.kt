@@ -141,9 +141,9 @@ private constructor(
     /**
      * Changes the power mode at runtime.
      *
-     * All routing, security, regulatory, persistence, backgroundOperation, diagnostics capacity,
-     * and transfer defaults remain fixed. Existing transfers retain their established chunk
-     * framing; new transfers and connections use the updated settings.
+     * All routing, security, regulatory, persistence, isBackground, diagnostics capacity, and
+     * transfer defaults remain fixed. Existing transfers retain their established chunk framing;
+     * new transfers and connections use the updated settings.
      *
      * A failed update leaves both [powerMode] and [powerModeSettings] at their previous successful
      * values.
