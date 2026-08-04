@@ -14,7 +14,7 @@ class TransferStatusTest {
                 offset = 512L,
                 total = 1024L,
                 retryCount = 2,
-                transferResult = null,
+                result = null,
                 diagnosticCode = null,
                 diagnosticSeverity = null,
             )
@@ -23,6 +23,6 @@ class TransferStatusTest {
         assertEquals(512L, status.offset)
         assertEquals(1024L, status.total)
         assertEquals(2, status.retryCount)
-        assertNull(status.transferResult)
+        assertNull(status.result)
     }
 }

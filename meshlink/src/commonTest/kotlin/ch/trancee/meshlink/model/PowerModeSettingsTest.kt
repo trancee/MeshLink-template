@@ -15,6 +15,7 @@ class PowerModeSettingsTest {
                 advertisementInterval = 100.milliseconds,
                 activeConnectionInterval = 15.milliseconds,
                 idleConnectionInterval = 500.milliseconds,
+                idleTransitionDelay = 60.seconds,
                 concurrentConnectionLimit = 8,
                 chunkSize = 512,
                 retryLimit = 10,
@@ -25,5 +26,6 @@ class PowerModeSettingsTest {
         assertEquals(20, settings.scanDutyCycle)
         assertEquals(8, settings.concurrentConnectionLimit)
         assertEquals(512, settings.chunkSize)
+        assertEquals(60.seconds, settings.idleTransitionDelay)
     }
 }

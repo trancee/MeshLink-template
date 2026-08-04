@@ -26,11 +26,11 @@ public data class TransferSession(
     public val id: TransferId,
     /** Final destination peer for this transfer. */
     public val destination: PeerIdentity,
-    /** QoS priority inherited from the originating RoutingMessage. */
+    /** QoS priority inherited from the originating PayloadManifest frame. */
     public val priority: Priority,
     /** Current non-terminal lifecycle phase of this transfer. */
     public val state: TransferState,
-    /** Terminal outcome; null while the session is non-terminal. */
+    /** Terminal outcome; null while the session is in a non-terminal TransferState. */
     public val result: TransferResult?,
     /** Selected chunk size in bytes (bounded by peer MTU). */
     public val chunkSize: Int,
@@ -48,6 +48,4 @@ public data class TransferSession(
     public val expiresAt: Instant?,
     /** Number of retransmit attempts made so far. */
     public val retryCount: Int,
-    /** Why this session reached a terminal failure state. */
-    public val failureReason: TransferFailureReason?,
 )

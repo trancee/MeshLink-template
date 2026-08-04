@@ -20,7 +20,7 @@ class IncomingTransferTest {
                     offset = 0L,
                     total = 1024L,
                     retryCount = 0,
-                    transferResult = null,
+                    result = null,
                     diagnosticCode = null,
                     diagnosticSeverity = null,
                 )
@@ -29,7 +29,7 @@ class IncomingTransferTest {
         val incoming =
             IncomingTransfer(
                 id = TransferId(456u),
-                type = TransferType.MESSAGE,
+                kind = TransferKind.MESSAGE,
                 origin = PeerIdentity.generate(),
                 priority = Priority.NORMAL,
                 total = 1024L,
@@ -39,7 +39,7 @@ class IncomingTransferTest {
             )
 
         assertEquals(TransferId(456u), incoming.id)
-        assertEquals(TransferType.MESSAGE, incoming.type)
+        assertEquals(TransferKind.MESSAGE, incoming.kind)
         assertNotNull(incoming.origin)
         assertEquals(Priority.NORMAL, incoming.priority)
         assertEquals(1024L, incoming.total)
@@ -57,7 +57,7 @@ class IncomingTransferTest {
 
                 override suspend fun complete() = Unit
 
-                override suspend fun fail(reason: TransferFailureReason) = Unit
+                override suspend fun fail(result: TransferResult) = Unit
             }
 
         assertFailsWith<NotImplementedError> { runBlocking { incoming.accept(sink) } }
@@ -78,14 +78,14 @@ class IncomingTransferTest {
                     offset = 0L,
                     total = 1024L,
                     retryCount = 0,
-                    transferResult = null,
+                    result = null,
                     diagnosticCode = null,
                     diagnosticSeverity = null,
                 )
             )
         return IncomingTransfer(
             id = TransferId(456u),
-            type = TransferType.MESSAGE,
+            kind = TransferKind.MESSAGE,
             origin = PeerIdentity.generate(),
             priority = Priority.NORMAL,
             total = 1024L,

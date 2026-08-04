@@ -25,10 +25,10 @@ cross_references:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/SeqNo.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Scoreboard.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferSession.kt"
-      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TypeModel.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Enums.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/IdentityKey.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/HandshakeKey.kt"
-      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferFailureReason.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferResult.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLinkVersion.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/MeshLinkState.kt"
     specs:
@@ -104,7 +104,7 @@ cross_references:
     code_files:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferSession.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Scoreboard.kt"
-      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferFailureReason.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferResult.kt"
     specs:
       - "specs/codecs/models.yaml"
       - "specs/protocol/state-machines.yaml"
@@ -203,28 +203,37 @@ adrs_by_area:
     - "docs/decisions/transfer/payload-identity-and-naming.md"
     - "docs/decisions/transfer/transfer-source-sink-contract.md"
 
+
 spec_anchors_in_code:
+  - "meshlink-public-api" # MeshLink.kt
+  - "meshlink-environment" # MeshLinkEnvironment.kt
+  - "meshlink-state" # MeshLinkState.kt
   - "peer-identity-model" # PeerIdentity.kt
+  - "transfer-id-model" # TransferId.kt
+  - "message-id-model" # MessageId.kt
   - "seqno-model" # SeqNo.kt
   - "scoreboard-model" # Scoreboard.kt
   - "transfer-session-model" # TransferSession.kt
-  - "ttl-by-priority" # RoutingPolicy.kt
-  - "type-model" # TypeModel.kt
-  - "diagnostic-event" # DiagnosticEvent.kt
-  - "power-mode" # PowerMode.kt
+  - "transfer-result" # TransferResult.kt
+  - "identity-key-model" # IdentityKey.kt
   - "handshake-key-model" # HandshakeKey.kt
-  - "transfer-failure-reason-model" # TransferFailureReason.kt
-  - "meshlink-version" # MeshLinkVersion.kt
-  - "meshlink-state" # MeshLinkState.kt
+  - "trust-record" # TrustRecord.kt
+  - "ttl-by-priority" # RoutingPolicy.kt
+  - "enums" # Enums.kt
+  - "error-code" # ErrorCode.kt
+  - "error-hierarchy" # Exceptions.kt
+  - "diagnostic-event" # DiagnosticEvent.kt
+  - "power-mode-settings" # PowerMode.kt
+  - "replay-window" # ReplayWindow.kt
 
 implementation_status:
   implemented:
     - "PeerIdentity"
     - "Scoreboard / MutableScoreboard"
-    - "TransferSession / TransferState / TransferFailureReason"
+    - "TransferSession / TransferState / TransferResult"
     - "IdentityKey"
     - "PeerState"
-    - "All enums in TypeModel.kt"
+    - "All enums in Enums.kt"
     - "MeshLinkState"
     - "DiagnosticEvent sealed hierarchy"
     - "PowerMode"
@@ -269,7 +278,7 @@ test_files_by_layer:
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/PowerModeTest.kt"
   diagnostics:
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/DiagnosticEventTest.kt"
-  failure_reason:
-    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/TransferFailureReasonTest.kt"
+  transfer_result:
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/TransferResultTest.kt"
   version:
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/MeshLinkVersionTest.kt"

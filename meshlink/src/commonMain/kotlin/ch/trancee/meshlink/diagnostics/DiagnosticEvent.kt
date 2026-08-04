@@ -12,8 +12,8 @@ import ch.trancee.meshlink.model.NoiseSessionState
 import ch.trancee.meshlink.model.PeerIdentity
 import ch.trancee.meshlink.model.PowerMode
 import ch.trancee.meshlink.model.RegulatoryRegion
-import ch.trancee.meshlink.model.TransferFailureReason
 import ch.trancee.meshlink.model.TransferId
+import ch.trancee.meshlink.model.TransferResult
 import ch.trancee.meshlink.model.TransferState
 import ch.trancee.meshlink.model.TransportFallbackReason
 import ch.trancee.meshlink.model.VerificationLevel
@@ -52,7 +52,7 @@ public sealed interface DiagnosticEvent {
     public val occurredAt: Instant
 
     public data class RouteDecryptFailureEvent(
-        public val peerIdentity: PeerIdentity,
+        public val identity: PeerIdentity,
         public val frameType: UByte,
         public val failureReason: DecryptFailureReason,
         override val occurredAt: Instant = Clock.System.now(),
@@ -62,7 +62,7 @@ public sealed interface DiagnosticEvent {
     }
 
     public data class TransportFallbackEvent(
-        public val peerIdentity: PeerIdentity,
+        public val identity: PeerIdentity,
         public val reason: TransportFallbackReason,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
@@ -70,7 +70,7 @@ public sealed interface DiagnosticEvent {
         override val severity: DiagnosticSeverity = DiagnosticSeverity.WARN
     }
 
-    public data class TransportLayerEvent(
+    public data class TransferBearerEvent(
         public val id: TransferId,
         public val bearer: Bearer,
         override val occurredAt: Instant = Clock.System.now(),
@@ -116,7 +116,7 @@ public sealed interface DiagnosticEvent {
     }
 
     public data class KeyRotationEvent(
-        public val peerIdentity: PeerIdentity,
+        public val identity: PeerIdentity,
         public val oldGeneration: UInt,
         public val newGeneration: UInt,
         public val reason: KeyRotationReason,
@@ -136,7 +136,7 @@ public sealed interface DiagnosticEvent {
 
     public data class NoiseSessionEvent(
         public val id: NoiseSessionId,
-        public val peerIdentity: PeerIdentity,
+        public val identity: PeerIdentity,
         public val layer: NoiseLayer,
         public val role: NoiseRole,
         public val pattern: HandshakePattern,
@@ -155,7 +155,7 @@ public sealed interface DiagnosticEvent {
     }
 
     public data class RouteDigestMismatchEvent(
-        public val peerIdentity: PeerIdentity,
+        public val identity: PeerIdentity,
         public val localDigest: ULong,
         public val remoteDigest: ULong,
         override val occurredAt: Instant = Clock.System.now(),
@@ -166,25 +166,29 @@ public sealed interface DiagnosticEvent {
 
     public data class TransferSessionTransitionEvent(
         public val id: TransferId,
-        public val peerIdentity: PeerIdentity,
+        public val identity: PeerIdentity,
         public val state: TransferState,
         public val offset: Long,
         public val total: Long,
-        public val reason: TransferFailureReason?,
+        public val result: TransferResult?,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
         override val code: DiagnosticCode = DiagnosticCodes.TRANSFER_STATE
         override val severity: DiagnosticSeverity =
-            when (reason) {
+            when (result) {
                 null -> DiagnosticSeverity.INFO
-                else -> DiagnosticSeverity.ERROR
+                is TransferResult.UnrecoverableFailure -> DiagnosticSeverity.ERROR
+                is TransferResult.TrustFailure -> DiagnosticSeverity.ERROR
+                TransferResult.Completed,
+                TransferResult.Cancelled,
+                TransferResult.Expired -> DiagnosticSeverity.INFO
             }
     }
 
     public data class TransferFailureEvent(
         public val id: TransferId,
-        public val peerIdentity: PeerIdentity,
-        public val reason: TransferFailureReason,
+        public val identity: PeerIdentity,
+        public val result: TransferResult,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
         override val code: DiagnosticCode = DiagnosticCodes.TRANSFER_FAILURE

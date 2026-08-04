@@ -1,5 +1,6 @@
-package ch.trancee.meshlink.model
+@file:Suppress("TooManyFunctions")
 
+package ch.trancee.meshlink.model
 /**
  * Immutable bitfield for selective acknowledgement of received chunks. Bit N = 1 means chunk N is
  * received (standard SACK convention). Length is derived from totalChunks and the byte width.
@@ -222,3 +223,49 @@ private const val BITS_PER_BYTE: Int = 8
 private const val LAST_BIT_INDEX: Int = 7
 private const val ONE: Int = 1
 private const val BYTE_MASK: Int = 0xFF
+
+// ---------------------------------------------------------------------------
+// Scoreboard operations: chunk iteration and bitfield merging
+// ---------------------------------------------------------------------------
+
+/** Returns missing chunk indices as a newly allocated list. */
+public fun Scoreboard.missingChunks(): List<Int> =
+    (0 until totalChunks.toInt()).filter { isMissing(it) }
+
+/** Lazily iterates missing chunk indices. */
+public fun Scoreboard.missingSequence(): Sequence<Int> =
+    (0 until totalChunks.toInt()).asSequence().filter { isMissing(it) }
+
+/** Visits missing chunk indices without allocating a collection. */
+public inline fun Scoreboard.forEachMissing(action: (index: Int) -> Unit) {
+    for (index in 0 until totalChunks.toInt()) {
+        if (isMissing(index)) {
+            action(index)
+        }
+    }
+}
+
+/** Returns the union of two compatible acknowledgement bitfields. */
+public fun Scoreboard.or(other: Scoreboard): Scoreboard =
+    merge(other) { left, right -> left.toInt() or right.toInt() }
+
+/** Returns the intersection of two compatible acknowledgement bitfields. */
+public fun Scoreboard.and(other: Scoreboard): Scoreboard =
+    merge(other) { left, right -> left.toInt() and right.toInt() }
+
+/** Returns the symmetric difference of two compatible acknowledgement bitfields. */
+public fun Scoreboard.xor(other: Scoreboard): Scoreboard =
+    merge(other) { left, right -> left.toInt() xor right.toInt() }
+
+private fun Scoreboard.merge(other: Scoreboard, operation: (Byte, Byte) -> Int): Scoreboard {
+    require(totalChunks == other.totalChunks) {
+        "Scoreboard operations require matching totalChunks: $totalChunks vs ${other.totalChunks}"
+    }
+    val left = toByteArray()
+    val right = other.toByteArray()
+    val merged = ByteArray(left.size)
+    for (index in left.indices) {
+        merged[index] = operation(left[index], right[index]).toByte()
+    }
+    return Scoreboard.fromBytes(totalChunks, merged)
+}

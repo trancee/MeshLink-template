@@ -7,14 +7,13 @@ import kotlin.jvm.JvmInline
 /**
  * Four-byte identifier for a message payload, scoped by its authenticated origin.
  *
- * Shares the same 32-bit wire slot as [TransferId]; [TransferType] determines interpretation. Zero
+ * Shares the same 32-bit wire slot as [TransferId]; [TransferKind] determines interpretation. Zero
  * is reserved as invalid.
  *
  * SPEC-ANCHOR: message-id-model
  */
 @JvmInline
-public value class MessageId(public val value: UInt) : Comparable<MessageId> {
-
+public value class MessageId(private val value: UInt) {
     /** Raw 32-bit unsigned value, for wire serialization and deserialization. */
     public fun rawValue(): UInt = value
 
@@ -27,14 +26,9 @@ public value class MessageId(public val value: UInt) : Comparable<MessageId> {
      */
     public operator fun inc(): MessageId = MessageId(value + MESSAGE_ID_INCREMENT)
 
-    public override fun compareTo(other: MessageId): Int = value.compareTo(other.value)
-
     public companion object {
         /** Invalid message ID (zero). */
         public val ZERO: MessageId = MessageId(0u)
-
-        /** Creates a [MessageId] from a raw [UInt] value (e.g., read from the wire). */
-        public fun fromUInt(value: UInt): MessageId = MessageId(value)
 
         /**
          * Creates a [MessageId] from a 4-byte big-endian representation, for wire deserialization.
@@ -48,8 +42,6 @@ public value class MessageId(public val value: UInt) : Comparable<MessageId> {
             return MessageId(bytes.toUIntBE())
         }
     }
-
-    override fun toString(): String = value.toString()
 }
 
 private const val MESSAGE_ID_BYTE_LENGTH: Int = 4

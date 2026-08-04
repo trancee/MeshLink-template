@@ -22,10 +22,10 @@ public data class TransferStatus(
     public val retryCount: Int,
 
     /** Terminal outcome; null for non-terminal states. */
-    public val transferResult: TransferResult?,
+    public val result: TransferResult? = null,
 
     /** Diagnostic event code, if any. */
-    public val diagnosticCode: DiagnosticCode?,
+    public val diagnosticCode: DiagnosticCode? = null,
 
     /** Severity of diagnostic event. */
     public val diagnosticSeverity: DiagnosticSeverity? = null,

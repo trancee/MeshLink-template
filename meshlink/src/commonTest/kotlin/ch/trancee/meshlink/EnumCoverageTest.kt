@@ -18,9 +18,10 @@ import ch.trancee.meshlink.model.PeerState
 import ch.trancee.meshlink.model.PeerTrust
 import ch.trancee.meshlink.model.Priority
 import ch.trancee.meshlink.model.RegulatoryRegion
-import ch.trancee.meshlink.model.TransferResult
+import ch.trancee.meshlink.model.TransferKind
 import ch.trancee.meshlink.model.TransferState
 import ch.trancee.meshlink.model.TransportFallbackReason
+import ch.trancee.meshlink.model.VerificationLevel
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -49,7 +50,8 @@ class EnumCoverageTest {
                 PeerState.entries,
                 PeerTrust.entries,
                 DiagnosticSeverity.entries,
-                TransferResult.entries,
+                TransferKind.entries,
+                VerificationLevel.entries,
                 KeyRotationState.entries,
                 PeerLifecycle.entries,
             )
@@ -60,7 +62,6 @@ class EnumCoverageTest {
         // Assert
         names.forEach { assertNotNull(it) }
         assertEquals(5, PeerTrust.entries.size)
-        assertEquals(5, TransferResult.entries.size)
         assertEquals(5, MeshLinkState.entries.size)
     }
 }

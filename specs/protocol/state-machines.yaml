@@ -25,7 +25,7 @@ state_machines:
         to: ROUTE_UNAVAILABLE
       - from: TRANSFERRING
         event: "All chunks acknowledged"
-        to: COMPLETED  # terminal → TransferResult
+        to: Completed  # terminal → TransferResult
       - from: TRANSFERRING
         event: "Route lost"
         to: ROUTE_UNAVAILABLE
@@ -34,10 +34,13 @@ state_machines:
         to: RETRANSMITTING
       - from: TRANSFERRING
         event: "Cancellation"
-        to: CANCELLED  # terminal → TransferResult
+        to: Cancelled  # terminal → TransferResult
       - from: TRANSFERRING
-        event: "Protocol, sink, or trust failure"
-        to: FAILED  # terminal → TransferResult
+        event: "Protocol, sink, or non-trust failure"
+        to: UnrecoverableFailure  # terminal → TransferResult
+      - from: TRANSFERRING
+        event: "Trust violation (identity mismatch, revoked peer)"
+        to: TrustFailure  # terminal → TransferResult
       - from: ROUTE_UNAVAILABLE
         event: "Route and required E2E session recovered"
         to: TRANSFERRING
@@ -46,16 +49,16 @@ state_machines:
         to: TRANSFERRING
       - from: ROUTE_UNAVAILABLE
         event: "timeToLive exhausted"
-        to: EXPIRED  # terminal → TransferResult
+        to: Expired  # terminal → TransferResult
       - from: RETRANSMITTING
         event: "timeToLive exhausted"
-        to: EXPIRED  # terminal → TransferResult
+        to: Expired  # terminal → TransferResult
       - from: ROUTE_UNAVAILABLE
         event: "Cancellation"
-        to: CANCELLED  # terminal → TransferResult
+        to: Cancelled  # terminal → TransferResult
       - from: RETRANSMITTING
         event: "Cancellation"
-        to: CANCELLED  # terminal → TransferResult
+        to: Cancelled  # terminal → TransferResult
     protocol_limits:
 
   - name: NoiseSessionState
@@ -270,11 +273,11 @@ state_machines:
       - GONE
     states:
       - name: CONNECTED
-        description: "Active BLE link. Transfers may be in progress. Route entries remain live. Host app observes connected presence in knownPeers."
+        description: "Active BLE link. Transfers may be in progress. Route entries remain live. Host app observes connected presence in peers."
       - name: DISCONNECTED
-        description: "BLE link was lost. Grace period active because peer may return quickly. Routes can degrade before full retraction. Transfers can pause instead of being abandoned. Host app observes disconnected presence in knownPeers."
+        description: "BLE link was lost. Grace period active because peer may return quickly. Routes can degrade before full retraction. Transfers can pause instead of being abandoned. Host app observes disconnected presence in peers."
       - name: GONE
-        description: "Grace window expired without reconnection. MeshLink cleans up ephemeral state (presence, routes, pending transfer work). Transient unverified peers leave knownPeers; persisted trusted or revoked identities remain unavailable."
+        description: "Grace window expired without reconnection. MeshLink cleans up ephemeral state (presence, routes, pending transfer work). Transient unverified peers leave peers; persisted trusted or revoked identities remain unavailable."
         terminal: true
     transitions:
       - from: CONNECTED
@@ -337,21 +340,35 @@ state_machines:
         description: "Key fully revoked, no longer accepted"
 
   - name: TransferResult
-    package: ch.trancee.meshlink
-    description: "Explicit, enumerated terminal outcomes surfaced to host apps. Non-terminal TransferStates (TRANSFERRING, ROUTE_UNAVAILABLE, RETRANSMITTING, AWAITING_DECISION) return null until a terminal condition (completion, cancellation, expiration, or failure) occurs."
+    package: ch.trancee.meshlink.model
+    description: "Sealed interface of terminal payload transfer outcomes surfaced to host apps. Non-terminal TransferStates (TRANSFERRING, ROUTE_UNAVAILABLE, RETRANSMITTING, AWAITING_DECISION) return null until a terminal condition (completion, cancellation, expiration, or failure) occurs."
+    subtypes:
+      - name: Completed
+        carries: "—"
+        description: "All chunks acknowledged and delivered"
+      - name: Cancelled
+        carries: "—"
+        description: "Sender cancelled before completion"
+      - name: Expired
+        carries: "—"
+        description: "Time-to-live exceeded without completion"
+      - name: UnrecoverableFailure
+        carries: "message: String"
+        description: "Protocol, sink, or non-trust failure"
+      - name: TrustFailure
+        carries: "identity: PeerIdentity"
+        description: "Identity mismatch, revoked peer, or security policy violation"
     mapping:
-      - terminal_state: COMPLETED
-        outcome: SUCCESS
-      - terminal_state: CANCELLED
-        outcome: CANCELLED
-      - terminal_state: EXPIRED
-        outcome: TIMEOUT
-      - terminal_state: FAILED
-        failure_reason: Unrecoverable
-        outcome: UNRECOVERABLE_FAILURE
-      - terminal_state: FAILED
-        failure_reason: Trust
-        outcome: TRUST_FAILURE
+      - terminal_state: Completed
+        outcome: Completed
+      - terminal_state: Cancelled
+        outcome: Cancelled
+      - terminal_state: Expired
+        outcome: Expired
+      - failure: UnrecoverableFailure
+        outcome: UnrecoverableFailure
+      - failure: TrustFailure
+        outcome: TrustFailure
       - transfer_state: TRANSFERRING
         outcome: null
       - transfer_state: ROUTE_UNAVAILABLE

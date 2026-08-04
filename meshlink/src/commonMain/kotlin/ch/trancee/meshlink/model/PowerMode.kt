@@ -36,6 +36,7 @@ public enum class PowerMode {
                 retryLimit = 10,
                 retryBudget = 60.seconds,
                 disconnectGracePeriod = 15.seconds,
+                idleTransitionDelay = 60.seconds,
             )
 
         /** Settings for MEDIUM power mode. */
@@ -50,6 +51,7 @@ public enum class PowerMode {
                 retryLimit = 5,
                 retryBudget = 30.seconds,
                 disconnectGracePeriod = 30.seconds,
+                idleTransitionDelay = 120.seconds,
             )
 
         /** Settings for LOW power mode. */
@@ -64,6 +66,7 @@ public enum class PowerMode {
                 retryLimit = 3,
                 retryBudget = 15.seconds,
                 disconnectGracePeriod = 45.seconds,
+                idleTransitionDelay = 300.seconds,
             )
     }
 }
@@ -88,4 +91,6 @@ public data class PowerModeSettings(
     public val retryBudget: Duration,
     /** Grace period after disconnection before a peer transitions to GONE. */
     public val disconnectGracePeriod: Duration,
+    /** Delay before entering idle/standby state after no activity. */
+    public val idleTransitionDelay: Duration,
 )

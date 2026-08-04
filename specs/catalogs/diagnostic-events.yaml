@@ -40,10 +40,11 @@ redaction: "No raw handles, addresses, keys, ciphertext, payloads, or platform e
 
 diagnostic_events:
   - name: RouteDecryptFailureEvent
+    code: "0x0501"
     category: route
     description: "A routed frame failed to decrypt at the link layer."
     fields:
-      - name: peerIdentity
+      - name: identity
         type: PeerIdentity
         description: "Peer from whom the frame was received"
       - name: frameType
@@ -58,10 +59,11 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: TransportFallbackEvent
+    code: "0x0901"
     category: transport
     description: "Data plane fell back from L2CAP CoC to GATT."
     fields:
-      - name: peerIdentity
+      - name: identity
         type: PeerIdentity
         description: "Peer for whom fallback occurred"
       - name: reason
@@ -71,7 +73,8 @@ diagnostic_events:
         type: Instant
         default: "Clock.System.now()"
 
-  - name: TransportLayerEvent
+  - name: TransferBearerEvent
+    code: "0x0601"
     category: transfer
     description: "Data plane bearer selected for a logical transfer."
     fields:
@@ -86,6 +89,7 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: PowerModeEffectiveEvent
+    code: "0x0102"
     category: power
     description: "Effective power mode parameters after regulatory clamping."
     fields:
@@ -130,6 +134,7 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: HandshakeEvent
+    code: "0x0401"
     category: handshake
     description: "End-to-end or link-layer handshake completed or failed."
     fields:
@@ -146,10 +151,11 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: KeyRotationEvent
+    code: "0x0402"
     category: key_rotation
     description: "Key rotation announcement processed by a peer."
     fields:
-      - name: peerIdentity
+      - name: identity
         type: PeerIdentity
         description: "Peer that announced key rotation"
       - name: oldGeneration
@@ -175,12 +181,13 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: NoiseSessionEvent
+    code: "0x0403"
     category: noise
     description: "Noise session state transition."
     fields:
       - name: id
         type: NoiseSessionId
-      - name: peerIdentity
+      - name: identity
         type: PeerIdentity
       - name: layer
         type: NoiseLayer
@@ -199,10 +206,11 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: RouteDigestMismatchEvent
+    code: "0x0502"
     category: route
     description: "Route table digest mismatch triggered a full resync."
     fields:
-      - name: peerIdentity
+      - name: identity
         type: PeerIdentity
         description: "Peer from whom mismatched digest was received"
       - name: localDigest
@@ -216,13 +224,14 @@ diagnostic_events:
         default: "Clock.System.now()"
 
   - name: TransferSessionTransitionEvent
+    code: "0x0602"
     category: transfer
-    description: "Logical transfer state transition with highest contiguous boundary and optional failure reason."
+    description: "Logical transfer state transition with highest contiguous boundary and optional result."
     fields:
       - name: id
         type: TransferId
         description: "Contextual finite-payload identifier"
-      - name: peerIdentity
+      - name: identity
         type: PeerIdentity
         description: "Destination peer for this transfer"
       - name: state
@@ -234,26 +243,27 @@ diagnostic_events:
       - name: total
         type: Long
         description: "Total payload size in bytes"
-      - name: reason
-        type: "TransferFailureReason?"
-        description: "Why this session reached a terminal failure state; null for non-terminal transitions"
+      - name: result
+        type: "TransferResult?"
+        description: "Terminal TransferResult if this transition ended in completion/cancellation/expiration/failure; null for non-terminal transitions"
       - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
 
   - name: TransferFailureEvent
+    code: "0x0603"
     category: transfer
     description: "Logical transfer reached a terminal failure state."
     fields:
       - name: id
         type: TransferId
         description: "Contextual finite-payload identifier"
-      - name: peerIdentity
+      - name: identity
         type: PeerIdentity
         description: "Destination peer for this transfer"
-      - name: reason
-        type: TransferFailureReason
-        description: "Unrecoverable (generic) or Trust (identity mismatch/revocation)"
+      - name: result
+        type: TransferResult
+        description: "UnrecoverableFailure (protocol/sink failure) or TrustFailure (identity mismatch/revocation)"
       - name: occurredAt
         type: Instant
         default: "Clock.System.now()"
@@ -287,17 +297,20 @@ exception_error_codes:
     internal: [INTERNAL_ERROR, SERIALIZATION_FAILED]
 
 transfer_results:
-  description: "Terminal outcomes only. Non-terminal progress is represented by TransferState (AWAITING_DECISION, TRANSFERRING, ROUTE_UNAVAILABLE, RETRANSMITTING); transferResult remains null until a terminal condition occurs. Terminal outcomes (COMPLETED, CANCELLED, EXPIRED) come from external completion/cancellation/expiration conditions; failure outcomes are derived from TransferFailureReason via mapTransferResult()."
-  outcomes:
-    - name: COMPLETED
-      terminal_state: COMPLETED
-    - name: CANCELLED
-      terminal_state: CANCELLED
-    - name: EXPIRED
-      terminal_state: EXPIRED
-    - name: UNRECOVERABLE_FAILURE
-      terminal_state: FAILED
-      failure_reason: Unrecoverable
-    - name: TRUST_FAILURE
-      terminal_state: FAILED
-      failure_reason: Trust
+  description: "Sealed interface of terminal outcomes surfaced to host apps. Non-terminal progress is represented by TransferState (AWAITING_DECISION, TRANSFERRING, ROUTE_UNAVAILABLE, RETRANSMITTING); transfer status remains null until a terminal condition occurs. Terminal outcomes (Completed, Cancelled, Expired) come from external completion/cancellation/expiration conditions; failure outcomes carry structured data directly (UnrecoverableFailure with message, TrustFailure with identity)."
+  subtypes:
+    - name: Completed
+      carries: "—"
+      description: "All chunks acknowledged and delivered"
+    - name: Cancelled
+      carries: "—"
+      description: "Sender cancelled before completion"
+    - name: Expired
+      carries: "—"
+      description: "Time-to-live exceeded without completion"
+    - name: UnrecoverableFailure
+      carries: "message: String"
+      description: "Protocol, sink, or non-trust failure"
+    - name: TrustFailure
+      carries: "identity: PeerIdentity"
+      description: "Identity mismatch, revoked peer, or security policy violation"

@@ -324,9 +324,9 @@ data_models:
       - name: retryCount
         type: Int
         description: "Number of retransmit attempts made so far"
-      - name: failureReason
-        type: "TransferFailureReason?"
-        description: "Why this session reached a terminal failure state"
+      - name: result
+        type: "TransferResult?"
+        description: "Terminal outcome; null while non-terminal"
 
   - name: TransferId
     package: ch.trancee.meshlink.model
@@ -352,23 +352,32 @@ data_models:
       persistence_rule: "Persist a range high-water mark before allocating any value from that range"
       wrap_rule: "After UInt.MAX_VALUE, skip zero and reject candidates present in active state or retained tombstones"
 
-  - name: TransferFailureReason
+  - name: TransferResult
     package: ch.trancee.meshlink.model
     type: sealed_interface
-    description: "Why a transfer session reached a terminal failure state. Distinguishes trust failures from generic unrecoverable failures."
+    description: "Terminal payload transfer result surfaced to host apps. Non-terminal progress is represented by TransferState; result is null until a terminal condition occurs."
     subtypes:
-      - name: Unrecoverable
+      - name: Completed
+        type: object
+        description: "All chunks acknowledged and delivered"
+      - name: Cancelled
+        type: object
+        description: "Transfer was cancelled by the sender before completion"
+      - name: Expired
+        type: object
+        description: "Transfer exceeded its time-to-live without completion"
+      - name: UnrecoverableFailure
         type: data_class
         fields:
           - name: message
             type: String
-        description: "Generic error, cancel, retry budget exhausted, or non-trust transfer failure"
-      - name: Trust
+        description: "Protocol, sink, or non-trust failure — retry budget exhausted, malformed frame, sink error, or other unrecoverable condition"
+      - name: TrustFailure
         type: data_class
         fields:
-          - name: peerIdentity
+          - name: identity
             type: PeerIdentity
-        description: "Trust-related failure (e.g. identity mismatch, revoked peer)"
+        description: "Trust-related failure — identity mismatch, revoked peer, or similar security policy violation"
 
   - name: LinkQuality
     package: ch.trancee.meshlink.routing

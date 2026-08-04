@@ -39,7 +39,7 @@ stateDiagram-v2
 - Active BLE link
 - Transfers may be in progress
 - Route entries remain live
-- The host app observes connected presence in the `knownPeers` snapshot
+- The host app observes connected presence in the `peers` snapshot
 
 ### Disconnected
 
@@ -56,7 +56,7 @@ stateDiagram-v2
   transfer work tied to the peer
 - Pinned trust state remains, so a future reconnection with the same identity is
   still recognized
-- transient unverified peers are removed from `knownPeers`; persisted trust remains unavailable
+- transient unverified peers are removed from `peers`; persisted trust remains unavailable
 
 ## How the grace period works
 
@@ -80,11 +80,11 @@ peer-loss timer just to smooth normal transport churn.
 
 ## Why "Gone" is not a public state
 
-The public API exposes peer snapshots through `knownPeers`, not the internal
+The public API exposes peer snapshots through `peers`, not the internal
 lifecycle enum. When a peer reaches the internal gone state:
 
 - transient presence and route state are removed;
-- an unverified peer disappears from `knownPeers`;
+- an unverified peer disappears from `peers`;
 - a persisted trusted or revoked peer remains with unavailable presence; and
 - pinned trust remains available for a future authenticated reconnect.
 
@@ -107,7 +107,7 @@ nodes keep stale route knowledge.
 From the app's perspective, the right model is still simple:
 
 ```kotlin
-meshLink.knownPeers.collect { peers ->
+meshLink.peers.collect { peers ->
     renderPeers(peers)
 }
 ```

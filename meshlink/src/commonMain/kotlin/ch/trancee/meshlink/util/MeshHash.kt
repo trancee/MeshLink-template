@@ -22,11 +22,8 @@ public object MeshHash {
      * @param appId Application identifier (reverse-DNS format recommended)
      * @return 16-bit hash value (0-65535)
      */
-    public fun derive(appId: String): UInt {
-        var hash: UInt = FNV_OFFSET_BASIS
-        for (byte in appId.encodeToByteArray()) {
-            hash = (hash xor byte.toUInt()) * FNV_PRIME
-        }
-        return hash and MESH_HASH_MASK
-    }
+    public fun derive(appId: String): UInt =
+        appId.encodeToByteArray().fold(FNV_OFFSET_BASIS) { hash, byte ->
+            (hash xor byte.toUInt()) * FNV_PRIME
+        } and MESH_HASH_MASK
 }

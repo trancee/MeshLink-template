@@ -81,7 +81,7 @@ for section in "${REQUIRED_SECTIONS[@]}"; do
     fi
 done
 
-# 4. Validate enums.yaml matches TypeModel.kt (placeholder)
+# 4. Validate enums.yaml matches Enums.kt (placeholder)
 echo ""
 echo "4. Checking enum consistency..."
 echo "  (Full enum validation requires Kotlin AST parsing - run detekt/Kover)"

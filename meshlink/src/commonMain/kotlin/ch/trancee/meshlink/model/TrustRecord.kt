@@ -13,7 +13,7 @@ import kotlin.time.Instant
  * SPEC-ANCHOR: trust-record
  */
 public data class TrustRecord(
-    public val peerIdentity: PeerIdentity,
+    public val identity: PeerIdentity,
     public val identityKey: IdentityKey,
     public val handshakeKey: HandshakeKey,
     public val state: PeerTrust = PeerTrust.UNVERIFIED,

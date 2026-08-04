@@ -19,7 +19,7 @@ class TrustRecordTest {
         val now = Clock.System.now()
         val record =
             TrustRecord(
-                peerIdentity = PeerIdentity.ZERO,
+                identity = PeerIdentity.ZERO,
                 identityKey = identity,
                 handshakeKey = handshake,
                 seenAt = now,
@@ -27,7 +27,7 @@ class TrustRecordTest {
             )
         assertEquals(PeerTrust.UNVERIFIED, record.state)
         assertEquals(0, record.generation)
-        assertEquals(PeerIdentity.ZERO, record.peerIdentity)
+        assertEquals(PeerIdentity.ZERO, record.identity)
     }
 
     @Test
@@ -39,7 +39,7 @@ class TrustRecordTest {
         val now = Clock.System.now()
         val record =
             TrustRecord(
-                peerIdentity = PeerIdentity.ZERO,
+                identity = PeerIdentity.ZERO,
                 identityKey = identity,
                 handshakeKey = handshake,
                 seenAt = now,
@@ -58,7 +58,7 @@ class TrustRecordTest {
         val now = Clock.System.now()
         val record =
             TrustRecord(
-                peerIdentity = PeerIdentity.ZERO,
+                identity = PeerIdentity.ZERO,
                 identityKey = identity,
                 handshakeKey = handshake,
                 seenAt = now,

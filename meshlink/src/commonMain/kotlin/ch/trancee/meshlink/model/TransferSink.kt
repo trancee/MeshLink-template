@@ -18,5 +18,5 @@ public interface TransferSink {
     public suspend fun complete()
 
     /** Called when transfer fails or is cancelled. */
-    public suspend fun fail(reason: TransferFailureReason)
+    public suspend fun fail(result: TransferResult)
 }

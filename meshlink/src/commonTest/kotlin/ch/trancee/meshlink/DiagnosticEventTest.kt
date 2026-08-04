@@ -16,8 +16,8 @@ import ch.trancee.meshlink.model.NoiseSessionState
 import ch.trancee.meshlink.model.PeerIdentity
 import ch.trancee.meshlink.model.PowerMode
 import ch.trancee.meshlink.model.RegulatoryRegion
-import ch.trancee.meshlink.model.TransferFailureReason
 import ch.trancee.meshlink.model.TransferId
+import ch.trancee.meshlink.model.TransferResult
 import ch.trancee.meshlink.model.TransferState
 import ch.trancee.meshlink.model.TransportFallbackReason
 import ch.trancee.meshlink.model.VerificationLevel
@@ -79,7 +79,7 @@ class DiagnosticEventTest {
                 identity,
                 TransportFallbackReason.L2CAP_STREAM_ERROR,
             ),
-            DiagnosticEvent.TransportLayerEvent(id = TransferId(1u), bearer = Bearer.GATT),
+            DiagnosticEvent.TransferBearerEvent(id = TransferId(1u), bearer = Bearer.GATT),
             powerEvent(),
             DiagnosticEvent.HandshakeEvent(
                 HandshakeId(2u),
@@ -92,58 +92,58 @@ class DiagnosticEventTest {
             DiagnosticEvent.RouteDigestMismatchEvent(identity, 1u, 2u),
             DiagnosticEvent.TransferSessionTransitionEvent(
                 id = TransferId(4u),
-                identity,
-                TransferState.TRANSFERRING,
-                10L,
-                100L,
-                null,
+                identity = identity,
+                state = TransferState.TRANSFERRING,
+                offset = 10L,
+                total = 100L,
+                result = null,
             ),
             DiagnosticEvent.TransferFailureEvent(
                 id = TransferId(4u),
-                identity,
-                TransferFailureReason.Unrecoverable("failure"),
+                identity = identity,
+                result = TransferResult.UnrecoverableFailure("failure"),
             ),
         )
     }
 
     private fun powerEvent(): DiagnosticEvent.PowerModeEffectiveEvent =
         DiagnosticEvent.PowerModeEffectiveEvent(
-            PowerMode.MEDIUM,
-            PowerMode.MEDIUM,
-            RegulatoryRegion.DEFAULT,
-            10,
-            500.milliseconds,
-            15.milliseconds,
-            30.milliseconds,
-            5.seconds,
-            4,
-            256,
-            5,
-            30.seconds,
-            30.seconds,
+            requestedMode = PowerMode.MEDIUM,
+            effectiveMode = PowerMode.MEDIUM,
+            regulatoryRegion = RegulatoryRegion.DEFAULT,
+            scanDutyCycle = 10,
+            advertisementInterval = 500.milliseconds,
+            activeConnectionInterval = 15.milliseconds,
+            idleConnectionInterval = 30.milliseconds,
+            idleTransitionDelay = 5.seconds,
+            concurrentConnectionLimit = 4,
+            chunkSize = 256,
+            retryLimit = 5,
+            retryBudget = 30.seconds,
+            disconnectGracePeriod = 30.seconds,
         )
 
     private fun rotationEvent(identity: PeerIdentity): DiagnosticEvent.KeyRotationEvent =
         DiagnosticEvent.KeyRotationEvent(
-            identity,
-            1u,
-            2u,
-            KeyRotationReason.PERIODIC,
-            true,
-            false,
-            true,
+            identity = identity,
+            oldGeneration = 1u,
+            newGeneration = 2u,
+            reason = KeyRotationReason.PERIODIC,
+            continuityVerified = true,
+            conflictDetected = false,
+            propagationDeadlineMet = true,
         )
 
     private fun noiseEvent(identity: PeerIdentity): DiagnosticEvent.NoiseSessionEvent =
         DiagnosticEvent.NoiseSessionEvent(
-            NoiseSessionId(3u),
-            identity,
-            NoiseLayer.HOP_BY_HOP,
-            NoiseRole.INITIATOR,
-            HandshakePattern.IK,
-            NoiseSessionState.HANDSHAKING_IK,
-            NoiseSessionState.ESTABLISHED,
-            null,
+            id = NoiseSessionId(3u),
+            identity = identity,
+            layer = NoiseLayer.HOP_BY_HOP,
+            role = NoiseRole.INITIATOR,
+            pattern = HandshakePattern.IK,
+            fromState = NoiseSessionState.HANDSHAKING_IK,
+            toState = NoiseSessionState.ESTABLISHED,
+            failureReason = null,
         )
 
     @Test
@@ -161,7 +161,7 @@ class DiagnosticEventTest {
                     nonceReplayDetected = true,
                 ),
                 DiagnosticEvent.KeyRotationEvent(
-                    peerIdentity = identity,
+                    identity = identity,
                     oldGeneration = 2u,
                     newGeneration = 4u,
                     reason = KeyRotationReason.SECURITY_EVENT,
@@ -170,7 +170,7 @@ class DiagnosticEventTest {
                     propagationDeadlineMet = false,
                 ),
                 DiagnosticEvent.KeyRotationEvent(
-                    peerIdentity = identity,
+                    identity = identity,
                     oldGeneration = 2u,
                     newGeneration = 3u,
                     reason = KeyRotationReason.MANUAL,
@@ -180,7 +180,7 @@ class DiagnosticEventTest {
                 ),
                 DiagnosticEvent.NoiseSessionEvent(
                     id = NoiseSessionId(2u),
-                    peerIdentity = identity,
+                    identity = identity,
                     layer = NoiseLayer.END_TO_END,
                     role = NoiseRole.RESPONDER,
                     pattern = HandshakePattern.XX,
@@ -190,24 +190,78 @@ class DiagnosticEventTest {
                 ),
                 DiagnosticEvent.TransferSessionTransitionEvent(
                     id = TransferId(5u),
-                    peerIdentity = identity,
+                    identity = identity,
                     state = TransferState.TRANSFERRING,
                     offset = 0L,
                     total = 10L,
-                    reason = TransferFailureReason.Unrecoverable("failure"),
+                    result = TransferResult.UnrecoverableFailure("failure"),
                 ),
                 DiagnosticEvent.TransferSessionTransitionEvent(
                     id = TransferId(6u),
-                    peerIdentity = identity,
+                    identity = identity,
                     state = TransferState.ROUTE_UNAVAILABLE,
                     offset = 0L,
                     total = 10L,
-                    reason = TransferFailureReason.Unrecoverable("expired"),
+                    result = TransferResult.UnrecoverableFailure("expired"),
                 ),
             )
 
         // Assert
         assertEquals(6, events.size)
         events.forEach { event -> assertEquals(DiagnosticSeverity.ERROR, event.severity) }
+    }
+
+    @Test
+    fun `TransferSessionTransitionEvent severity maps each result to correct level`() {
+        // Arrange
+        val identity = PeerIdentity.ZERO
+
+        // Act & Assert — TrustFailure maps to ERROR
+        val trustFailure =
+            DiagnosticEvent.TransferSessionTransitionEvent(
+                id = TransferId(7u),
+                identity = identity,
+                state = TransferState.TRANSFERRING,
+                offset = 0L,
+                total = 10L,
+                result = TransferResult.TrustFailure(identity),
+            )
+        assertEquals(DiagnosticSeverity.ERROR, trustFailure.severity)
+
+        // Completed maps to INFO
+        val completed =
+            DiagnosticEvent.TransferSessionTransitionEvent(
+                id = TransferId(8u),
+                identity = identity,
+                state = TransferState.TRANSFERRING,
+                offset = 10L,
+                total = 10L,
+                result = TransferResult.Completed,
+            )
+        assertEquals(DiagnosticSeverity.INFO, completed.severity)
+
+        // Cancelled maps to INFO
+        val cancelled =
+            DiagnosticEvent.TransferSessionTransitionEvent(
+                id = TransferId(9u),
+                identity = identity,
+                state = TransferState.AWAITING_DECISION,
+                offset = 0L,
+                total = 10L,
+                result = TransferResult.Cancelled,
+            )
+        assertEquals(DiagnosticSeverity.INFO, cancelled.severity)
+
+        // Expired maps to INFO
+        val expired =
+            DiagnosticEvent.TransferSessionTransitionEvent(
+                id = TransferId(10u),
+                identity = identity,
+                state = TransferState.TRANSFERRING,
+                offset = 0L,
+                total = 10L,
+                result = TransferResult.Expired,
+            )
+        assertEquals(DiagnosticSeverity.INFO, expired.severity)
     }
 }

@@ -1,7 +1,7 @@
 # MeshLink Wire Codec — Enum Contracts
 # Authored normative source for storage widths, explicit codes, reserved ranges, and unknown handling.
 # Enum declaration ordinal is never a wire value.
-# SPEC-ANCHOR: type-model
+# SPEC-ANCHOR: enums
 
 enums:
   - name: KeyType
@@ -100,7 +100,7 @@ enums:
         code: "0x42"
         encryption: "Pending new-epoch AEAD"
 
-  - name: TransferType
+  - name: TransferKind
     package: ch.trancee.meshlink.model
     visibility: public
     storage: UByte
@@ -155,22 +155,6 @@ enums:
         ordinal: 5
       - name: LOCAL_POLICY
         ordinal: 6
-  - name: TransferResult
-    package: ch.trancee.meshlink.model
-    visibility: public
-    description: "Terminal payload transfer result surfaced to host apps."
-    values:
-      - name: COMPLETED
-        ordinal: 0
-      - name: CANCELLED
-        ordinal: 1
-      - name: EXPIRED
-        ordinal: 2
-      - name: UNRECOVERABLE_FAILURE
-        ordinal: 3
-      - name: TRUST_FAILURE
-        ordinal: 4
-
   - name: Bearer
     package: ch.trancee.meshlink.model
     description: "Data plane bearer in use for a transfer session."
@@ -269,7 +253,7 @@ enums:
 
   - name: PowerMode
     package: ch.trancee.meshlink.model
-    description: "Power mode governing scan duty cycle, advertisement interval, connection interval, concurrent connections, and transfer chunk size."
+    description: "Power mode governing scan duty cycle, advertisement interval, connection interval, concurrent connections, transfer chunk size, and idle transition delay."
     values:
       - name: HIGH
         ordinal: 0
@@ -277,6 +261,7 @@ enums:
         advertisementInterval: 100
         activeConnectionInterval: 7.5
         idleConnectionInterval: 15
+        idleTransitionDelay: 60
         concurrentConnectionLimit: 8
         chunkSize: 512
         retryLimit: 10
@@ -288,6 +273,7 @@ enums:
         advertisementInterval: 500
         activeConnectionInterval: 15
         idleConnectionInterval: 30
+        idleTransitionDelay: 120
         concurrentConnectionLimit: 4
         chunkSize: 256
         retryLimit: 5
@@ -299,6 +285,7 @@ enums:
         advertisementInterval: 1000
         activeConnectionInterval: 30
         idleConnectionInterval: 60
+        idleTransitionDelay: 300
         concurrentConnectionLimit: 2
         chunkSize: 128
         retryLimit: 3

@@ -69,8 +69,8 @@ private constructor(
     /** Current lifecycle state. */
     public val state: StateFlow<MeshLinkState> = MutableStateFlow(MeshLinkState.CONFIGURED)
 
-    /** Known peers snapshot (includes unverified, verifying, trusted, mismatched, revoked). */
-    public val knownPeers: StateFlow<List<KnownPeer>> = MutableStateFlow(emptyList())
+    /** Peers snapshot (includes unverified, verifying, trusted, mismatched, revoked). */
+    public val peers: StateFlow<List<KnownPeer>> = MutableStateFlow(emptyList())
 
     /** Active transfers snapshot. */
     public val transfers: StateFlow<List<Transfer>> = MutableStateFlow(emptyList())
@@ -85,7 +85,7 @@ private constructor(
     public val powerMode: StateFlow<PowerMode> = MutableStateFlow(PowerMode.MEDIUM)
 
     /** Effective power settings after regulatory/platform clamping. */
-    internal val powerModeSettings: StateFlow<PowerModeSettings> =
+    public val powerModeSettings: StateFlow<PowerModeSettings> =
         MutableStateFlow(PowerMode.MEDIUM.settings)
 
     /**
@@ -141,7 +141,7 @@ private constructor(
     /**
      * Changes the power mode at runtime.
      *
-     * All routing, security, regulatory, persistence, isBackground, diagnostics capacity, and
+     * All routing, security, regulatory, persistence, enableBackground, diagnostics capacity, and
      * transfer defaults remain fixed. Existing transfers retain their established chunk framing;
      * new transfers and connections use the updated settings.
      *

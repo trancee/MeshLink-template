@@ -11,7 +11,7 @@ retained because MeshLink has not shipped.
 ## Vertical slice 1 — validated settings contract
 
 1. Replace obsolete public settings fields and types with the accepted settings
-   model (`isBackground`, `routeDigestInterval`, `routeExpiry`,
+   model (`enableBackground`, `routeDigestInterval`, `routeExpiry`,
    `maxRoutes`, `maxTransfersPerPeer`, diagnostics flow configuration) → verify:
    `./gradlew :meshlink:jvmTest --tests '*MeshLinkSettingsTest*' --rerun --no-build-cache`
 2. Add construction-time validation for appId, durations, route/transfer limits,
@@ -36,7 +36,7 @@ retained because MeshLink has not shipped.
 
 ## Vertical slice 3 — public peer/diagnostic snapshots
 
-1. Replace peer event public surface with `knownPeers` snapshots using `PeerState`,
+1. Replace peer event public surface with `peers` snapshots using `PeerState`,
    `PeerTrust`, `seenAt`, and `verifiedAt` → verify: targeted tests
 2. Replace callback diagnostics with bounded `Flow<DiagnosticEvent>` → verify:
    flow/backpressure tests

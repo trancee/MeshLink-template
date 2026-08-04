@@ -1,6 +1,6 @@
 package ch.trancee.meshlink.model
 
-// SPEC-ANCHOR: type-model
+// SPEC-ANCHOR: enums
 
 /** Verification level achieved during handshake. */
 public enum class VerificationLevel {
@@ -174,13 +174,4 @@ public enum class DiagnosticSeverity {
     INFO,
     WARN,
     ERROR,
-}
-
-/** Terminal payload transfer result. */
-public enum class TransferResult {
-    COMPLETED,
-    CANCELLED,
-    EXPIRED,
-    UNRECOVERABLE_FAILURE,
-    TRUST_FAILURE,
 }

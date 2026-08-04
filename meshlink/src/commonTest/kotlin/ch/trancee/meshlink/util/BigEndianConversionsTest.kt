@@ -1,12 +1,9 @@
-package ch.trancee.meshlink
+package ch.trancee.meshlink.util
 
-import ch.trancee.meshlink.util.toBytesBE
-import ch.trancee.meshlink.util.toUIntBE
-import ch.trancee.meshlink.util.toULongBE
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class ConversionTest {
+class BigEndianConversionsTest {
     @Test
     fun `toULongBE reads 8 bytes correctly`() {
         val bytes = ByteArray(16) { i -> (i * 17).toByte() }

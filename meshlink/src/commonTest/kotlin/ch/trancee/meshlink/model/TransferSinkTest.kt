@@ -16,7 +16,7 @@ class TransferSinkTest {
                     // Empty implementation for compile test
                 }
 
-                override suspend fun fail(reason: TransferFailureReason) {
+                override suspend fun fail(result: TransferResult) {
                     // Empty implementation for compile test
                 }
             }

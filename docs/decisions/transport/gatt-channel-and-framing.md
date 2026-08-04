@@ -29,7 +29,7 @@ and indicate. BLE central maps to GATT client; peripheral maps to GATT server.
 GattMetadata {
     version: UByte
     appHash: Byte[16]
-    peerIdentity: Byte[16]
+    identity: Byte[16]
     keyGeneration: UInt
     psm: UShort
     nonce: Byte[16]

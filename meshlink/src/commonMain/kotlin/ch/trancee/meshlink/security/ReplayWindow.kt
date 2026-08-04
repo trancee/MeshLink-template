@@ -25,23 +25,17 @@ public class ReplayWindow {
         public const val WINDOW_SIZE: Int = 64
     }
 
-    private var _window: ULong = 0uL
-    private var _baseNonce: Long = 0L
-
-    /** Current epoch counter — incremented on each key rotation (KeyUpdate). */
-    private var _epoch: Long = 0L
+    /** Current 64-bit bitmap of seen nonces. Bit 0 tracks [baseNonce]. */
+    public var window: ULong = 0uL
+        private set
 
     /** Lowest nonce currently in the window. */
-    public val baseNonce: Long
-        get() = _baseNonce
-
-    /** Current 64-bit bitmap of seen nonces. Bit 0 tracks [_baseNonce]. */
-    public val window: ULong
-        get() = _window
+    public var baseNonce: Long = 0L
+        private set
 
     /** Current epoch — incremented on each key rotation (KeyUpdate). */
-    public val epoch: Long
-        get() = _epoch
+    public var epoch: Long = 0L
+        private set
 
     /**
      * Consume a nonce: check if it has been seen and update the window.
@@ -61,24 +55,27 @@ public class ReplayWindow {
     public fun consumeNonce(nonce: Long): Boolean {
         require(nonce >= 0) { "Nonce must be non-negative, got $nonce" }
 
-        var accepted = false
-        if (nonce >= _baseNonce) {
-            val bitIndex = (nonce - _baseNonce).toInt()
+        return if (nonce < baseNonce) {
+            false
+        } else {
+            val bitIndex = (nonce - baseNonce).toInt()
             if (bitIndex < WINDOW_SIZE) {
                 val mask = 1uL shl bitIndex
-                if (_window and mask == 0uL) {
-                    _window = _window or mask
-                    accepted = true
+                if (window and mask != 0uL) {
+                    false
+                } else {
+                    window = window or mask
+                    true
                 }
             } else {
+                // Nonce advances beyond the window — shift and set the new apex bit.
                 val shift = bitIndex - WINDOW_SIZE + 1
-                val clearedWindow = if (shift >= WINDOW_SIZE) 0uL else _window shr shift
-                _window = clearedWindow or (1uL shl (WINDOW_SIZE - 1))
-                _baseNonce = nonce - WINDOW_SIZE + 1
-                accepted = true
+                val clearedWindow = if (shift >= WINDOW_SIZE) 0uL else window shr shift
+                window = clearedWindow or (1uL shl (WINDOW_SIZE - 1))
+                baseNonce = nonce - WINDOW_SIZE + 1
+                true
             }
         }
-        return accepted
     }
 
     /**
@@ -87,15 +84,15 @@ public class ReplayWindow {
      * accepted.
      */
     public fun advanceEpoch() {
-        _epoch++
-        _window = 0uL
-        _baseNonce = 0L
+        epoch++
+        window = 0uL
+        baseNonce = 0L
     }
 
     /** Resets the window to its initial state (epoch 0, empty bitmap). */
     public fun reset() {
-        _window = 0uL
-        _baseNonce = 0L
-        _epoch = 0L
+        window = 0uL
+        baseNonce = 0L
+        epoch = 0L
     }
 }

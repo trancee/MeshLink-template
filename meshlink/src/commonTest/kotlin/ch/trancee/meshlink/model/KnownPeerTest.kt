@@ -12,43 +12,43 @@ class KnownPeerTest {
     fun `KnownPeer has required properties`() {
         val peer =
             KnownPeer(
-                peerIdentity = PeerIdentity.generate(),
-                peerState = PeerState.CONNECTED,
-                peerTrust = PeerTrust.TRUSTED,
-                seenAt = Clock.System.now(),
-                verifiedAt = Clock.System.now(),
+                identity = PeerIdentity.generate(),
+                state = PeerState.CONNECTED,
+                trust = PeerTrust.TRUSTED,
                 routeCost = 100u,
                 hopCount = 2.toUByte(),
-                activeSessionCount = 1,
+                sessionCount = 1,
                 diagnosticCode = null,
                 diagnosticSeverity = null,
+                seenAt = Clock.System.now(),
+                verifiedAt = Clock.System.now(),
             )
 
-        assertNotNull(peer.peerIdentity)
-        assertEquals(PeerState.CONNECTED, peer.peerState)
-        assertEquals(PeerTrust.TRUSTED, peer.peerTrust)
-        assertNotNull(peer.seenAt)
-        assertNotNull(peer.verifiedAt)
+        assertNotNull(peer.identity)
+        assertEquals(PeerState.CONNECTED, peer.state)
+        assertEquals(PeerTrust.TRUSTED, peer.trust)
         assertEquals(100u, peer.routeCost)
         assertEquals(2.toUByte(), peer.hopCount)
-        assertEquals(1, peer.activeSessionCount)
+        assertEquals(1, peer.sessionCount)
+        assertNotNull(peer.seenAt)
+        assertNotNull(peer.verifiedAt)
     }
 
     @Test
     fun `KnownPeer minimal constructor`() {
         val peer =
             KnownPeer(
-                peerIdentity = PeerIdentity.generate(),
-                peerState = PeerState.DISCONNECTED,
-                peerTrust = PeerTrust.UNVERIFIED,
+                identity = PeerIdentity.generate(),
+                state = PeerState.DISCONNECTED,
+                trust = PeerTrust.UNVERIFIED,
                 seenAt = Clock.System.now(),
             )
 
-        assertEquals(PeerState.DISCONNECTED, peer.peerState)
-        assertEquals(PeerTrust.UNVERIFIED, peer.peerTrust)
-        assertNull(peer.verifiedAt)
+        assertEquals(PeerState.DISCONNECTED, peer.state)
+        assertEquals(PeerTrust.UNVERIFIED, peer.trust)
         assertNull(peer.routeCost)
         assertNull(peer.hopCount)
-        assertEquals(0, peer.activeSessionCount)
+        assertEquals(0, peer.sessionCount)
+        assertNull(peer.verifiedAt)
     }
 }

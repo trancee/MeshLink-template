@@ -18,7 +18,7 @@ class MessageHandleTest {
                     offset = 0L,
                     total = 100L,
                     retryCount = 0,
-                    transferResult = null,
+                    result = null,
                     diagnosticCode = null,
                     diagnosticSeverity = null,
                 )
@@ -45,7 +45,7 @@ class MessageHandleTest {
                         offset = 0L,
                         total = 100L,
                         retryCount = 0,
-                        transferResult = null,
+                        result = null,
                         diagnosticCode = null,
                         diagnosticSeverity = null,
                     )
@@ -55,10 +55,10 @@ class MessageHandleTest {
                 MessageHandle(id = MessageId(1u), status = status, outcome = channel, cancel = {})
 
             // Send outcome to buffered channel (won't suspend)
-            channel.send(TransferResult.COMPLETED)
+            channel.send(TransferResult.Completed)
 
             val result = handle.await()
 
-            assertEquals(TransferResult.COMPLETED, result)
+            assertEquals(TransferResult.Completed, result)
         }
 }

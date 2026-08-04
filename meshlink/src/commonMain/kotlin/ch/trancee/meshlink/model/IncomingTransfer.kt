@@ -15,7 +15,7 @@ internal constructor(
     public val id: TransferId,
 
     /** Discriminates MESSAGE vs PAYLOAD wire formats. */
-    public val type: TransferType,
+    public val kind: TransferKind,
 
     /** Origin peer identity. */
     public val origin: PeerIdentity,

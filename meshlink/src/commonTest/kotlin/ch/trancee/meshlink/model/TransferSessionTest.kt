@@ -24,7 +24,6 @@ class TransferSessionTest {
                 startedAt = Instant.fromEpochMilliseconds(0),
                 expiresAt = null,
                 retryCount = 0,
-                failureReason = null,
             )
 
         // Act
@@ -43,10 +42,9 @@ class TransferSessionTest {
                 session.startedAt,
                 session.expiresAt,
                 session.retryCount,
-                session.failureReason,
             )
 
         // Assert
-        assertEquals(14, actual.size)
+        assertEquals(13, actual.size)
     }
 }

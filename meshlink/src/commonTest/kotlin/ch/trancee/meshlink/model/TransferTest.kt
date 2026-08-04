@@ -15,16 +15,16 @@ class TransferTest {
                     offset = 0L,
                     total = 1024L,
                     retryCount = 0,
-                    transferResult = null,
+                    result = null,
                     diagnosticCode = null,
                     diagnosticSeverity = null,
                 )
             )
 
-        val transfer = Transfer(id = TransferId(123u), type = TransferType.PAYLOAD, status = status)
+        val transfer = Transfer(id = TransferId(123u), kind = TransferKind.PAYLOAD, status = status)
 
         assertEquals(TransferId(123u), transfer.id)
-        assertEquals(TransferType.PAYLOAD, transfer.type)
+        assertEquals(TransferKind.PAYLOAD, transfer.kind)
         assertEquals(TransferState.AWAITING_DECISION, transfer.status.value.state)
     }
 }

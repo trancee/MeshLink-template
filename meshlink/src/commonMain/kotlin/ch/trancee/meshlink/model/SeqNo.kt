@@ -23,10 +23,7 @@ import kotlin.jvm.JvmInline
  */
 @JvmInline
 @Suppress("TooManyFunctions")
-public value class SeqNo(private val value: UInt) {
-    /** Returns the decimal string representation of this sequence number. */
-    override fun toString(): String = value.toString()
-
+internal value class SeqNo(private val value: UInt) {
     /** Raw 32-bit unsigned value, for wire serialization and deserialization. */
     public fun rawValue(): UInt = value
 

@@ -214,7 +214,7 @@ Machine-readable reference: [specs/catalogs/diagnostic-events.yaml](../../../spe
 |-------|-------------|
 | route | `RouteDecryptFailureEvent`, `RouteDigestMismatchEvent` |
 | transport | `TransportFallbackEvent` |
-| transfer | `TransportLayerEvent`, `TransferSessionTransitionEvent`, `TransferFailureEvent` |
+| transfer | `TransferBearerEvent`, `TransferSessionTransitionEvent`, `TransferFailureEvent` |
 | power | `PowerModeEffectiveEvent` |
 | handshake | `HandshakeEvent` |
 | key_rotation | `KeyRotationEvent` |
@@ -237,7 +237,7 @@ apps to filter by layer. Redaction rules prevent secrets/payloads in events.
 | RouteEntry | `RouteEntryTest` | Seqno/metric handling |
 | PowerMode | `PowerModeTest` | Parameter mapping |
 | RoutingPolicy | `RoutingPolicyTest` | Settings validation |
-| TransferFailureReason | `TransferFailureReasonTest` | Sealed type coverage |
+| TransferResult | `TransferResultTest` | Sealed type coverage |
 
 All types require 100% line/branch coverage in `:meshlink`.
 

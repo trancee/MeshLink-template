@@ -80,17 +80,6 @@ class SeqNoTest {
         assertFalse(nonZero.isZero)
     }
 
-    @Test
-    fun `toString returns decimal`() {
-        // Arrange
-        val seqNo = SeqNo(42u)
-
-        // Act & Assert
-        assertEquals("42", seqNo.toString())
-        assertEquals("0", SeqNo.ZERO.toString())
-        assertEquals("4294967295", SeqNo.MAX_VALUE.toString())
-    }
-
     // ---- operator inc (increments by 1, wraps at 2^32) ----
 
     @Test

@@ -110,7 +110,7 @@ class MeshLink(
     environment: MeshLinkEnvironment,
 ) {
     val state: StateFlow<MeshLinkState>
-    val knownPeers: StateFlow<List<KnownPeer>>
+    val peers: StateFlow<List<KnownPeer>>
     val transfers: StateFlow<List<Transfer>>
     val messages: Flow<Message>
     val diagnostics: Flow<DiagnosticEvent>
@@ -281,7 +281,6 @@ data class TransferSession(
     val startedAt: Instant,
     val expiresAt: Instant?,            // Deadline for ROUTE_UNAVAILABLE
     val retryCount: Int,
-    val failureReason: TransferFailureReason?
 )
 ```
 
@@ -296,18 +295,35 @@ data class TransferSession(
 | `ROUTE_UNAVAILABLE` | No | Route lost, waiting for recovery |
 | `RETRANSMITTING` | No | Selectively retransmitting missing chunks under adaptive RTO |
 
-### 3.7 TransferFailureReason (Sealed) {#transfer-failure-reason-model}
+### 3.7 TransferResult {#transfer-result}
 
 ```kotlin
-sealed interface TransferFailureReason {
-    data class Unrecoverable(val message: String) : TransferFailureReason
-    data class Trust(val peerIdentity: PeerIdentity) : TransferFailureReason
+sealed interface TransferResult {
+    data object Completed : TransferResult
+    data object Cancelled : TransferResult
+    data object Expired : TransferResult
+    data class UnrecoverableFailure(val message: String) : TransferResult
+    data class TrustFailure(val identity: PeerIdentity) : TransferResult
 }
 ```
 
-### 3.8 TransferId and MessageId {#transfer-id-model}
+| Outcome | Carries | Notes |
+|---------|--------|-------|
+| `Completed` | — | All chunks acknowledged and delivered |
+| `Cancelled` | — | Sender cancelled before completion |
+| `Expired` | — | Time-to-live exceeded without completion |
+| `UnrecoverableFailure` | `message: String` | Protocol, sink, or non-trust failure |
+| `TrustFailure` | `identity: PeerIdentity` | Identity mismatch, revoked peer, or security policy violation |
 
-A payload is identified by `(authenticated origin PeerIdentity, PayloadKind, id)`,
+TransferResult is a sealed interface (not an enum) because failure outcomes carry structured
+data. Non-terminal progress is represented by TransferState (see §3.6); transfer status
+returns null until a terminal condition occurs.
+
+**SPEC-ANCHOR**: `transfer-result`
+
+### 3.8 TransferId and MessageId {#transfer-id-model} {#message-id-model}
+
+|A payload is identified by `(authenticated origin PeerIdentity, kind: TransferKind, id)`,
 where `id` is a `TransferId` for `PAYLOAD` payloads or `MessageId` for `MESSAGE`
 payloads. Both share the same 32-bit `UInt` wire slot; `kind` determines
 interpretation and zero is reserved as invalid for either.
@@ -389,7 +405,7 @@ public data class MeshLinkVersion(
 - Comparison is major → minor → patch, matching standard semver ordering
 - **SPEC-ANCHOR**: `meshlink-version`
 
-### 3.11 Enums (Shared) {#type-model}
+### 3.11 Enums (Shared) {#enums}
 
 | Enum | Values | Notes |
 |------|--------|-------|
@@ -408,7 +424,9 @@ public data class MeshLinkVersion(
 | `NoiseFailureReason` | `HANDSHAKE_TIMEOUT`, `HANDSHAKE_MESSAGE_MALFORMED`, `HANDSHAKE_MESSAGE_OUT_OF_ORDER`, `REMOTE_STATIC_KEY_MISMATCH`, `REMOTE_STATIC_KEY_UNKNOWN`, `REKEY_REJECTED`, `TRANSPORT_CLOSED`, `MAX_RETRIES_EXCEEDED`, `INTERNAL_ERROR` | |
 | `PowerMode` | `HIGH`, `MEDIUM`, `LOW` | See §10 for parameters |
 | `VerificationLevel` | `FULL`, `TOFU_PIN`, `NONE` | Handshake verification achieved |
-| `TransferResult` | `COMPLETED`, `CANCELLED`, `EXPIRED`, `UNRECOVERABLE_FAILURE`, `TRUST_FAILURE` | Terminal outcome; non-terminal progress is TransferState |
+| `TransferKind` | `MESSAGE (0x00)`, `PAYLOAD (0x01)` | Explicit UByte codes for wire format discrimination |
+| `PayloadDecision` (internal) | `ACCEPTED (0x00)`, `REJECTED (0x01)` | Internal transfer sink decision |
+| `L2capState` (internal) | `UNSUPPORTED`, `AVAILABLE`, `CONNECTING`, `ACTIVE`, `BACKING_OFF`, `DISABLED` | L2CAP channel health state |
 | `PeerState` | `CONNECTED`, `DISCONNECTED` | Public API |
 | `PeerLifecycle` (internal) | `CONNECTED`, `DISCONNECTED`, `GONE` | Internal runtime tracking |
 | `PeerTrust` | `UNVERIFIED`, `VERIFYING`, `TRUSTED`, `MISMATCHED`, `REVOKED` | Trust classification per known peer |
@@ -416,7 +434,7 @@ public data class MeshLinkVersion(
 | `MeshLinkState` | `UNINITIALIZED`, `CONFIGURED`, `RUNNING`, `PAUSED`, `STOPPED` | Instance lifecycle (see §2.3) |
 | `DiagnosticSeverity` | `DEBUG`, `INFO`, `WARN`, `ERROR` | Severity for diagnostic events (see §11) |
 
-**SPEC-ANCHOR**: `type-model`
+**SPEC-ANCHOR**: `enums`
 
 ---
 
@@ -533,7 +551,7 @@ a canonical, Ed25519-signed identity binding in its encrypted handshake payload:
 IdentityBinding {
     version
     appHash
-    peerIdentity
+    identity
     ed25519PublicKey
     x25519PublicKey
     keyGeneration
@@ -578,7 +596,7 @@ control traffic:
 KeyRotationProof {
     version: UByte
     appHash: [ubyte]                    // 16 bytes
-    peerIdentity: [ubyte]               // unchanged 16 bytes
+    identity: [ubyte]               // unchanged 16 bytes
     oldGeneration: UInt
     newGeneration: UInt
     newIdentityKey: [ubyte]             // Ed25519, 32 bytes
@@ -622,7 +640,7 @@ Origin --(GATT/L2CAP)--> Relay(s) --> Destination
 Phase 2: Route E2E handshake messages
 Origin wraps the next XX or IK message in RoutingFrame:
   RoutingFrame {
-    destination: destination.peerIdentity,
+    destination: destination.identity,
     payload: e2eHandshakeMessage,
     hopLimit: UByte
   }
@@ -638,11 +656,11 @@ only routing information required for forwarding.
 
 ### 5.6 Trust Reset and Revocation
 
-`resetTrust(peerIdentity)` cancels active work, deletes the peer's current
+`resetTrust(identity)` cancels active work, deletes the peer's current
 binding/rotation position, and permits a future first-contact XX/automatic TOFU
 flow. It never changes local identity or keys.
 
-`revokeTrust(peerIdentity)` cancels active work, persists `REVOKED`, rejects
+`revokeTrust(identity)` cancels active work, persists `REVOKED`, rejects
 future XX/IK/rotation recovery after identity resolution, and does not delete the
 blocking record. An explicit reset is required to permit trust again.
 
@@ -787,7 +805,7 @@ Health is not persisted.
 
 ### 6.6 Background Operation
 
-`MeshLinkSettings.isBackground` is immutable and defaults to false. When
+`MeshLinkSettings.enableBackground` is immutable and defaults to false. When
 true, start validates platform-authorized background integration.
 
 Android host apps own the connected-device foreground service, notification,
@@ -887,7 +905,7 @@ All operations on secret data (private keys, shared secrets, session keys, KDF o
 
 **ADR**: docs/decisions/crypto/replay-window.md
 
-### 7.6 Error Hierarchy (Sealed) {#transfer-result}
+### 7.6 Error Hierarchy (Sealed) {#error-hierarchy}
 
 ```text
 MeshLinkException
@@ -1196,7 +1214,7 @@ Per-mode grace period controls `PeerLifecycle` transition `DISCONNECTED → GONE
 
 - Routes can degrade before full retraction
 - Transfers can pause instead of being abandoned
-- Host app observes disconnected presence in the `knownPeers` snapshot
+- Host app observes disconnected presence in the `peers` snapshot
 
 **ADR**: docs/decisions/power/power-mode-behavior.md
 
@@ -1209,13 +1227,13 @@ Per-mode grace period controls `PeerLifecycle` transition `DISCONNECTED → GONE
 ### 11.1 Public Observation {#diagnostic-event}
 
 ```kotlin
-val knownPeers: StateFlow<List<KnownPeer>>
+val peers: StateFlow<List<KnownPeer>>
 val transfers: StateFlow<List<Transfer>>
 val messages: Flow<Message>
 val diagnostics: Flow<DiagnosticEvent>
 ```
 
-`knownPeers` includes canonical identities across unverified, verifying,
+`peers` includes canonical identities across unverified, verifying,
 trusted, mismatched, and revoked trust states. Advertisement-only
 candidates are not canonical peers. `seenAt` is the immutable instant the full
 identity was first learned; `verifiedAt` is the nullable instant of the latest
@@ -1264,7 +1282,7 @@ sealed interface DiagnosticEvent {
     data class NoiseSessionEvent(...) : DiagnosticEvent           // 0x04xx crypto
     data class RouteDecryptFailureEvent(...) : DiagnosticEvent   // 0x05xx routing
     data class RouteDigestMismatchEvent(...) : DiagnosticEvent   // 0x05xx routing
-    data class TransportLayerEvent(...) : DiagnosticEvent  // 0x06xx transfer
+    data class TransferBearerEvent(...) : DiagnosticEvent  // 0x06xx transfer
     data class TransferSessionTransitionEvent(...) : DiagnosticEvent // 0x06xx transfer
     data class TransferFailureEvent(...) : DiagnosticEvent      // 0x06xx transfer
     data class TransportFallbackEvent(...) : DiagnosticEvent    // 0x09xx transport
@@ -1375,7 +1393,7 @@ val settings = meshLinkSettings {
     appId = "com.example.myapp" // stable normalized UTF-8 application/profile ID; max 255 bytes
     powerMode = PowerMode.HIGH
     regulatoryRegion = RegulatoryRegion.EU
-    isBackground = true
+    enableBackground = true
     
     keyRotation {
         interval = Duration.days(1)
@@ -1411,7 +1429,7 @@ data class MeshLinkSettings(
     val appId: String,
     val powerMode: PowerMode,
     val regulatoryRegion: RegulatoryRegion,
-    val isBackground: Boolean,
+    val enableBackground: Boolean,
     val keyRotation: KeyRotationSettings,
     val transfer: TransferSettings,
     val routing: RoutingSettings,
@@ -1512,8 +1530,8 @@ tooling must make CI fail when committed projections are stale.
 | §6 Transport | docs/decisions/transport/mtu-negotiation.md, docs/decisions/transport/gatt-channel-and-framing.md, docs/decisions/transport/background-operation.md | meshlink/src/androidMain/, meshlink/src/iosMain/ (BLE glue) |
 | §7 Security | docs/decisions/crypto/crypto-design.md, identity-binding-and-fail-closed.md, constant-time-policy.md, replay-window.md, key-rotation-propagation.md, error-hierarchy.md | specs/codecs/enums.yaml, specs/protocol/state-machines.yaml |
 | §8 Routing | docs/decisions/routing/routing-design.md | RouteCandidate, LinkQuality, RouteStatement; routing coordinator (planned) |
-| §9 Transfer | docs/decisions/model/data-model.md, docs/decisions/transfer/transfer-identifier.md | TransferSession.kt, Scoreboard.kt, TransferFailureReason.kt; TransferCoordinator (planned) |
-| §10 Power | docs/decisions/power/power-mode-behavior.md | PowerMode.kt |
+
+| §9 Transfer | docs/decisions/model/data-model.md, docs/decisions/transfer/transfer-identifier.md | TransferSession.kt, Scoreboard.kt, TransferResult.kt; TransferCoordinator (planned) |
 | §11 Diagnostics | docs/decisions/diagnostics/flow-delivery.md, docs/decisions/api/public-api-and-lifecycle.md | DiagnosticEvent.kt |
 | §12 Build Quality | — | meshlink/build.gradle.kts |
 | §13 Testing | — | — |

@@ -19,14 +19,6 @@ class TransferIdTest {
     }
 
     @Test
-    fun `decimal id round trips through toString and fromUInt`() {
-        val expected = TransferId(42u)
-        val actual = TransferId.fromUInt(expected.toString().toUInt())
-        assertEquals(expected, actual)
-        assertEquals(42u, expected.rawValue())
-    }
-
-    @Test
     fun `fromBytes rejects invalid byte array size`() {
         assertFailsWith<IllegalArgumentException> { TransferId.fromBytes(ByteArray(3)) }
         assertFailsWith<IllegalArgumentException> { TransferId.fromBytes(ByteArray(5)) }
@@ -36,12 +28,6 @@ class TransferIdTest {
     fun `rawValue returns raw value`() {
         val id = TransferId(0xDEADBEEFu)
         assertEquals(0xDEADBEEFu, id.rawValue())
-    }
-
-    @Test
-    fun `fromUInt creates id from raw value`() {
-        val id = TransferId.fromUInt(0xCAFEBABEu)
-        assertEquals(0xCAFEBABEu, id.rawValue())
     }
 
     @Test
@@ -81,18 +67,6 @@ class TransferIdTest {
     }
 
     @Test
-    fun `compareTo orders by UInt value`() {
-        val id1 = TransferId(1u)
-        val id2 = TransferId(2u)
-        val id3 = TransferId(0xFFFFFFFFu)
-
-        assertEquals(-1, id1.compareTo(id2))
-        assertEquals(1, id2.compareTo(id1))
-        assertEquals(0, id1.compareTo(id1))
-        assertEquals(-1, id1.compareTo(id3)) // 1 < UINT_MAX
-    }
-
-    @Test
     fun `ZERO is accessible`() {
         assertEquals(0u, TransferId.ZERO.rawValue())
     }
@@ -109,11 +83,5 @@ class TransferIdTest {
                 }
             )
         assertEquals(0x01020304u, id.rawValue())
-    }
-
-    @Test
-    fun `fromUInt creates id from UInt`() {
-        val id = TransferId.fromUInt(42u)
-        assertEquals(42u, id.rawValue())
     }
 }

@@ -63,7 +63,7 @@ MeshLink or other collectors.
 
 ```kotlin
 val state: StateFlow<MeshLinkState>
-val knownPeers: StateFlow<List<KnownPeer>>
+val peers: StateFlow<List<KnownPeer>>
 val transfers: StateFlow<List<Transfer>>
 val messages: Flow<Message>
 val diagnostics: Flow<DiagnosticEvent>
@@ -71,11 +71,11 @@ val diagnostics: Flow<DiagnosticEvent>
 
 `KnownPeer` exposes `PeerState` and `PeerTrust` snapshots; it never exposes keys, generations, hints, handles, routes, or platform state.
 
-`knownPeers` emits complete immutable snapshots sorted by PeerIdentity. One
+`peers` emits complete immutable snapshots sorted by PeerIdentity. One
 serialized per-peer transition produces one atomic snapshot; hint/handle changes,
 key rotation, and reconnect do not remove/re-add or duplicate entries.
 
-`knownPeers` includes peers whose canonical identity is known across unverified,
+`peers` includes peers whose canonical identity is known across unverified,
 verifying, trusted, mismatched, and revoked states. Advertisement-only candidates
 are not canonical peers. Trusted, mismatched, and revoked records remain visible as disconnected;
 transient unverified/verifying observations are removed when their work ends.
@@ -104,7 +104,7 @@ MESSAGE and PAYLOAD operations:
 ```kotlin
 class Transfer {
     val id: TransferId
-    val kind: TransferType
+    val kind: TransferKind
     val status: StateFlow<TransferStatus>
 }
 ```
@@ -165,18 +165,18 @@ repeatable tests.
 
 ## Trust commands
 
-`resetTrust(peerIdentity)` deletes the peer's current binding and rotation
+`resetTrust(identity)` deletes the peer's current binding and rotation
 position, cancels active work, and permits future XX/automatic TOFU. It never
 changes local identity or keys.
 
-`revokeTrust(peerIdentity)` cancels active work, persists a blocking REVOKED
+`revokeTrust(identity)` cancels active work, persists a blocking REVOKED
 record, and rejects future XX/IK/rotation recovery. Only explicit reset permits
 trust again. Neither command accepts or exposes keys.
 
 ### Runtime configuration
 
 Settings are immutable for an instance except for power mode. Applications may
-call `setPowerMode`; all routing, security, regulatory, persistence, isBackground,
+call `setPowerMode`; all routing, security, regulatory, persistence, enableBackground,
 diagnostics capacity, and transfer defaults remain fixed.
 
 `PowerMode.settings` contains nominal mode values. `powerMode` exposes the

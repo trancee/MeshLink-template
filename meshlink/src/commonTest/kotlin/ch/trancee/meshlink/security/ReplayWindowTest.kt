@@ -1,6 +1,5 @@
-package ch.trancee.meshlink
+package ch.trancee.meshlink.security
 
-import ch.trancee.meshlink.security.ReplayWindow
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

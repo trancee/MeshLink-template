@@ -12,7 +12,7 @@ public data class Transfer(
     public val id: TransferId,
 
     /** Discriminates MESSAGE vs PAYLOAD wire format. */
-    public val type: TransferType,
+    public val kind: TransferKind,
 
     /** Current transfer status. */
     public val status: StateFlow<TransferStatus>,

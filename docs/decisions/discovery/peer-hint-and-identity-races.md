@@ -34,7 +34,7 @@ It never receives or manages:
 - route-specific next-hop identity.
 
 Key rotation, BLE address changes, hint rotation, reconnects, route migration,
-and Noise renewal do not change the public `PeerIdentity`. `knownPeers`, message
+and Noise renewal do not change the public `PeerIdentity`. `peers`, message
 sources, destinations, transfer ownership, trust commands, and application
 state all use that identity. The library may emit redacted diagnostics, but no
 application action is required for a valid rotation or reconnect.

@@ -23,7 +23,7 @@ class RoutingPolicyTest {
         // Arrange
 
         // Act
-        val actual = RoutingPolicy.MAX_HOPS
+        val actual = RoutingPolicy.MAXIMUM_HOP_COUNT
 
         // Assert
         assertEquals(16, actual)

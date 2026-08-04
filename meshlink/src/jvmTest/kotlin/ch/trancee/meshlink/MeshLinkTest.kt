@@ -59,7 +59,7 @@ class MeshLinkTest {
         val meshLink = MeshLink.create(settings, environment)
 
         assertEquals(MeshLinkState.CONFIGURED, meshLink.state.value)
-        assertEquals(emptyList<KnownPeer>(), meshLink.knownPeers.value)
+        assertEquals(emptyList<KnownPeer>(), meshLink.peers.value)
         assertEquals(emptyList<Transfer>(), meshLink.transfers.value)
         assertEquals(PowerMode.MEDIUM, meshLink.powerMode.value)
         assertNotNull(meshLink.powerModeSettings.value)
