@@ -2,7 +2,8 @@
 # docs/how-to/bootstrap-project-tooling.md.
 exclude_path = [
     ".agents/",
-    ".git/"
+    ".git/",
+    "meshlink-crypto/",  # submodule at pinned commit; not maintained by this repo
 ]
 
 exclude = [
