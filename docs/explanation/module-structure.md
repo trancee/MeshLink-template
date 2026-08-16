@@ -7,7 +7,7 @@ actually proves what.
 
 | Module | Question it answers | Runs on |
 |---|---|---|
-| `meshlink` | The shipped library itself — the public API and its implementation. | JVM (host tests) + Android + iOS targets |
+| `meshlink` | The shipped library itself — the public API and its implementation. | JVM (host tests) + Android + iOS arm64 (device) |
 | `meshlink-reference` | Does the **public developer-facing API** work the way a real integrating app would use it? A sample/reference app that consumes only what a third-party developer could consume, with a real UI built in Kotlin Compose Multiplatform (use the `compose-multiplatform` skill when working on it). | Android + iOS targets |
 | `meshlink-proof` | Does the **internal runtime** actually behave correctly on real Android hardware — e.g. which crypto provider or fallback path gets selected on a given Android SDK tier, or real BLE advertising/scanning/GATT/L2CAP behavior? Needs low-level access to runtime internals that a public-API-only app shouldn't expose. | Real Android devices (see note below on emulators) |
 | `meshlink-benchmark` | Are throughput, latency, and memory within the recorded performance budget (Principle IV)? | JVM (smoke) + real-device fleet |
@@ -68,24 +68,21 @@ applies to `meshlink-reference`'s Android/iOS targets too: they validate
 UI and public-API integration, not real BLE behavior — never treat a
 green `meshlink-reference` run as BLE proof. See
 
-## The `MeshLink-crypto` submodule
+## `MeshLink-crypto` dependency
 
-`meshlink-crypto/` is a git submodule pointing at
->[`trancee/MeshLink-crypto`](https://github.com/trancee/MeshLink-crypto), a
->sibling KMP module that provides all RFC-standard cryptographic primitives
->(SHA-256, SHA-512, HMAC-SHA256, HKDF-SHA256, X25519, Ed25519,
->ChaCha20-Poly1305) as pure-Kotlin implementations with per-primitive native
->dispatch. It is wired into the build via Gradle composite build
->(`includeBuild("meshlink-crypto")` in `settings.gradle.kts`) and declared as
->`implementation("ch.trancee.meshlink:crypto")` in `:meshlink`'s `commonMain`.
->
+`MeshLink-crypto` (`ch.trancee.meshlink:meshlink-crypto`) is a sibling KMP
+module that provides all RFC-standard cryptographic primitives (SHA-256,
+SHA-512, HMAC-SHA256, HKDF-SHA256, X25519, Ed25519, ChaCha20-Poly1305) as
+pure-Kotlin implementations with per-primitive native dispatch.
+
+It is consumed as a version-pinned Maven Central dependency (currently
+v0.1.1, declared as `libs.meshlink.crypto` in `gradle/libs.versions.toml`)
+and declared as `implementation(libs.meshlink.crypto)` in `:meshlink`'s
+`commonMain` source set.
+
 >This is the **not-yet-shipped** fifth module. It is not included in the
 >table above because it is a dependency, not a Gradle subproject of this repo.
 >See [ADR: MeshLink-crypto dependency integration](../decisions/crypto/meshlink-crypto-dependency.md)
 >for the decision rationale and
 >[the MeshLink-crypto integration guide](https://github.com/trancee/MeshLink-crypto/blob/main/docs/how-to/integrate-kmp.md)
 >for setup instructions.
->
->When `MeshLink-crypto` reaches a stable release on Maven Central, the
->submodule + `includeBuild` can be replaced with a version-pinned coordinate
->in `gradle/libs.versions.toml`.

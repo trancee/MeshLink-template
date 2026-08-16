@@ -69,6 +69,23 @@ Diagnostics are observability data, not a correctness channel. Peer, transfer,
 and message behavior is exposed through their dedicated public state and event
 flows.
 
+## Power mode interaction
+
+Diagnostic event **production** frequency and granularity scale with
+[PowerMode](../../reference/power.md). Higher-power modes emit DEBUG-level
+transitions (per-chunk scoreboard updates, route refresh cadence, retry counters).
+Lower-power modes suppress DEBUG events entirely and coalesce INFO events
+to the minimum rate required for application observability.
+
+The `eventBufferSize` applies regardless of PowerMode, but sustained
+high-frequency DEBUG production under `PowerMode.HIGH` may trigger more frequent
+overflow summaries. ERROR and WARN events are never suppressed by PowerMode.
+
+Buffer eviction under PowerMode follows the severity policy above:
+DEBUG events are dropped first, then INFO, with ERROR/WARN retained.
+This ensures that power-saving operation does not silently hide security or
+reliability failures.
+
 ## Platform logging
 
 `DiagnosticsSettings.emitLog` is opt-in and defaults to `false`. When enabled,

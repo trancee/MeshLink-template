@@ -247,23 +247,27 @@ Every PR MUST, before merge:
 - Minimum platforms: Android API 26, iOS 14. Guard any higher-only API at
   runtime.
 - All crypto goes through `CryptoProvider`, validated against Wycheproof.
-  No third-party crypto library ships in the release artifact. The in-repo
-  `MeshLink-crypto` submodule (same namespace, `ch.trancee.meshlink`) is
-  permitted as the project's own crypto implementation — see
-  [ADR: MeshLink-crypto dependency integration](docs/decisions/crypto/meshlink-crypto-dependency.md).
+  No third-party crypto library ships in the release artifact. `MeshLink-crypto`
+  (same namespace, `ch.trancee.meshlink`) is the project's own crypto
+  implementation, consumed as a version-pinned Maven Central dependency
+  (currently v0.1.1, via `libs.meshlink.crypto` in `gradle/libs.versions.toml`)
+  — see [ADR: MeshLink-crypto dependency integration](docs/decisions/crypto/meshlink-crypto-dependency.md).
 
 - Deployed MeshLink Wire Codec formats stay backward compatible; explicit
   field/enum codes are never reinterpreted or reused, and breaking changes
   need a major version bump plus migration period.
-- The shipped `:meshlink` artifact may depend on exactly three runtime
-  dependencies: `kotlinx-coroutines-core` (always), `kotlinx-datetime`
-  (config DSL `Duration` types, §14.1 — existing exception), and
-  `ch.trancee.meshlink:crypto` (MeshLink-crypto submodule — 2026-08-14
-  amendment). All three are in the same `ch.trancee.meshlink` namespace and
-  ship zero third-party transitive dependencies. Other modules
-  (app/host/proof/benchmark/docs) may add their own runtime deps as long as
-  none leak into the shipped `:meshlink` artifact. Adding a fourth runtime
-  dependency to `:meshlink` needs an amendment.
+- The shipped `:meshlink` artifact may depend on exactly two runtime
+  dependencies: `kotlinx-coroutines-core` (always) and
+  `ch.trancee.meshlink:meshlink-crypto` (MeshLink-crypto dependency,
+  v0.1.1 from Maven Central — 2026-08-16 amendment). Both are in the
+  `ch.trancee.meshlink` namespace and ship zero third-party transitive
+  dependencies. `kotlin.time.Duration`, `kotlin.time.Instant`, and
+  `kotlin.time.Clock` are part of the Kotlin standard library (stdlib) as
+  of Kotlin 2.1+; the prior `kotlinx-datetime` exception (§14.1) has been
+  retired since this project targets Kotlin 2.4.10. Other modules
+  (app/host/proof/benchmark/docs) may add their own runtime deps as long
+  as none leak into the shipped `:meshlink` artifact. Adding a third
+  runtime dependency to `:meshlink` needs an amendment.
 - Dokka (API documentation) and SKIE (Swift-friendly Kotlin/Native interop)
   apply to the shipped `:meshlink` artifact only. `meshlink-reference`,
   `meshlink-proof`, and `meshlink-benchmark` are internal/test-only modules
@@ -294,5 +298,4 @@ conflict.
   owner's review.
 - Anything below constitutional level (day-to-day conventions) belongs in
   `docs/`, not here.
-
-**Version**: 1.21.0 | **Ratified**: 2026-04-30 | **Last Amended**: 2026-08-14
+**Version**: 1.21.0 | **Ratified**: 2026-04-30 | **Last Amended**: 2026-08-16

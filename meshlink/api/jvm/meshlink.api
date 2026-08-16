@@ -739,6 +739,7 @@ public final class ch/trancee/meshlink/model/HandshakeKey {
 	public static final fun equals-impl0 ([B[B)Z
 	public fun hashCode ()I
 	public static fun hashCode-impl ([B)I
+	public static final fun toByteArray-impl ([B)[B
 	public fun toString ()Ljava/lang/String;
 	public static fun toString-impl ([B)Ljava/lang/String;
 	public final synthetic fun unbox-impl ()[B
@@ -766,6 +767,7 @@ public final class ch/trancee/meshlink/model/IdentityKey {
 	public static final fun equals-impl0 ([B[B)Z
 	public fun hashCode ()I
 	public static fun hashCode-impl ([B)I
+	public static final fun toByteArray-impl ([B)[B
 	public fun toString ()Ljava/lang/String;
 	public static fun toString-impl ([B)Ljava/lang/String;
 	public final synthetic fun unbox-impl ()[B

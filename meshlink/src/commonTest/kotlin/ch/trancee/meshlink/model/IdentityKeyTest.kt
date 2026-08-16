@@ -1,6 +1,5 @@
-package ch.trancee.meshlink
+package ch.trancee.meshlink.model
 
-import ch.trancee.meshlink.model.IdentityKey
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -57,5 +56,23 @@ class IdentityKeyTest {
         val key2 =
             IdentityKey.fromHex("ff0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
         assertNotEquals(key1.toString(), key2.toString())
+    }
+
+    @Test
+    fun `toByteArray returns defensive copy of raw bytes`() {
+        val bytes = ByteArray(32) { i -> i.toByte() }
+        val key = IdentityKey.fromBytes(bytes)
+        val extracted = key.toByteArray()
+        assertEquals(bytes.toList(), extracted.toList())
+        // mutating the extracted copy must not affect the key
+        extracted[0] = (extracted[0] + 1).toByte()
+        assertEquals(bytes.toList(), key.toByteArray().toList())
+    }
+
+    @Test
+    fun `fromBytes and toByteArray roundtrip`() {
+        val hex = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+        val key = IdentityKey.fromHex(hex)
+        assertEquals(hex, key.toByteArray().toHexString())
     }
 }

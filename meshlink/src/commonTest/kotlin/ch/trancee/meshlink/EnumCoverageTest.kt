@@ -24,7 +24,7 @@ import ch.trancee.meshlink.model.TransportFallbackReason
 import ch.trancee.meshlink.model.VerificationLevel
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class EnumCoverageTest {
     @Test
@@ -59,8 +59,11 @@ class EnumCoverageTest {
         // Act
         val names = enums.flatten().map { it.name }
 
-        // Assert
-        names.forEach { assertNotNull(it) }
+        // Assert — all 22 enums are listed (no enum omitted from the coverage check)
+        assertEquals(22, enums.size)
+        // Each entry name is non-blank (catches empty-name regressions)
+        names.forEach { assertTrue(it.isNotBlank(), "Enum entry name must not be blank") }
+        // Spot-check key enum sizes
         assertEquals(5, PeerTrust.entries.size)
         assertEquals(5, MeshLinkState.entries.size)
     }

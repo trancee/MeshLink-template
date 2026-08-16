@@ -265,17 +265,17 @@ implementation_status:
 
 test_files_by_layer:
   data_model:
-    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/PeerIdentityTest.kt"
-    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/SeqNoTest.kt"
-    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/ScoreboardTest.kt"
-    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/RouteCandidateTest.kt"
-    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/IdentityKeyTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/model/PeerIdentityTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/model/SeqNoTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/model/ScoreboardTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/model/IdentityKeyTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/model/HandshakeKeyTest.kt"
   enums:
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/EnumCoverageTest.kt"
   routing:
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/RoutingPolicyTest.kt"
   transfer:
-    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/SessionTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/model/TransferSessionTest.kt"
   power:
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/PowerModeTest.kt"
   diagnostics:

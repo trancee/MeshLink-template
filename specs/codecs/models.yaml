@@ -411,6 +411,9 @@ data_models:
       - name: toString
         return_type: String
         description: "Hex-encoded representation"
+      - name: toByteArray
+        return_type: ByteArray
+        description: "Returns the raw 32-byte key data"
     companion_functions:
       - name: fromHex
         params:
@@ -424,9 +427,6 @@ data_models:
             type: ByteArray
         return_type: IdentityKey
         description: "Creates an IdentityKey from a 32-byte ByteArray"
-      - name: toByteArray
-        return_type: ByteArray
-        description: "Returns the raw key bytes"
 
   - name: HandshakeKey
     package: ch.trancee.meshlink.model
@@ -441,6 +441,9 @@ data_models:
       - name: toString
         return_type: String
         description: "Hex-encoded representation"
+      - name: toByteArray
+        return_type: ByteArray
+        description: "Returns the raw 32-byte key data"
     companion_functions:
       - name: fromHex
         params:
@@ -454,8 +457,6 @@ data_models:
             type: ByteArray
         return_type: HandshakeKey
         description: "Creates a HandshakeKey from a 32-byte ByteArray"
-      - name: toByteArray
-        return_type: ByteArray
 
   - name: AppHash
     package: ch.trancee.meshlink.model

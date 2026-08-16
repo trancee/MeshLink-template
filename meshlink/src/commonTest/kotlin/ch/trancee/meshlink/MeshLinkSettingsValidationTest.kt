@@ -3,6 +3,7 @@ package ch.trancee.meshlink
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -10,17 +11,32 @@ import kotlin.time.Duration.Companion.seconds
 class MeshLinkSettingsValidationTest {
     @Test
     fun `empty app id is rejected during settings construction`() {
-        assertFailsWith<IllegalArgumentException> { meshLinkSettings { appId = "" } }
+        val ex = assertFailsWith<IllegalArgumentException> { meshLinkSettings { appId = "" } }
+        assertTrue(
+            ex.message!!.contains("appId"),
+            "Expected message to mention 'appId', got: ${ex.message}",
+        )
     }
 
     @Test
     fun `whitespace only app id is rejected during settings construction`() {
-        assertFailsWith<IllegalArgumentException> { meshLinkSettings { appId = "   " } }
+        val ex = assertFailsWith<IllegalArgumentException> { meshLinkSettings { appId = "   " } }
+        assertTrue(
+            ex.message!!.contains("appId"),
+            "Expected message to mention 'appId', got: ${ex.message}",
+        )
     }
 
     @Test
     fun `app id exceeding 255 UTF-8 bytes is rejected during construction`() {
-        assertFailsWith<IllegalArgumentException> { meshLinkSettings { appId = "é".repeat(128) } }
+        val ex =
+            assertFailsWith<IllegalArgumentException> {
+                meshLinkSettings { appId = "é".repeat(128) }
+            }
+        assertTrue(
+            ex.message!!.contains("appId"),
+            "Expected message to mention 'appId', got: ${ex.message}",
+        )
     }
 
     @Test
@@ -106,7 +122,8 @@ class MeshLinkSettingsValidationTest {
         builder.transferMaxTransfersPerPeer = 0
 
         // Act / Assert
-        assertFailsWith<IllegalArgumentException> { builder.build() }
+        val ex = assertFailsWith<IllegalArgumentException> { builder.build() }
+        assertTrue(ex.message!!.isNotEmpty(), "Exception message should not be empty")
     }
 
     @Test
@@ -117,7 +134,8 @@ class MeshLinkSettingsValidationTest {
         builder.transferMaxTransfersPerPeer = 4
 
         // Act / Assert
-        assertFailsWith<IllegalArgumentException> { builder.build() }
+        val ex = assertFailsWith<IllegalArgumentException> { builder.build() }
+        assertTrue(ex.message!!.isNotEmpty(), "Exception message should not be empty")
     }
 
     @Test
@@ -128,7 +146,8 @@ class MeshLinkSettingsValidationTest {
         builder.maxRoutes = 0
 
         // Act / Assert
-        assertFailsWith<IllegalArgumentException> { builder.build() }
+        val ex = assertFailsWith<IllegalArgumentException> { builder.build() }
+        assertTrue(ex.message!!.isNotEmpty(), "Exception message should not be empty")
     }
 
     @Test
@@ -139,7 +158,8 @@ class MeshLinkSettingsValidationTest {
         builder.maxRoutes = 257
 
         // Act / Assert
-        assertFailsWith<IllegalArgumentException> { builder.build() }
+        val ex = assertFailsWith<IllegalArgumentException> { builder.build() }
+        assertTrue(ex.message!!.isNotEmpty(), "Exception message should not be empty")
     }
 
     @Test
