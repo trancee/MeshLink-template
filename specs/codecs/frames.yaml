@@ -138,9 +138,10 @@ wire_frames:
         type: PayloadDecision
         size_bytes: 1
       - name: reason
-        type: TransferResult
+        type: TransferResultCode
         size_bytes: 1
         presence: "decision == REJECTED"
+        description: "Terminal outcome discriminant; UNRECOVERABLE_FAILURE carries a UShort length-prefixed message, TRUST_FAILURE carries a 16-byte PeerIdentity (see enums.yaml TransferResultCode)"
 
   - name: PAYLOAD_CHUNK
     code: "0x22"
@@ -191,7 +192,9 @@ wire_frames:
         type: TransferKind
         size_bytes: 1
       - name: reason
-        type: TransferResult
+        type: TransferResultCode
+        size_bytes: 1
+        description: "Terminal outcome discriminant; COMPLETED/CANCELLED/EXPIRED carry only this byte, UNRECOVERABLE_FAILURE carries a UShort length-prefixed message, TRUST_FAILURE carries a 16-byte PeerIdentity (see enums.yaml TransferResultCode)"
 
   - name: KEY_ROTATION
     code: "0x40"
@@ -491,7 +494,7 @@ discovery_advertisement:
       description: "Rotating unauthenticated discovery hint. Never sent through GATT, included in identity bindings, or used as canonical identity/trust."
 
 frame_type_enum:
-  description: "Explicit UByte codes; encoders never use declaration ordinal"
+  description: "Explicit UByte codes; encoders never use declaration ordinal. Derived from enums.yaml FrameType — kept here as a wire codec reference convenience."
   - name: MESH_ENVELOPE
     code: "0x00"
   - name: ROUTE_ADVERTISEMENT

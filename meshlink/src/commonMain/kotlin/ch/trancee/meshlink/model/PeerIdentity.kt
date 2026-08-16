@@ -6,7 +6,11 @@ import ch.trancee.meshlink.util.toULongBE
 import kotlin.jvm.JvmInline
 import kotlin.text.HexFormat
 
-/** Stable 16-byte per-installation peer identifier. */
+/**
+ * Stable 16-byte per-installation peer identifier.
+ *
+ * SPEC-ANCHOR: peer-identity-model
+ */
 @JvmInline
 public value class PeerIdentity(private val parts: Pair<ULong, ULong>) {
     override fun toString(): String = toHexString()

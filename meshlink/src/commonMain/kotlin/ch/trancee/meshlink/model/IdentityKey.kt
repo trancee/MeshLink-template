@@ -16,20 +16,18 @@ public value class IdentityKey(private val bytes: ByteArray) {
 
     public companion object {
         public fun fromHex(hex: String): IdentityKey {
-            require(hex.length == PUBLIC_KEY_HEX_LENGTH) {
-                "IdentityKey must be $PUBLIC_KEY_HEX_LENGTH hex chars ($PUBLIC_KEY_BYTE_LENGTH bytes)"
+            require(hex.length == CryptoKeyConstants.PUBLIC_KEY_HEX_LENGTH) {
+                "IdentityKey must be ${CryptoKeyConstants.PUBLIC_KEY_HEX_LENGTH} hex " +
+                    "chars (${CryptoKeyConstants.PUBLIC_KEY_BYTE_LENGTH} bytes)"
             }
             return IdentityKey(hex.hexToByteArray())
         }
 
         public fun fromBytes(bytes: ByteArray): IdentityKey {
-            require(bytes.size == PUBLIC_KEY_BYTE_LENGTH) {
-                "IdentityKey must be $PUBLIC_KEY_BYTE_LENGTH bytes"
+            require(bytes.size == CryptoKeyConstants.PUBLIC_KEY_BYTE_LENGTH) {
+                "IdentityKey must be ${CryptoKeyConstants.PUBLIC_KEY_BYTE_LENGTH} bytes"
             }
             return IdentityKey(bytes)
         }
     }
 }
-
-private const val PUBLIC_KEY_HEX_LENGTH: Int = 64
-private const val PUBLIC_KEY_BYTE_LENGTH: Int = 32
