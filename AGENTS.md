@@ -51,9 +51,9 @@ New clone? Run `./scripts/bootstrap.sh` once before anything else — see
 
 | Tier | When | Runs |
 | --- | --- | --- |
-| Fast | Every commit, touched modules only | `gitleaks protect --staged`, `./gradlew :meshlink:ktfmtFormat`, `./gradlew :meshlink:detekt` |
+| Fast | Every commit, touched modules only | `gitleaks protect --staged`, `./gradlew :meshlink:spotlessApply`, `./gradlew :meshlink:detekt` |
 | Full | Every push | `gitleaks detect`, `./gradlew :meshlink:build` |
-| CI (authoritative) | Every PR | Full tier, plus `koverVerify` (100% coverage gate), `apiCheck`, `ktfmtCheck`, and iOS device target compilation |
+| CI (authoritative) | Every PR | Full tier, plus `koverVerify` (100% coverage gate), `apiCheck`, `spotlessCheck`, and iOS device target compilation |
 
 Both tiers also run `yamllint` and `./scripts/check-markdown.sh` (markdownlint-cli2 +
 lychee) whenever `.yml`/`.yaml`/`.md` files are touched — see

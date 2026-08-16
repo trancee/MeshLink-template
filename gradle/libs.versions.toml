@@ -2,7 +2,7 @@
 kotlin = "2.4.10"
 agp = "9.3.1"
 detekt = "2.0.0-alpha.6"
-ktfmt-gradle = "0.26.0"
+spotless = "8.9.0"
 kover = "0.9.9"
 binary-compatibility-validator = "0.18.1"
 dokka = "2.2.0"
@@ -18,7 +18,7 @@ kotlin-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.
 android-library = { id = "com.android.library", version.ref = "agp" }
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 detekt = { id = "dev.detekt", version.ref = "detekt" }
-ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt-gradle" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 binary-compatibility-validator = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "binary-compatibility-validator" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }

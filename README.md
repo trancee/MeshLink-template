@@ -48,7 +48,7 @@ See [Bootstrap Project Tooling](docs/how-to/bootstrap-project-tooling.md) for pr
 ```sh
 ./gradlew :meshlink:build          # Build library
 ./gradlew :meshlink:detekt         # Static analysis
-./gradlew :meshlink:ktfmtCheck     # Code formatting
+./gradlew :meshlink:spotlessCheck    # Code formatting
 ./gradlew :meshlink:koverVerify    # Coverage verification
 ```
 
@@ -56,8 +56,8 @@ See [Bootstrap Project Tooling](docs/how-to/bootstrap-project-tooling.md) for pr
 
 The `.githooks/` directory contains:
 
-- `pre-commit` — Runs gitleaks protect, ktfmt format, detekt on staged files
-- `pre-push` — Runs full gitleaks detect, ktfmt check, detekt on touched modules
+- `pre-commit` — Runs gitleaks protect, spotless format, detekt on staged files
+- `pre-push` — Runs full gitleaks detect, spotless check, detekt on touched modules
 - `commit-msg` — Validates Conventional Commits format
 
 Hooks are auto-installed by `bootstrap.sh` or `.scripts/install-git-hooks.sh`.
@@ -67,7 +67,7 @@ Hooks are auto-installed by `bootstrap.sh` or `.scripts/install-git-hooks.sh`.
 All changes must pass before merge:
 
 - **Detekt** — Zero suppressions (Principle I)
-- **ktfmt** — Auto-format before every commit
+- **Spotless** — Auto-format before every commit
 - **Kover** — 100% line/branch coverage for `:meshlink` artifact
 - **BCV** — Binary Compatibility Validator tracks public API
 - **gitleaks** — No secrets in diff or history

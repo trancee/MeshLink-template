@@ -23,7 +23,7 @@ retained because MeshLink has not shipped.
 4. Regenerate the settings catalog and verify source/catalog agreement → verify:
    `./scripts/validate-specs.sh`
 5. Verify the complete first slice → verify:
-   `./gradlew :meshlink:build :meshlink:koverVerify ktfmtCheck detekt apiCheck --rerun-tasks --no-build-cache`
+  `./gradlew :meshlink:build :meshlink:koverVerify spotlessCheck detekt apiCheck --rerun-tasks --no-build-cache`
 
 ## Vertical slice 2 — canonical public lifecycle skeleton
 

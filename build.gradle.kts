@@ -18,7 +18,7 @@ plugins {
     alias(libs.plugins.kotlin.compose.compiler) apply false
     alias(libs.plugins.compose.multiplatform) apply false
     alias(libs.plugins.detekt) apply false
-    alias(libs.plugins.ktfmt) apply false
+    alias(libs.plugins.spotless) apply false
     alias(libs.plugins.kover) apply false
     alias(libs.plugins.dokka) apply false
     alias(libs.plugins.skie) apply false

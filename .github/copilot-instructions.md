@@ -16,7 +16,7 @@ without duplicating constitutional content.
 - **Java toolchain**: JDK 21 (Temurin) — set via `jvmToolchain(21)` in `meshlink/build.gradle.kts`
   and `actions/setup-java@v4` in CI
 - **Kotlin coding style**: `kotlin.code.style=official` in `gradle.properties`;
-  `ktfmt` (kotlinlang style) formats all code — no manual style deviations
+  `Spotless` (ktfmt/kotlinlang style) formats all Kotlin and `.gradle.kts` files — no manual style deviations
 
 ## Module Structure
 
@@ -31,7 +31,7 @@ See [`docs/explanation/module-structure.md`](../docs/explanation/module-structur
 
 ## Code Style & Linting
 
-- **ktfmt** — `./gradlew :meshlink:ktfmtFormat` (before commit) / `ktfmtCheck` (CI gate)
+- **Spotless** — `./gradlew :meshlink:spotlessApply` (before commit) / `spotlessCheck` (CI gate)
   — kotlinlang style, auto-applied by `.githooks/pre-commit`
 - **Detekt** — `./gradlew :meshlink:detekt` — zero suppressions allowed (CONSTITUTION Principle I)
   Test-code suppressions require inline justification
@@ -64,7 +64,7 @@ See [`docs/explanation/module-structure.md`](../docs/explanation/module-structur
 
 ```sh
 # Format + lint (fast, run locally before every commit)
-./gradlew :meshlink:ktfmtFormat :meshlink:detekt
+./gradlew :meshlink:spotlessApply :meshlink:detekt
 
 # Build + test (JVM host tests)
 ./gradlew :meshlink:build --rerun-tasks --no-build-cache

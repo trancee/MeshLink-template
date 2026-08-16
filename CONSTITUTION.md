@@ -42,8 +42,10 @@ Rationale: this is a crypto library — subtle defects are exploitable.
   project-wide operational interpretation.
 - Detekt MUST pass with zero suppressions. Test-code suppressions MUST
   include an inline justification comment.
-- ktfmt formatting MUST be applied before every commit; no manual style
-  deviations.
+- Spotless formatting MUST be applied before every commit; no manual style
+  deviations. Spotless formats Kotlin source (`.kt`) and Gradle Kotlin DSL
+  (`.gradle.kts`) files using the ktfmt engine with the kotlinlang style —
+  a single formatter covers both source and build scripts.
 - Identifiers (packages, classes, functions, properties, parameters,
   variables) MUST use full, descriptive words. Invented abbreviations or
   contractions (`cfg`, `mgr`, `idx`, `tmp`, `msg`, or single-letter names
@@ -61,7 +63,7 @@ Rationale: this is a crypto library — subtle defects are exploitable.
 - Kotlin `explicitApi()` MUST stay enabled (`meshlink/build.gradle.kts`);
   all public declarations need explicit visibility + return types.
 - No `TODO` comments in merged code — track unfinished work as issues.
-- Tooling (Kotlin/Gradle toolchain, Detekt, ktfmt, Kover, BCV plugin,
+- Tooling (Kotlin/Gradle toolchain, Detekt, Spotless, Kover, BCV plugin,
   kotlinx-benchmark, yamllint, gitleaks, CI actions) MUST run the latest
   stable release of each component, upgraded together so the whole
   toolchain stays mutually compatible. Hold back a version only for a
@@ -206,7 +208,7 @@ Every PR MUST, before merge:
   pre-commit/pre-push mirror a fast local subset and MAY be skipped or
   bypassed, so local success alone never substitutes for a green CI run.
 - Live on a feature branch — never commit directly to `main`.
-- Pass Detekt and ktfmt with zero issues (Principle I).
+- Pass Detekt and Spotless with zero issues (Principle I).
 - Pass automated secret-scanning (gitleaks) — no private keys, shared
   secrets, or session material anywhere in the diff or history.
 - Meet the 100% line/branch coverage gate for the shipped `:meshlink`
@@ -298,4 +300,4 @@ conflict.
   owner's review.
 - Anything below constitutional level (day-to-day conventions) belongs in
   `docs/`, not here.
-**Version**: 1.21.0 | **Ratified**: 2026-04-30 | **Last Amended**: 2026-08-16
+**Version**: 1.22.0 | **Ratified**: 2026-04-30 | **Last Amended**: 2026-08-16

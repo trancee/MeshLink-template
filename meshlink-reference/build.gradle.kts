@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.compose.compiler)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.detekt)
-    alias(libs.plugins.ktfmt)
+    alias(libs.plugins.spotless)
 }
 
 kotlin {
@@ -47,6 +47,13 @@ kotlin {
 
 detekt { buildUponDefaultConfig = true }
 
-ktfmt { kotlinLangStyle() }
+spotless {
+    kotlin {
+        ktfmt().kotlinlangStyle()
+    }
+    kotlinGradle {
+        ktfmt().kotlinlangStyle()
+    }
+}
 
 tasks.register("localCheck") { dependsOn(tasks.named("check")) }
