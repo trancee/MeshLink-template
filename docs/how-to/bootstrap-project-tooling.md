@@ -9,11 +9,6 @@ Git hooks installed" in one step.
 ./scripts/bootstrap.sh
 ```
 
-> **Submodule note:** If you cloned without `--recurse-submodules`, run
-> `git submodule update --init --recursive` before building. The
-> `meshlink-crypto` submodule (Gradle composite build) is required for
-> `:meshlink` to compile.
-
 This verifies `git`, `gh`, and `node` (for `markdownlint-cli2` via `npx`)
 are present — `gh` also authenticated (`gh auth login` if not) — installs
 `gitleaks`, `actionlint`, `shellcheck`, and `lychee` if missing (via
@@ -107,6 +102,6 @@ git commit --allow-empty -m "chore: verify hooks"  # should run gitleaks + hook 
   Once it lands, a JDK (Temurin 21, per `.github/workflows/ci.yml`) and the
   Gradle wrapper become additional prerequisites; this script doesn't
   install those.
-- Xcode/iOS toolchain setup for the `ios` CI job — that job runs on
+- Xcode/iOS toolchain setup for the `ios-build` CI job — that job runs on
   `macos-latest` with Xcode preinstalled; there's no local bootstrap step
   for it yet.

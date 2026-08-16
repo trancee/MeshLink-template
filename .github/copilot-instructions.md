@@ -10,7 +10,7 @@ without duplicating constitutional content.
 - **Language**: Kotlin (multiplatform) — Kotlin 2.4.10 per `gradle/libs.versions.toml`
 - **Build system**: Gradle 8.5+ (wrapper at `./gradlew`), Kotlin DSL (`*.gradle.kts`)
 - **Multiplatform targets**: JVM (host tests), Android (library, minSdk 26, compileSdk 37),
-  iOS arm64 + iOS simulator (arm64, macOS-only)
+  iOS arm64 (device, macOS-only)
 - **Version catalog**: All dependency versions pinned in `gradle/libs.versions.toml` — always
   use version catalog references (`libs.xxx`) rather than hardcoded coordinates
 - **Java toolchain**: JDK 21 (Temurin) — set via `jvmToolchain(21)` in `meshlink/build.gradle.kts`
@@ -22,8 +22,7 @@ without duplicating constitutional content.
 
 | Module | Purpose | Key Gradle command |
 |---|---|---|
-| `meshlink` | Shipped library — public API + implementation. JVM + Android + iOS. | `./gradlew :meshlink:build` |
-| `meshlink-crypto` | Git submodule — crypto primitives (KMP). | N/A (composite build) |
+| `meshlink` | Shipped library — public API + implementation. JVM + Android + iOS arm64 (device). | `./gradlew :meshlink:build` |
 | `meshlink-reference` | Reference/compatibility app — public API only, Compose Multiplatform UI. | `./gradlew :meshlink-reference:check` |
 | `meshlink-proof` | Real-device validation — Android/iOS BLE behavior. | `./gradlew :meshlink-proof:check` |
 | `meshlink-benchmark` | Performance benchmarks — JVM + real-device fleet. | `./gradlew :meshlink-benchmark:check` |
@@ -73,8 +72,6 @@ See [`docs/explanation/module-structure.md`](../docs/explanation/module-structur
 # Full verification
 ./gradlew :meshlink:koverVerify :meshlink:apiCheck
 
-# iOS simulator tests (macOS only)
-./gradlew :meshlink:iosSimulatorArm64Test
 ```
 
 > **Gradle invocations must always pass `--rerun` and `--no-build-cache`**
@@ -132,14 +129,12 @@ When modifying a source area, update ALL downstream consumers listed below.
 - **Impact cascade**: New diagnostic event → catalog update → diagnostics tests →
   docs update
 
-### Crypto primitives (`meshlink-crypto/crypto/`)
+### Crypto primitives (`ch.trancee.meshlink:meshlink-crypto`)
 
-- **Submodule**: `meshlink-crypto/` (git submodule, `../trancee/MeshLink-crypto`)
-- **Gradle wiring**: `includeBuild("meshlink-crypto")` in `settings.gradle.kts`;
-  `implementation("ch.trancee.meshlink:crypto")` in `meshlink/build.gradle.kts`
-- **ADR**: `docs/decisions/crypto/meshlink-crypto-dependency.md`
-- **Impact cascade**: Crypto changes → `:meshlink` recompile → Wycheproof test vectors
-  in `meshlink/src/commonTest/resources/wycheproof/` → API dump if public crypto API changes
+- **Dependency**: `ch.trancee.meshlink:meshlink-crypto:0.1.0` (Maven Central, via `libs.meshlink.crypto` in `gradle/libs.versions.toml`)
+- **Gradle wiring**: `implementation(libs.meshlink.crypto)` in `meshlink/build.gradle.kts`; no `includeBuild` in `settings.gradle.kts`
+- **Docs**: `docs/reference/trust.md`, `docs/decisions/crypto/meshlink-crypto-dependency.md`
+- **Impact cascade**: Crypto changes → `:meshlink` recompile → Wycheproof test vectors in `meshlink/src/commonTest/resources/wycheproof/` → API dump if public crypto API changes
 
 ### Transfer / Reliable Delivery (`meshlink/src/*/kotlin/ch/trancee/meshlink/transfer/`)
 
@@ -176,4 +171,4 @@ When modifying a source area, update ALL downstream consumers listed below.
 - **Protected paths** (require `@trancee` review per `.github/CODEOWNERS`):
   `meshlink/src/*/kotlin/.../crypto/`, `meshlink/src/*/kotlin/.../routing/`,
   `meshlink/src/*/kotlin/.../wire/`, `docs/decisions/crypto/`, `docs/decisions/routing/`,
-  `.github/workflows/`, `.githooks/`, `CONSTITUTION.md`, `AGENTS.md`, `meshlink-crypto/`, `.gitmodules`
+  `.github/workflows/`, `.githooks/`, `CONSTITUTION.md`, `AGENTS.md`

@@ -49,8 +49,7 @@ retained because MeshLink has not shipped.
    verify: codec unit tests
 2. Implement bounded reader/writer and enum codecs → verify: golden/malformed
    vector tests
-3. Add cross-platform byte-equality fixtures → verify: JVM and iOS simulator
-   tests
+3. Add cross-platform byte-equality fixtures → verify: JVM tests
 
 ## Gates
 

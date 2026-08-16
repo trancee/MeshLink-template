@@ -16,7 +16,7 @@
 
 ### iOS
 
-- `meshlink` module produces XCFramework with `iosArm64`, `iosSimulatorArm64`, `iosX64` targets
+- `meshlink` module produces XCFramework with `iosArm64` (device) target
 - `iosMain` contains BLE glue: `CBCentralManager`, `CBPeripheralManager`, `CBPeripheral`, `CBL2CAPChannel`
 - Crypto uses CryptoKit / Security.framework; no fallback needed (iOS 14+ has all primitives)
 - Swift interop via SKIE plugin: sealed classes → Swift enums, suspend → async, Flow → AsyncSequence

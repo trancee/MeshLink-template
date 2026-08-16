@@ -16,9 +16,9 @@ tracks unreleased, manually-reviewed changes between releases.
 
 - Initial repository scaffold with AGENTS.md, CI workflow, bootstrap scripts, and
   spec-first wire codec and protocol state machine definitions.
-- Git submodule `meshlink-crypto` integrated via Gradle composite build,
-  providing SHA-256, HKDF, HMAC, X25519, Ed25519, and ChaCha20-Poly1305
-  primitives with pure-Kotlin implementations.
+- `MeshLink-crypto` (v0.1.0) integrated as a Maven Central dependency, providing
+  SHA-256, HKDF, HMAC, X25519, Ed25519, and ChaCha20-Poly1305 primitives with
+  pure-Kotlin implementations.
 - `.mcp.json` with `codebase-memory-mcp` for subagent code intelligence.
 - `SECURITY.md` with vulnerability disclosure policy.
 - `.github/dependabot.yml` for GitHub Actions and Gradle dependency updates.
@@ -27,7 +27,13 @@ tracks unreleased, manually-reviewed changes between releases.
 
 ### Changed
 
-- _None yet._
+- Migrated `MeshLink-crypto` from a git submodule + Gradle composite build to
+  a version-pinned Maven Central dependency (`ch.trancee.meshlink:meshlink-crypto:0.1.0`,
+  declared as `libs.meshlink.crypto` in `gradle/libs.versions.toml`).
+- Removed `iosSimulatorArm64` KMP target from `:meshlink` (BLE radios are not
+  available in the iOS simulator; non-radio logic is covered by JVM host tests).
+- Updated CI: removed `submodules: recursive` from checkout steps, replaced
+  the iOS simulator test job with an iOS device compile-only job.
 
 ### Fixed
 

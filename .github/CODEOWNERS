@@ -19,8 +19,3 @@
 # Governance documents
 /CONSTITUTION.md @trancee
 /AGENTS.md @trancee
-
-# MeshLink-crypto submodule — changes to the crypto dependency (gitlink
-# updates, .gitmodules)
-/meshlink-crypto/ @trancee
-/.gitmodules @trancee
