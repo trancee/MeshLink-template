@@ -234,7 +234,7 @@ apps to filter by layer. Redaction rules prevent secrets/payloads in events.
 | SeqNo | `SeqNoTest` | Wrap-around comparison |
 | PeerIdentity/Fingerprint | `PeerIdentityTest` | Generation, truncation |
 | Scoreboard | `ScoreboardTest` | Bitfield operations |
-| RouteEntry | `RouteEntryTest` | Seqno/metric handling |
+| RouteCandidate | `RouteCandidateTest` (pending — routing layer not yet implemented) | Seqno/metric handling |
 | PowerMode | `PowerModeTest` | Parameter mapping |
 | RoutingPolicy | `RoutingPolicyTest` | Settings validation |
 | TransferResult | `TransferResultTest` | Sealed type coverage |

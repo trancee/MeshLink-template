@@ -44,6 +44,7 @@ cross_references:
     code_files: []
     specs:
       - "specs/codecs/frames.yaml"
+    implementation_status: not_implemented
     description: "Connectable two-service-UUID advertisement, rotating peerHint, TransportHandle/RPA race coordination, GATT identity resolution, and limited privacy guarantee"
 
   - spec_id: "trust-model-tofu"
@@ -54,6 +55,7 @@ cross_references:
     specs:
       - "specs/codecs/enums.yaml"
       - "specs/protocol/state-machines.yaml"
+    implementation_status: not_implemented
     description: "TOFU trust flow, Noise XX for unpinned contact, Noise IK for pinned reconnect, key rotation, E2E handshake routing, session state machine"
 
   - spec_id: "transport-layer"
@@ -63,6 +65,7 @@ cross_references:
       - "docs/decisions/transport/mtu-negotiation.md"
       - "docs/decisions/transport/background-operation.md"
     code_files: []
+    implementation_status: not_implemented
     description: "Bearer selection (GATT control plane, L2CAP CoC data plane), negotiation sequence, fallback reasons"
 
   - spec_id: "security-layer"
@@ -79,6 +82,7 @@ cross_references:
     specs:
       - "specs/codecs/enums.yaml"
       - "specs/protocol/state-machines.yaml"
+    implementation_status: not_implemented
     description: "Crypto primitives (validated against Wycheproof), Noise XX/IK state machine, key rotation, E2E routing, fail-closed rules, Android constraints, key rotation propagation deadlines, error hierarchy"
 
   - spec_id: "routing-layer"
@@ -90,6 +94,7 @@ cross_references:
       - "specs/codecs/models.yaml"
       - "specs/protocol/state-machines.yaml"
       - "specs/codecs/frames.yaml"
+    implementation_status: not_implemented
     description: "Babel-style additive route cost, separate hop count/link quality, destination-signed RouteStatement, source-owned sequence recovery, encrypted control, and per-neighbor RouteExport/RouteImport synchronization"
 
   - spec_id: "transfer-layer"
@@ -109,6 +114,7 @@ cross_references:
       - "specs/codecs/models.yaml"
       - "specs/protocol/state-machines.yaml"
       - "specs/codecs/frames.yaml"
+    implementation_status: partial
     description: "Transfer session, selective ACK (dynamic bitfield), cut-through relay, TransferAck wire format"
 
   - spec_id: "power-management"
@@ -226,6 +232,9 @@ spec_anchors_in_code:
   - "power-mode-settings" # PowerMode.kt
   - "replay-window" # ReplayWindow.kt
   - "app-hash" # AppHash.kt (ch/trancee/meshlink/model/AppHash.kt)
+  - "known-peer-model" # KnownPeer.kt
+  - "constant-time" # ConstantTime.kt
+  - "mesh-hash" # MeshHash.kt
 
 implementation_status:
   implemented:

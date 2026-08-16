@@ -50,7 +50,7 @@ enums:
         defaultTimeToLiveMinutes: 1
 
   - name: FrameType
-    package: ch.trancee.meshlink.wire
+    package: ch.trancee.meshlink.model
     visibility: public
     description: "Explicit UByte wire codes grouped by protocol area; encoding never uses enum ordinal."
     values:
@@ -120,8 +120,29 @@ enums:
       - name: ACCEPTED
         code: "0x00"
       - name: REJECTED
-        code: "0x01"
 
+  - name: TransferResultCode
+    package: ch.trancee.meshlink.model
+    visibility: public
+    storage: UByte
+    unknown: reject
+    description: "Wire discriminant for TransferResult sealed subtypes; COMPLETED/CANCELLED/EXPIRED carry only the code, UNRECOVERABLE_FAILURE/Trust_FAILURE carry a trailing payload"
+    values:
+      - name: COMPLETED
+        code: "0x00"
+        description: "Transfer completed successfully — no trailing payload"
+      - name: CANCELLED
+        code: "0x01"
+        description: "Transfer was cancelled before completion — no trailing payload"
+      - name: EXPIRED
+        code: "0x02"
+        description: "Transfer TTL elapsed without completion — no trailing payload"
+      - name: UNRECOVERABLE_FAILURE
+        code: "0x03"
+        description: "Protocol/sink failure — followed by a UShort length-prefixed UTF-8 message string"
+      - name: TRUST_FAILURE
+        code: "0x04"
+        description: "Trust violation — followed by a 16-byte PeerIdentity"
   - name: DecryptFailureReason
     package: ch.trancee.meshlink.model
     description: "Why a routed frame failed to decrypt at the link layer."

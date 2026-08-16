@@ -16,20 +16,18 @@ public value class HandshakeKey(private val bytes: ByteArray) {
 
     public companion object {
         public fun fromHex(hex: String): HandshakeKey {
-            require(hex.length == PUBLIC_KEY_HEX_LENGTH) {
-                "HandshakeKey must be $PUBLIC_KEY_HEX_LENGTH hex chars ($PUBLIC_KEY_BYTE_LENGTH bytes)"
+            require(hex.length == CryptoKeyConstants.PUBLIC_KEY_HEX_LENGTH) {
+                "HandshakeKey must be ${CryptoKeyConstants.PUBLIC_KEY_HEX_LENGTH} hex " +
+                    "chars (${CryptoKeyConstants.PUBLIC_KEY_BYTE_LENGTH} bytes)"
             }
             return HandshakeKey(hex.hexToByteArray())
         }
 
         public fun fromBytes(bytes: ByteArray): HandshakeKey {
-            require(bytes.size == PUBLIC_KEY_BYTE_LENGTH) {
-                "HandshakeKey must be exactly $PUBLIC_KEY_BYTE_LENGTH bytes"
+            require(bytes.size == CryptoKeyConstants.PUBLIC_KEY_BYTE_LENGTH) {
+                "HandshakeKey must be exactly ${CryptoKeyConstants.PUBLIC_KEY_BYTE_LENGTH} bytes"
             }
             return HandshakeKey(bytes)
         }
     }
 }
-
-private const val PUBLIC_KEY_HEX_LENGTH: Int = 64
-private const val PUBLIC_KEY_BYTE_LENGTH: Int = 32
