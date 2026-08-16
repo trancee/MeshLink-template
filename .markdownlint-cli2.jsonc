@@ -27,6 +27,5 @@
     "./requirements/**",
     "./specs/**",
     "./**/build/**",
-    "./meshlink-crypto/**"
   ]
 }

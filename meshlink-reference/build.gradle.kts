@@ -24,7 +24,7 @@ kotlin {
     }
 
     if (HostManager.hostIsMac) {
-        listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+        listOf(iosArm64()).forEach { target ->
             target.binaries.framework {
                 baseName = "MeshLinkReference"
                 isStatic = true

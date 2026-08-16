@@ -66,7 +66,7 @@ kotlin {
     // so these are only registered when Gradle evaluates the build on
     // macOS (matches the "ios" job split in .github/workflows/ci.yml).
     if (HostManager.hostIsMac) {
-        listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+        listOf(iosArm64()).forEach { target ->
             target.binaries.framework {
                 baseName = "MeshLink"
                 isStatic = true
@@ -78,11 +78,16 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.skie.configuration.annotations)
             implementation(libs.kotlinx.coroutines.core)
-            // MeshLink-crypto :crypto module (composite build via settings.gradle.kts
-            // includeBuild). Provides SHA-256, HKDF, HMAC, X25519, Ed25519, and
-            // ChaCha20-Poly1305 with pure-Kotlin implementations and per-primitive
-            // native dispatch. See docs/explanation/module-structure.md.
-            implementation("ch.trancee.meshlink:crypto")
+            // MeshLink-crypto KMP module — provides SHA-256, HKDF, HMAC, X25519,
+            // Ed25519, and ChaCha20-Poly1305 with pure-Kotlin implementations and
+            // per-primitive native dispatch. Consumed as a version-pinned Maven
+            // Central dependency (ch.trancee.meshlink:meshlink-crypto, v0.1.0,
+            // via libs.meshlink.crypto in gradle/libs.versions.toml). The iOS
+            // simulator target was removed because BLE radios are not available
+            // in the iOS simulator; non-radio logic is covered by JVM host tests.
+            // See docs/explanation/module-structure.md and
+            // docs/decisions/crypto/meshlink-crypto-dependency.md.
+            implementation(libs.meshlink.crypto)
         }
 
         commonTest.dependencies { implementation(kotlin("test")) }
