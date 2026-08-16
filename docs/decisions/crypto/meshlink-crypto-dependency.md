@@ -2,7 +2,18 @@
 
 **Status:** Amended — 2026-08-16 (originally Accepted — 2026-08-14)
 
-> **Amendment (2026-08-16):** `MeshLink-crypto` shipped its first stable release
+> **Amendment (2026-08-16):** Upgraded the pinned meshlink-crypto dependency
+> from v0.1.0 to v0.1.1. This minor version adds three missing public APIs that
+> were gaps in v0.1.0: `Crypto.deriveX25519PublicKey` / `KeyExchange.deriveX25519PublicKey`,
+> `Crypto.ed25519PublicKeyFromPrivate` / `Signer.ed25519PublicKeyFromPrivate` (public key
+> derivation from private keys — was `internal` only in v0.1.0), and `Crypto.randomBytes`
+> (was `internal` randomBytes, now public). The v0.1.1 release also fixes the empty
+> Javadoc JAR bug (261 bytes → full Dokka HTML) and bundles Markdown API docs into
+> the `-javadoc.jar` for AI tooling. No breaking changes to the existing v0.1.0 API;
+> the new methods are purely additive. Decision point 1's version reference is
+> updated; all other points unchanged.
+>
+> **Amendment (2026-08-16, original):** `MeshLink-crypto` shipped its first stable release
 > (v0.1.0) to Maven Central. The integration was migrated from a git submodule
 > and Gradle composite build to a version-pinned Maven Central dependency
 > (`ch.trancee.meshlink:meshlink-crypto:0.1.0`, declared in
@@ -34,7 +45,7 @@ namespace (`ch.trancee.meshlink`).
 
 1. **Consumer (amended)**: `MeshLink-crypto` is consumed as a version-pinned
    Maven Central dependency. The coordinate
-   `ch.trancee.meshlink:meshlink-crypto` (v0.1.0) is declared in
+   `ch.trancee.meshlink:meshlink-crypto` (v0.1.1) is declared in
    `gradle/libs.versions.toml` as `libs.meshlink.crypto` and used as
    `implementation(libs.meshlink.crypto)` in `:meshlink`'s `commonMain` source
    set. (Previously: git submodule + Gradle composite build
@@ -84,7 +95,10 @@ namespace (`ch.trancee.meshlink`).
   would need the same verification investment. Same-namespace, same-toolchain
   integration is seamless. Removing the git submodule simplifies the
   onboarding path (no `--recurse-submodules` needed) and reduces CI setup
-  surface.
+  surface. The v0.1.1 upgrade adds public key derivation and random byte
+  generation APIs that remove the `internal`-only workarounds that v0.1.0
+  required.
+
 + **Negative**: `:meshlink` gains a second runtime dependency. This was a
   binding change to `CONSTITUTION.md`, documented here per Principle V.
   Additionally, the `iosSimulatorArm64` target was removed from `:meshlink`,
@@ -92,6 +106,7 @@ namespace (`ch.trancee.meshlink`).
   JVM host tests, not on an iOS simulator binary. This is acceptable: the
   iOS simulator has no real BLE radio, and `meshlink-proof` validates real
   iOS device behavior on physical hardware.
+
 + **Neutral (original)**: The submodule required `git clone --recurse-submodules`
   and CI submodule checkout. Once the crypto module reached a stable release,
   migration to a Maven coordinate was straightforward (remove `includeBuild`,
@@ -104,3 +119,4 @@ namespace (`ch.trancee.meshlink`).
 + [Integration guide: MeshLink-crypto](https://github.com/trancee/MeshLink-crypto/blob/main/docs/how-to/integrate-kmp.md)
 + [ADR-0006: Module layout (MeshLink-crypto)](https://github.com/trancee/MeshLink-crypto/blob/main/docs/adr/0006-module-layout.md)
 + [ADR-0007: Build quality toolchain](https://github.com/trancee/MeshLink-crypto/blob/main/docs/adr/0007-build-quality-toolchain.md)
++ [v0.1.1 changelog (MeshLink-crypto)](https://github.com/trancee/MeshLink-crypto/blob/main/CHANGELOG.md)

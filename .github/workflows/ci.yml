@@ -5,18 +5,19 @@ name: CI
 # .githooks/pre-commit and pre-push mirror a fast local subset of these
 # checks; passing them locally does not guarantee this workflow passes.
 #
-# NOTE: this is a first-draft scaffold written before the Gradle project
-# exists. Task names mirror .githooks/ conventions and standard Gradle
-# plugin conventions (ktfmt, Detekt, Kover, Kotlin Binary Compatibility
-# Validator, Kotlin Multiplatform target test tasks). Adjust task names
-# here if the real Gradle setup differs once it lands.
-
+# All Gradle invocations pass --rerun-tasks and --no-build-cache per
+# AGENTS.md Operational Preferences. Each task is module-scoped (:meshlink)
+# because the quality plugins (ktfmt, Detekt, Kover, BCV) apply to that
+# module only.
 "on":
   workflow_dispatch:
   pull_request:
     branches: [main]
   push:
     branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   verify:
@@ -75,28 +76,28 @@ jobs:
         run: ./scripts/check-markdown.sh
 
       - name: ktfmt format check
-        run: ./gradlew --console=plain ktfmtCheck
+        run: ./gradlew --console=plain --rerun-tasks --no-build-cache :meshlink:ktfmtCheck
 
       - name: Detekt
-        run: ./gradlew --console=plain detekt
+        run: ./gradlew --console=plain --rerun-tasks --no-build-cache :meshlink:detekt
 
       - name: Build and test — meshlink
-        run: ./gradlew --console=plain :meshlink:build
+        run: ./gradlew --console=plain --rerun-tasks --no-build-cache :meshlink:build
 
       - name: Coverage gate (Kover)
-        run: ./gradlew --console=plain koverVerify
+        run: ./gradlew --console=plain --rerun-tasks --no-build-cache :meshlink:koverVerify
 
       - name: Binary compatibility (BCV)
-        run: ./gradlew --console=plain apiCheck
+        run: ./gradlew --console=plain --rerun-tasks --no-build-cache :meshlink:apiCheck
 
       - name: Build and check — meshlink-reference
-        run: ./gradlew --console=plain :meshlink-reference:check
+        run: ./gradlew --console=plain --rerun-tasks --no-build-cache :meshlink-reference:check
 
       - name: Build and check — meshlink-benchmark
-        run: ./gradlew --console=plain :meshlink-benchmark:check
+        run: ./gradlew --console=plain --rerun-tasks --no-build-cache :meshlink-benchmark:check
 
       - name: Build and check — meshlink-proof (Android)
-        run: ./gradlew --console=plain :meshlink-proof:check
+        run: ./gradlew --console=plain --rerun-tasks --no-build-cache :meshlink-proof:check
 
   ios-build:
     name: Build iOS targets
@@ -118,4 +119,4 @@ jobs:
         # here (not tested — real iOS device testing runs in meshlink-proof).
         # Non-radio logic (crypto, routing, wire codec) is covered by JVM
         # host tests in the verify job above.
-        run: ./gradlew --console=plain :meshlink:compileKotlinIosArm64
+        run: ./gradlew --console=plain --rerun-tasks --no-build-cache :meshlink:compileKotlinIosArm64

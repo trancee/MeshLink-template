@@ -1,5 +1,17 @@
 # Why the MeshLink Wire Codec
 
+## ⚠ NOT FlatBuffers — Read Before Implementing
+
+The MeshLink Wire Codec is **not** Google FlatBuffers. It does **not** use the FlatBuffers runtime,
+`.fbs` schema compiler (`flatc`), or any FlatBuffers library dependency. The codec shares some
+design *techniques* (flat binary encoding, explicit field IDs, skip-able unknown fields) but is
+a fully custom format with its own frame envelope, varint encoding, and type system defined in
+`specs/codecs/frames.yaml`, `specs/codecs/enums.yaml`, and `specs/codecs/models.yaml`.
+
+Implementors: implement the custom codec from the YAML contracts directly. Do **not** search for
+or import a FlatBuffers library. The naming similarity is deliberate for familiarity with the
+techniques, not a compatibility promise.<arg_value><arg_key>path</arg_key><arg_value>/Users/phil/Projects/MeshLink-template/docs/explanation/why-meshlink-wire-codec.md
+
 ## The decision
 
 MeshLink implements its own schema-driven binary format and pure-Kotlin codec.

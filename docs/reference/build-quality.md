@@ -36,8 +36,11 @@
 
 ## Runtime Dependencies
 
-Only `kotlinx-coroutines-core` in shipped `:meshlink` artifact.
-`kotlinx-datetime` for `Duration` in settings DSL is acknowledged exception.
+The shipped `:meshlink` artifact depends on exactly two runtime dependencies:
+`kotlinx-coroutines-core` (always) and `ch.trancee.meshlink:meshlink-crypto`
+v0.1.1 from Maven Central. `kotlin.time.Duration`, `kotlin.time.Instant`,
+and `kotlin.time.Clock` are part of the Kotlin standard library (stdlib) as of
+Kotlin 2.1+; no separate `kotlinx-datetime` dependency is required.
 
 ## Dokka / SKI / Coverage
 

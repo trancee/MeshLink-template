@@ -15,6 +15,6 @@ import kotlin.test.assertEquals
 class MeshLinkProofTest {
     @Test
     fun libraryVersionUnderTest_matchesMeshLink() {
-        assertEquals(MeshLinkVersion(0, 0, 0), MeshLinkProof.libraryVersionUnderTest())
+        assertEquals(MeshLinkVersion(0, 1, 0), MeshLinkProof.libraryVersionUnderTest())
     }
 }

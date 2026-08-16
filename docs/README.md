@@ -17,7 +17,9 @@ Documentation follows the [Diátaxis](https://diataxis.fr) framework. Each doc s
 | `specs/protocol/` | Normative protocol contracts | Authored state machines, timing, and invariants |
 | `specs/catalogs/` | Source-derived catalogs | Settings and diagnostics projections |
 | `specs/traceability/` | Generated mapping | Specification-to-decision/code/test coverage |
-| `specs/product/`, `specs/epics/`, `specs/tests/` | Planning | Authored scope, stories, and test architecture |
+| `specs/product/` | Planning | Authored scope, vision, and success criteria |
+| `specs/epics/` | Planning | Authored epic-level story plans |
+| `specs/tests/` | Planning | Authored test architecture and strategy |
 
 ## SPEC.md vs ADRs vs Reference Docs
 
@@ -83,3 +85,4 @@ Implementation must conform to authoritative sources; a discrepancy is a defect.
 - **Machine-Readable Specs**: [`specs/`](../specs/)
 - **Constitution (Binding Rules)**: [`CONSTITUTION.md`](../CONSTITUTION.md)
 - **Agent Instructions**: [`AGENTS.md`](../AGENTS.md)
+- **Crypto API**: [`reference/meshlink-crypto-api.md`](reference/meshlink-crypto-api.md) — meshlink-crypto v0.1.1 usage guide

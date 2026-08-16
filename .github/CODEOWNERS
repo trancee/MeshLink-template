@@ -8,6 +8,11 @@
 /meshlink/src/*/kotlin/ch/trancee/meshlink/routing/ @trancee
 /meshlink/src/*/kotlin/ch/trancee/meshlink/wire/ @trancee
 
+# Note: crypto/, routing/, and wire/ packages are currently empty (implementation
+# is planned via TDD). These rules are forward-looking — they will enforce
+# @trancee review once the packages are populated. See
+# docs/reference/production-readiness.md §4.5
+
 # Design memos for the same sensitive areas
 /docs/decisions/crypto/ @trancee
 /docs/decisions/routing/ @trancee

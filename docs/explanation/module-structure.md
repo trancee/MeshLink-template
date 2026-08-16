@@ -76,7 +76,7 @@ SHA-512, HMAC-SHA256, HKDF-SHA256, X25519, Ed25519, ChaCha20-Poly1305) as
 pure-Kotlin implementations with per-primitive native dispatch.
 
 It is consumed as a version-pinned Maven Central dependency (currently
-v0.1.0, declared as `libs.meshlink.crypto` in `gradle/libs.versions.toml`)
+v0.1.1, declared as `libs.meshlink.crypto` in `gradle/libs.versions.toml`)
 and declared as `implementation(libs.meshlink.crypto)` in `:meshlink`'s
 `commonMain` source set.
 

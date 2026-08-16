@@ -81,7 +81,7 @@ kotlin {
             // MeshLink-crypto KMP module — provides SHA-256, HKDF, HMAC, X25519,
             // Ed25519, and ChaCha20-Poly1305 with pure-Kotlin implementations and
             // per-primitive native dispatch. Consumed as a version-pinned Maven
-            // Central dependency (ch.trancee.meshlink:meshlink-crypto, v0.1.0,
+            // Central dependency (ch.trancee.meshlink:meshlink-crypto, v0.1.1,
             // via libs.meshlink.crypto in gradle/libs.versions.toml). The iOS
             // simulator target was removed because BLE radios are not available
             // in the iOS simulator; non-radio logic is covered by JVM host tests.

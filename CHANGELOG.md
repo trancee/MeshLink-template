@@ -19,6 +19,10 @@ tracks unreleased, manually-reviewed changes between releases.
 - `MeshLink-crypto` (v0.1.0) integrated as a Maven Central dependency, providing
   SHA-256, HKDF, HMAC, X25519, Ed25519, and ChaCha20-Poly1305 primitives with
   pure-Kotlin implementations.
+  Upgraded to v0.1.1, which adds `Crypto.deriveX25519PublicKey`,
+  `Crypto.ed25519PublicKeyFromPrivate`, and `Crypto.randomBytes` (all were
+  `internal` in v0.1.0). Also fixes the empty Javadoc JAR on Maven Central
+  (v0.1.0's `-javadoc.jar` was 261 bytes, manifest-only).
 - `.mcp.json` with `codebase-memory-mcp` for subagent code intelligence.
 - `SECURITY.md` with vulnerability disclosure policy.
 - `.github/dependabot.yml` for GitHub Actions and Gradle dependency updates.
@@ -28,7 +32,7 @@ tracks unreleased, manually-reviewed changes between releases.
 ### Changed
 
 - Migrated `MeshLink-crypto` from a git submodule + Gradle composite build to
-  a version-pinned Maven Central dependency (`ch.trancee.meshlink:meshlink-crypto:0.1.0`,
+  a version-pinned Maven Central dependency (`ch.trancee.meshlink:meshlink-crypto:0.1.1`,
   declared as `libs.meshlink.crypto` in `gradle/libs.versions.toml`).
 - Removed `iosSimulatorArm64` KMP target from `:meshlink` (BLE radios are not
   available in the iOS simulator; non-radio logic is covered by JVM host tests).

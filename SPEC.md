@@ -67,6 +67,8 @@ Mobile devices need to communicate securely without internet, backend servers, o
 | Wire encoding | Custom pure-Kotlin MeshLink Wire Codec, inspired by selected FlatBuffers techniques but not byte-compatible by contract |
 | Compression (optional) | RFC 1950/1951/1952 (zlib), RFC 7932 (Brotli), RFC 8878 (Zstandard) |
 
+> **NOT FlatBuffers**: The MeshLink Wire Codec is a custom pure-Kotlin format inspired by (but not compatible with) Google FlatBuffers. No FlatBuffers runtime, `.fbs` schemas, or `flatc` dependency is used. See `docs/explanation/why-meshlink-wire-codec.md`.
+
 ---
 
 ## 2. Architecture Overview
@@ -1265,12 +1267,14 @@ val occurredAt: Instant
 ```
 
 `occurredAt` names the event instant. Diagnostic codes use explicit stable ranges
-aligned with the Exception `ErrorCode` ranges (see §7.6): 0x01xx configuration,
-0x02xx permission, 0x03xx bluetooth, 0x04xx crypto, 0x05xx routing, 0x06xx transfer,
-0x07xx storage, 0x08xx lifecycle, 0x09xx transport, 0x0Axx trust, and 0x0Fxx
-internal. Events may include redacted PeerIdentity, MessageId/TransferId, frame
-code, provider label, and error code, but never raw handles, addresses, keys,
-ciphertext, payloads, or platform exception text.
+in the `0x81xx`–`0x8Fxx` space, aligned with (but never overlapping) the Exception
+`ErrorCode` ranges (see §7.6) by the high bit `0x8000`: `0x81xx` configuration,
+`0x82xx` permission, `0x83xx` bluetooth, `0x84xx` crypto, `0x85xx` routing, `0x86xx` transfer,
+`0x87xx` storage, `0x88xx` lifecycle, `0x89xx` transport, `0x8Axx` trust, and `0x8Fxx`
+internal. The high bit distinguishes diagnostic codes from error codes on the wire
+so a diagnostic event can never be mistaken for an exception. Events may include redacted
+PeerIdentity, MessageId/TransferId, frame code, provider label, and error code, but never
+raw handles, addresses, keys, ciphertext, payloads, or platform exception text.
 
 ### 11.4 Diagnostic Event Hierarchy
 
@@ -1345,7 +1349,12 @@ overflow event.
 
 ### 12.4 Runtime Dependencies
 
-Only `kotlinx-coroutines-core` in shipped `:meshlink` artifact. `kotlinx-datetime` for `Duration` in settings DSL is acknowledged exception.
+The shipped `:meshlink` artifact depends on exactly two runtime dependencies:
+`kotlinx-coroutines-core` (always) and `ch.trancee.meshlink:meshlink-crypto`
+v0.1.1 from Maven Central. `kotlin.time.Duration`, `kotlin.time.Instant`,
+and `kotlin.time.Clock` are part of the Kotlin standard library as of Kotlin
+2.1+; no separate `kotlinx-datetime` dependency is required. See
+CONSTITUTION.md Technical Constraints.
 
 ---
 
@@ -1510,7 +1519,9 @@ MLS (RFC 9420) integration for multi-recipient E2E encryption.
 | `specs/catalogs/diagnostic-events.yaml` | Source-derived catalog | Diagnostic event names, fields, and severity |
 | `specs/catalogs/settings.yaml` | Source-derived catalog | Public settings and defaults |
 | `specs/traceability/specification-map.yaml` | Generated traceability | SPEC ↔ ADR ↔ codec ↔ code ↔ test mapping and implementation status |
-| `specs/product/`, `specs/epics/`, `specs/tests/` | Authored planning | Scope, story plans, and test architecture |
+| `specs/product/` | Authored planning | Product scope, vision, and success criteria |
+| `specs/epics/` | Authored planning | Epic-level story plans |
+| `specs/tests/` | Authored planning | Test architecture and strategy |
 
 Codec/protocol files are reviewed source, not generated runtime code. The custom
 pure-Kotlin MeshLink Wire Codec must conform to them. Catalog/traceability update

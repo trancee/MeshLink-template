@@ -67,14 +67,14 @@ See [`docs/explanation/module-structure.md`](../docs/explanation/module-structur
 ./gradlew :meshlink:ktfmtFormat :meshlink:detekt
 
 # Build + test (JVM host tests)
-./gradlew :meshlink:build --rerun --no-build-cache
+./gradlew :meshlink:build --rerun-tasks --no-build-cache
 
 # Full verification
 ./gradlew :meshlink:koverVerify :meshlink:apiCheck
 
 ```
 
-> **Gradle invocations must always pass `--rerun` and `--no-build-cache`**
+> **Gradle invocations must always pass `--rerun-tasks` and `--no-build-cache`**
 > (AGENTS.md Operational Preferences).
 
 ## Conventions Mined from PR Reviews
@@ -131,7 +131,7 @@ When modifying a source area, update ALL downstream consumers listed below.
 
 ### Crypto primitives (`ch.trancee.meshlink:meshlink-crypto`)
 
-- **Dependency**: `ch.trancee.meshlink:meshlink-crypto:0.1.0` (Maven Central, via `libs.meshlink.crypto` in `gradle/libs.versions.toml`)
+- **Dependency**: `ch.trancee.meshlink:meshlink-crypto:0.1.1` (Maven Central, via `libs.meshlink.crypto` in `gradle/libs.versions.toml`)
 - **Gradle wiring**: `implementation(libs.meshlink.crypto)` in `meshlink/build.gradle.kts`; no `includeBuild` in `settings.gradle.kts`
 - **Docs**: `docs/reference/trust.md`, `docs/decisions/crypto/meshlink-crypto-dependency.md`
 - **Impact cascade**: Crypto changes → `:meshlink` recompile → Wycheproof test vectors in `meshlink/src/commonTest/resources/wycheproof/` → API dump if public crypto API changes

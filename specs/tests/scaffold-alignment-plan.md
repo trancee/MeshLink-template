@@ -13,17 +13,17 @@ retained because MeshLink has not shipped.
 1. Replace obsolete public settings fields and types with the accepted settings
    model (`enableBackground`, `routeDigestInterval`, `routeExpiry`,
    `maxRoutes`, `maxTransfersPerPeer`, diagnostics flow configuration) → verify:
-   `./gradlew :meshlink:jvmTest --tests '*MeshLinkSettingsTest*' --rerun --no-build-cache`
+   `./gradlew :meshlink:jvmTest --tests '*MeshLinkSettingsTest*' --rerun-tasks --no-build-cache`
 2. Add construction-time validation for appId, durations, route/transfer limits,
    and relationships → verify:
-   `./gradlew :meshlink:jvmTest --tests '*MeshLinkSettingsValidationTest*' --rerun --no-build-cache`
+   `./gradlew :meshlink:jvmTest --tests '*MeshLinkSettingsValidationTest*' --rerun-tasks --no-build-cache`
 3. Remove callback/scoreboard/obsolete routing settings from the public API →
    verify:
-   `./gradlew :meshlink:jvmApiDump apiCheck --rerun --no-build-cache`
+   `./gradlew :meshlink:jvmApiDump apiCheck --rerun-tasks --no-build-cache`
 4. Regenerate the settings catalog and verify source/catalog agreement → verify:
    `./scripts/validate-specs.sh`
 5. Verify the complete first slice → verify:
-   `./gradlew :meshlink:build :meshlink:koverVerify ktfmtCheck detekt apiCheck --rerun --no-build-cache`
+   `./gradlew :meshlink:build :meshlink:koverVerify ktfmtCheck detekt apiCheck --rerun-tasks --no-build-cache`
 
 ## Vertical slice 2 — canonical public lifecycle skeleton
 
@@ -55,7 +55,7 @@ retained because MeshLink has not shipped.
 
 - No implementation starts before the first failing test is written.
 - Tests use AAA structure and one logical Act.
-- Every Gradle command includes `--rerun --no-build-cache`.
+- Every Gradle command includes `--rerun-tasks --no-build-cache`.
 - No commit is created without explicit user approval.
 - Before release readiness: explicit Kover LINE=100 and BRANCH=100 checks,
   Detekt must analyze KMP sources, API dump must match, and docs/specs must be

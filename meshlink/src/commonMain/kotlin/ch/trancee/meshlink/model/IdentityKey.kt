@@ -11,6 +11,9 @@ import kotlin.jvm.JvmInline
 public value class IdentityKey(private val bytes: ByteArray) {
     override fun toString(): String = bytes.toHexString()
 
+    /** Returns a defensive copy of the raw 32-byte Ed25519 key data. */
+    public fun toByteArray(): ByteArray = bytes.copyOf()
+
     public companion object {
         public fun fromHex(hex: String): IdentityKey {
             require(hex.length == PUBLIC_KEY_HEX_LENGTH) {

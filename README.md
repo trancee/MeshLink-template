@@ -10,7 +10,7 @@ MeshLink enables two mobile platforms (Android and iOS) to communicate securely 
 
 | Module | Purpose |
 |-|---|
-| `meshlink` | Shipped library (JVM + Android + iOS device targets) — depends on `ch.trancee.meshlink:meshlink-crypto` (v0.1.0, Maven Central) |
+| `meshlink` | Shipped library (JVM + Android + iOS device targets) — depends on `ch.trancee.meshlink:meshlink-crypto` (v0.1.1, Maven Central) |
 | `meshlink-reference` | Reference app consuming public API only - validates developer experience |
 | `meshlink-proof` | Real-device validation for Android/iOS BLE behavior |
 | `meshlink-benchmark` | Performance benchmarking for throughput, latency, memory budgets |
@@ -102,7 +102,7 @@ MeshLink implements against these RFC standards:
 - **RFC 8966** — Babel routing for seqno/feasibility
 - **RFC 2018** — TCP SACK for selective acknowledgement
 
-Crypto primitives (SHA-256, HKDF, HMAC, X25519, Ed25519, ChaCha20-Poly1305) are provided by the [`MeshLink-crypto`](docs/decisions/crypto/meshlink-crypto-dependency.md) module, a KMP library published to Maven Central (currently v0.1.0). Implementations are validated against Wycheproof test vectors.
+Crypto primitives (SHA-256, HKDF, HMAC, X25519, Ed25519, ChaCha20-Poly1305) are provided by the [`MeshLink-crypto`](docs/decisions/crypto/meshlink-crypto-dependency.md) module, a KMP library published to Maven Central (currently v0.1.1). Implementations are validated against Wycheproof test vectors.
 
 ## Platform Requirements
 

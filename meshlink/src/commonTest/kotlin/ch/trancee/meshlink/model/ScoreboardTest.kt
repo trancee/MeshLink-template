@@ -1,12 +1,7 @@
-package ch.trancee.meshlink
+package ch.trancee.meshlink.model
 
-import ch.trancee.meshlink.model.Scoreboard
 import ch.trancee.meshlink.model.and
-import ch.trancee.meshlink.model.forEachMissing
-import ch.trancee.meshlink.model.missingChunks
-import ch.trancee.meshlink.model.missingSequence
 import ch.trancee.meshlink.model.or
-import ch.trancee.meshlink.model.xor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
