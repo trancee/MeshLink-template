@@ -5,7 +5,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.detekt)
-    alias(libs.plugins.ktfmt)
+    alias(libs.plugins.spotless)
 }
 
 android {
@@ -33,4 +33,11 @@ dependencies {
 
 detekt { buildUponDefaultConfig = true }
 
-ktfmt { kotlinLangStyle() }
+spotless {
+    kotlin {
+        ktfmt().kotlinlangStyle()
+    }
+    kotlinGradle {
+        ktfmt().kotlinlangStyle()
+    }
+}

@@ -20,7 +20,7 @@
 ## Code Quality (Per CONSTITUTION.md §I)
 
 - Detekt: zero suppressions (test suppressions require justification comment)
-- ktfmt: formatting before every commit
+- Spotless: formatting before every commit
 - Full descriptive identifiers (no `cfg`, `mgr`, `idx`, `tmp`, `msg`)
 - BCV tracks public API; `.api` diff requires version-bump rationale
 - `explicitApi()` enabled

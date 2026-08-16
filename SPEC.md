@@ -1334,7 +1334,7 @@ overflow event.
 ### 12.2 Code Quality (Per CONSTITUTION.md)
 
 - Detekt zero suppressions (test suppressions require justification)
-- ktfmt formatting before every commit
+- Spotless formatting before every commit
 - Full descriptive identifiers (no `cfg`, `mgr`, `idx`, `tmp`, `msg`)
 - BCV tracks public API; `.api` diff requires version-bump rationale
 - `explicitApi()` enabled

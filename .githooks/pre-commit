@@ -68,7 +68,7 @@ for file in "${staged_files[@]}"; do
 done
 
 # pre-commit is the fast tier: secret scan, hook self-check, YAML lint,
-# ktfmt formatting, and Detekt on touched modules only. Full build/test/
+# Spotless formatting, and Detekt on touched modules only. Full build/test/
 # coverage/BCV/docs/invariant checks run in pre-push; CI is authoritative.
 # See CONSTITUTION.md Quality Gates.
 
@@ -110,16 +110,16 @@ fi
 
 format_tasks=()
 if [[ "$need_meshlink" -eq 1 ]]; then
-  format_tasks+=(":meshlink:ktfmtFormat")
+  format_tasks+=(":meshlink:spotlessApply")
 fi
 if [[ "$need_reference" -eq 1 ]]; then
-  format_tasks+=(":meshlink-reference:ktfmtFormat")
+  format_tasks+=(":meshlink-reference:spotlessApply")
 fi
 if [[ "$need_benchmark" -eq 1 ]]; then
-  format_tasks+=(":meshlink-benchmark:ktfmtFormat")
+  format_tasks+=(":meshlink-benchmark:spotlessApply")
 fi
 if [[ "$need_proof" -eq 1 ]]; then
-  format_tasks+=(":meshlink-proof:ktfmtFormat")
+  format_tasks+=(":meshlink-proof:spotlessApply")
 fi
 
 gradle_cmd=(./gradlew --console=plain --configuration-cache --parallel)

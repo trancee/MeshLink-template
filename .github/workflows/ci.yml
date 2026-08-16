@@ -7,7 +7,7 @@ name: CI
 #
 # All Gradle invocations pass --rerun-tasks and --no-build-cache per
 # AGENTS.md Operational Preferences. Each task is module-scoped (:meshlink)
-# because the quality plugins (ktfmt, Detekt, Kover, BCV) apply to that
+# because the quality plugins (Spotless, Detekt, Kover, BCV) apply to that
 # module only.
 "on":
   workflow_dispatch:
@@ -75,8 +75,8 @@ jobs:
       - name: Markdown lint + link check
         run: ./scripts/check-markdown.sh
 
-      - name: ktfmt format check
-        run: ./gradlew --console=plain --rerun-tasks --no-build-cache :meshlink:ktfmtCheck
+      - name: Spotless format check
+        run: ./gradlew --console=plain --rerun-tasks --no-build-cache :meshlink:spotlessCheck
 
       - name: Detekt
         run: ./gradlew --console=plain --rerun-tasks --no-build-cache :meshlink:detekt

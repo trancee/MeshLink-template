@@ -35,7 +35,7 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.detekt)
-    alias(libs.plugins.ktfmt)
+    alias(libs.plugins.spotless)
     alias(libs.plugins.kover)
     alias(libs.plugins.dokka)
     alias(libs.plugins.skie)
@@ -101,7 +101,14 @@ tasks.withType<Detekt>().configureEach {
     include("**/*.kt")
 }
 
-ktfmt { kotlinLangStyle() }
+spotless {
+    kotlin {
+        ktfmt().kotlinlangStyle()
+    }
+    kotlinGradle {
+        ktfmt().kotlinlangStyle()
+    }
+}
 
 kover {
     reports {

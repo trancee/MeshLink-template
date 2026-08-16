@@ -24,7 +24,7 @@
 
 | Principle | Compliance |
 | --- | --- |
-| I. Code Quality | <!-- Detekt clean, ktfmt applied, private-key handling ✅/N/A --> |
+| I. Code Quality | <!-- Detekt clean, Spotless applied, private-key handling ✅/N/A --> |
 | II. Testing | <!-- 100% coverage maintained, Wycheproof vectors updated --> |
 | III. UX Consistency | <!-- Cross-platform parity maintained or N/A --> |
 | IV. Performance | <!-- Benchmarks unaffected or updated --> |

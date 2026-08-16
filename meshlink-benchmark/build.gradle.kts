@@ -7,7 +7,7 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.detekt)
-    alias(libs.plugins.ktfmt)
+    alias(libs.plugins.spotless)
 }
 
 kotlin { jvmToolchain(21) }
@@ -19,4 +19,11 @@ dependencies {
 
 detekt { buildUponDefaultConfig = true }
 
-ktfmt { kotlinLangStyle() }
+spotless {
+    kotlin {
+        ktfmt().kotlinlangStyle()
+    }
+    kotlinGradle {
+        ktfmt().kotlinlangStyle()
+    }
+}
