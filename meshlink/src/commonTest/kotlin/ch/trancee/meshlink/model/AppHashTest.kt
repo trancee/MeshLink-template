@@ -15,7 +15,7 @@ class AppHashTest {
 
     @Test
     fun `ZERO produces 16 zero bytes`() {
-        val bytes = AppHash.ZERO.toByteArray()
+        val bytes = AppHash.ZERO.toBytes()
         assertEquals(16, bytes.size)
         bytes.forEach { assertEquals(0, it.toInt()) }
     }
@@ -71,19 +71,19 @@ class AppHashTest {
     }
 
     @Test
-    fun `toByteArray returns 16 bytes in big-endian order`() {
+    fun `toBytes returns 16 bytes in big-endian order`() {
         val source = ByteArray(16) { i -> (i + 1).toByte() }
         val id = AppHash.fromBytes(source)
 
-        val bytes = id.toByteArray()
+        val bytes = id.toBytes()
         assertEquals(16, bytes.size)
         assertEquals(source.toList(), bytes.toList())
     }
 
     @Test
-    fun `toByteArray roundtrips through fromBytes`() {
+    fun `toBytes roundtrips through fromBytes`() {
         val original = AppHash.derive("ch.trancee.meshlink")
-        val bytes = original.toByteArray()
+        val bytes = original.toBytes()
         val restored = AppHash.fromBytes(bytes)
 
         assertEquals(original, restored)

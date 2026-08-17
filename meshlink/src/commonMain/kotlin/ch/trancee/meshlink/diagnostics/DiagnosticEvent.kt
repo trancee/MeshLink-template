@@ -27,44 +27,25 @@ import kotlin.time.Instant
  *
  * SPEC-ANCHOR: diagnostic-event
  */
-@JvmInline public value class DiagnosticCode(public val value: UShort)
+@JvmInline public value class DiagnosticCode(public val value: UShort) {
+    public companion object {
+        public val ROUTE_DECRYPTION_FAILED: DiagnosticCode = DiagnosticCode(0x8501u)
+        public val TRANSPORT_FALLBACK: DiagnosticCode = DiagnosticCode(0x8901u)
+        public val TRANSFER_BEARER: DiagnosticCode = DiagnosticCode(0x8601u)
+        public val POWER_MODE_SETTINGS: DiagnosticCode = DiagnosticCode(0x8101u)
+        public val HANDSHAKE: DiagnosticCode = DiagnosticCode(0x8401u)
+        public val KEY_ROTATION: DiagnosticCode = DiagnosticCode(0x8402u)
+        public val NOISE_SESSION: DiagnosticCode = DiagnosticCode(0x8403u)
+        public val ROUTE_DIGEST_MISMATCH: DiagnosticCode = DiagnosticCode(0x8502u)
+        public val TRANSFER_STATE: DiagnosticCode = DiagnosticCode(0x8602u)
+        public val TRANSFER_FAILURE: DiagnosticCode = DiagnosticCode(0x8603u)
+    }
+}
 
 @JvmInline public value class HandshakeId(public val value: UInt)
 
 @JvmInline public value class NoiseSessionId(public val value: UInt)
 
-/**
- * Diagnostic event codes.
- *
- * Diagnostic codes use the 0x81xx–0x8Fxx range, aligned with (but never overlapping) the
- * [ErrorCode] exception ranges (0x01xx–0x0Fxx). The high bit 0x8000 distinguishes diagnostics from
- * error codes on the wire so a diagnostic event can never be mistaken for an exception.
- *
- * Category alignment:
- * - 0x81xx: Configuration
- * - 0x82xx: Permission
- * - 0x83xx: Bluetooth
- * - 0x84xx: Crypto
- * - 0x85xx: Routing
- * - 0x86xx: Transfer
- * - 0x87xx: Storage
- * - 0x88xx: Lifecycle
- * - 0x89xx: Transport
- * - 0x8Axx: Trust
- * - 0x8Fxx: Internal
- */
-public object DiagnosticCodes {
-    public val ROUTE_DECRYPTION_FAILED: DiagnosticCode = DiagnosticCode(0x8501u)
-    public val TRANSPORT_FALLBACK: DiagnosticCode = DiagnosticCode(0x8901u)
-    public val TRANSFER_BEARER: DiagnosticCode = DiagnosticCode(0x8601u)
-    public val POWER_MODE_SETTINGS: DiagnosticCode = DiagnosticCode(0x8101u)
-    public val HANDSHAKE: DiagnosticCode = DiagnosticCode(0x8401u)
-    public val KEY_ROTATION: DiagnosticCode = DiagnosticCode(0x8402u)
-    public val NOISE_SESSION: DiagnosticCode = DiagnosticCode(0x8403u)
-    public val ROUTE_DIGEST_MISMATCH: DiagnosticCode = DiagnosticCode(0x8502u)
-    public val TRANSFER_STATE: DiagnosticCode = DiagnosticCode(0x8602u)
-    public val TRANSFER_FAILURE: DiagnosticCode = DiagnosticCode(0x8603u)
-}
 
 public sealed interface DiagnosticEvent {
     public val code: DiagnosticCode
@@ -77,7 +58,7 @@ public sealed interface DiagnosticEvent {
         public val failureReason: DecryptFailureReason,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
-        override val code: DiagnosticCode = DiagnosticCodes.ROUTE_DECRYPTION_FAILED
+        override val code: DiagnosticCode = DiagnosticCode.ROUTE_DECRYPTION_FAILED
         override val severity: DiagnosticSeverity = DiagnosticSeverity.ERROR
     }
 
@@ -86,7 +67,7 @@ public sealed interface DiagnosticEvent {
         public val reason: TransportFallbackReason,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
-        override val code: DiagnosticCode = DiagnosticCodes.TRANSPORT_FALLBACK
+        override val code: DiagnosticCode = DiagnosticCode.TRANSPORT_FALLBACK
         override val severity: DiagnosticSeverity = DiagnosticSeverity.WARN
     }
 
@@ -95,7 +76,7 @@ public sealed interface DiagnosticEvent {
         public val bearer: Bearer,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
-        override val code: DiagnosticCode = DiagnosticCodes.TRANSFER_BEARER
+        override val code: DiagnosticCode = DiagnosticCode.TRANSFER_BEARER
         override val severity: DiagnosticSeverity = DiagnosticSeverity.INFO
     }
 
@@ -115,7 +96,7 @@ public sealed interface DiagnosticEvent {
         public val disconnectGracePeriod: Duration,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
-        override val code: DiagnosticCode = DiagnosticCodes.POWER_MODE_SETTINGS
+        override val code: DiagnosticCode = DiagnosticCode.POWER_MODE_SETTINGS
         override val severity: DiagnosticSeverity = DiagnosticSeverity.INFO
     }
 
@@ -126,7 +107,7 @@ public sealed interface DiagnosticEvent {
         public val nonceReplayDetected: Boolean,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
-        override val code: DiagnosticCode = DiagnosticCodes.HANDSHAKE
+        override val code: DiagnosticCode = DiagnosticCode.HANDSHAKE
         override val severity: DiagnosticSeverity =
             if (verificationLevel == VerificationLevel.NONE) {
                 DiagnosticSeverity.ERROR
@@ -145,7 +126,7 @@ public sealed interface DiagnosticEvent {
         public val propagationDeadlineMet: Boolean,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
-        override val code: DiagnosticCode = DiagnosticCodes.KEY_ROTATION
+        override val code: DiagnosticCode = DiagnosticCode.KEY_ROTATION
         override val severity: DiagnosticSeverity =
             if (continuityVerified && !conflictDetected) {
                 DiagnosticSeverity.INFO
@@ -165,7 +146,7 @@ public sealed interface DiagnosticEvent {
         public val failureReason: NoiseFailureReason?,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
-        override val code: DiagnosticCode = DiagnosticCodes.NOISE_SESSION
+        override val code: DiagnosticCode = DiagnosticCode.NOISE_SESSION
         override val severity: DiagnosticSeverity =
             if (toState == NoiseSessionState.FAILED) {
                 DiagnosticSeverity.ERROR
@@ -180,7 +161,7 @@ public sealed interface DiagnosticEvent {
         public val remoteDigest: ULong,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
-        override val code: DiagnosticCode = DiagnosticCodes.ROUTE_DIGEST_MISMATCH
+        override val code: DiagnosticCode = DiagnosticCode.ROUTE_DIGEST_MISMATCH
         override val severity: DiagnosticSeverity = DiagnosticSeverity.WARN
     }
 
@@ -193,7 +174,7 @@ public sealed interface DiagnosticEvent {
         public val result: TransferResult?,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
-        override val code: DiagnosticCode = DiagnosticCodes.TRANSFER_STATE
+        override val code: DiagnosticCode = DiagnosticCode.TRANSFER_STATE
         override val severity: DiagnosticSeverity =
             when (result) {
                 null -> DiagnosticSeverity.INFO
@@ -211,7 +192,7 @@ public sealed interface DiagnosticEvent {
         public val result: TransferResult,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
-        override val code: DiagnosticCode = DiagnosticCodes.TRANSFER_FAILURE
+        override val code: DiagnosticCode = DiagnosticCode.TRANSFER_FAILURE
         override val severity: DiagnosticSeverity = DiagnosticSeverity.ERROR
     }
 }

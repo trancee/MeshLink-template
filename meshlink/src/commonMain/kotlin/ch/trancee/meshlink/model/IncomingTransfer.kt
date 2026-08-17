@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
  * Emitted via [MeshLink.transfers] with state [TransferState.AWAITING_DECISION]. Host must call
  * [accept] or [reject] within the decision window.
  */
-public class IncomingTransfer
+internal class IncomingTransfer
 internal constructor(
     /** Origin-scoped identifier. */
     public val id: TransferId,
@@ -39,7 +39,6 @@ internal constructor(
      * Accepts the incoming transfer with the provided sink. Idempotent — subsequent calls are
      * no-ops after first acceptance.
      */
-    @Suppress("UNUSED_PARAMETER")
     public suspend fun accept(sink: TransferSink) {
         TODO("Not implemented — scaffold for BCV baseline")
     }

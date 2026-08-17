@@ -31,9 +31,9 @@ class TransferIdTest {
     }
 
     @Test
-    fun `toByteArray produces 4-byte big-endian`() {
+    fun `toBytes produces 4-byte big-endian`() {
         val id = TransferId(0x01020304u)
-        val bytes = id.toByteArray()
+        val bytes = id.toBytes()
         assertEquals(4, bytes.size)
         assertEquals(0x01.toByte(), bytes[0])
         assertEquals(0x02.toByte(), bytes[1])
@@ -42,9 +42,9 @@ class TransferIdTest {
     }
 
     @Test
-    fun `fromBytes roundtrips through toByteArray`() {
+    fun `fromBytes roundtrips through toBytes`() {
         val original = TransferId(0xAABBCCDDu)
-        val bytes = original.toByteArray()
+        val bytes = original.toBytes()
         val restored = TransferId.fromBytes(bytes)
         assertEquals(original, restored)
     }

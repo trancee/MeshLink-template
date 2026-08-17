@@ -169,7 +169,7 @@ range-check before conversion to Kotlin values, producing identical byte vectors
 
 ### Layer separation: wire codec vs. model serialization
 
-The little-endian encoding above applies to **frame envelope fields and all on-wire scalar fields** defined in `frames.yaml`. It is distinct from the **model-layer serialization** used by value classes for storage and cross-platform comparison (e.g., `PeerIdentity.toByteArray()`, `SeqNo.toByteArray()`), which use big-endian via `BigEndianConversions.kt`.
+The little-endian encoding above applies to **frame envelope fields and all on-wire scalar fields** defined in `frames.yaml`. It is distinct from the **model-layer serialization** used by value classes for storage and cross-platform comparison (e.g., `PeerIdentity.toBytes()`, `SeqNo.toBytes()`), which use big-endian via `BigEndianConversions.kt`.
 
 This separation is intentional:
 

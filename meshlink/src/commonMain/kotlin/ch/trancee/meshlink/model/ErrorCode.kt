@@ -18,7 +18,6 @@ package ch.trancee.meshlink.model
  *
  * SPEC-ANCHOR: error-code
  */
-@Suppress("MagicNumber")
 public enum class ErrorCode(private val code: UShort) {
 
     // Configuration (0x01xx)

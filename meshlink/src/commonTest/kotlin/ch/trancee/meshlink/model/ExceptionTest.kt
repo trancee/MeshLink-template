@@ -23,10 +23,6 @@ class ExceptionTest {
         assertEquals(ErrorCode.RADIO_IN_USE, radioEx.errorCode)
         assertEquals("BLE radio lease already held by another MeshLink instance", radioEx.message)
 
-        val radioEx2 = RadioInUseException(ErrorCode.CONNECTION_FAILED, "custom msg")
-        assertEquals(ErrorCode.CONNECTION_FAILED, radioEx2.errorCode)
-        assertEquals("custom msg", radioEx2.message)
-
         assertEquals(ErrorCode.INVALID_PARAMETER, configEx.errorCode)
         assertEquals(ErrorCode.INVALID_STATE, lifecycleEx.errorCode)
         assertEquals(ErrorCode.PERMISSION_DENIED, permEx.errorCode)
@@ -52,6 +48,9 @@ class ExceptionTest {
                 radioEx,
             )
         all.forEach { assertTrue(it is MeshLinkException) }
+
+        // RadioInUseException is a subtype of BluetoothException
+        assertTrue(radioEx is BluetoothException)
     }
 
     @Test
@@ -70,7 +69,6 @@ class ExceptionTest {
                 is TrustException -> "trust"
                 is RoutingException -> "routing"
                 is TransferException -> "transfer"
-                is RadioInUseException -> "radio-in-use"
             }
 
         assertEquals("config", category)

@@ -22,7 +22,6 @@ import kotlin.jvm.JvmInline
  * SPEC-ANCHOR: seqno-model
  */
 @JvmInline
-@Suppress("TooManyFunctions")
 internal value class SeqNo(private val value: UInt) {
     /** Raw 32-bit unsigned value, for wire serialization and deserialization. */
     public fun rawValue(): UInt = value
@@ -46,7 +45,7 @@ internal value class SeqNo(private val value: UInt) {
         /**
          * Creates a [SeqNo] from a 4-byte big-endian representation, for wire deserialization.
          *
-         * This is the deserialization counterpart to [toByteArray], used when decoding
+         * This is the deserialization counterpart to [toBytes], used when decoding
          * `ROUTE_UPDATE`, `ROUTE_WITHDRAWAL`, and `KEY_ROTATION` frames from a byte stream.
          *
          * @param bytes exactly 4 bytes; throws [IllegalArgumentException] if [bytes.size] is not 4.
@@ -100,10 +99,10 @@ internal value class SeqNo(private val value: UInt) {
     /**
      * Returns the 4-byte big-endian wire representation of this seqno.
      *
-     * Matches the wire format defined in wire-frames.yaml (4 bytes, big-endian, unsigned 32-bit).
+     * Matches the wire format defined in specs/codecs/frames.yaml (4 bytes, big-endian, unsigned 32-bit).
      * See [fromBytes] for the deserialization counterpart.
      */
-    public fun toByteArray(): ByteArray = value.toBytesBE()
+    public fun toBytes(): ByteArray = value.toBytesBE()
 
     /**
      * Returns the modular unsigned forward distance from [other] to this seqno.

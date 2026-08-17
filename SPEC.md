@@ -203,7 +203,7 @@ differences hidden behind the environment factories and internal
         val ZERO: SeqNo = SeqNo(0u)
         val MAX_VALUE: SeqNo = SeqNo(UInt.MAX_VALUE)
         fun fromUInt(value: UInt): SeqNo = SeqNo(value)
-        fun fromByteArray(bytes: ByteArray): SeqNo  // 4-byte big-endian deserialization
+        fun fromBytes(bytes: ByteArray): SeqNo  // 4-byte big-endian deserialization
     }
     fun rawValue(): UInt = value
     fun toByteArray(): ByteArray                    // 4-byte big-endian serialization
@@ -335,8 +335,17 @@ The origin allocates values from a durably reserved, monotonically increasing
 32-bit counter. Zero is reserved as invalid.
 
 ```kotlin
-@JvmInline value class TransferId private constructor(private val value: UInt) {
-    override fun toString(): String  // Eight-character hex representation
+@JvmInline
+public value class TransferId(private val value: UInt) {
+    public fun rawValue(): UInt
+    public fun toByteArray(): ByteArray  // 4-byte big-endian
+    public operator fun inc(): TransferId  // wrapping increment
+    override fun toString(): String  // eight-character hex representation
+
+    public companion object {
+        public val ZERO: TransferId = TransferId(0u)
+        public fun fromBytes(bytes: ByteArray): TransferId  // 4-byte big-endian deserialization
+    }
 }
 ```
 
@@ -427,6 +436,8 @@ public data class MeshLinkVersion(
 | `PowerMode` | `HIGH`, `MEDIUM`, `LOW` | See §10 for parameters |
 | `VerificationLevel` | `FULL`, `TOFU_PIN`, `NONE` | Handshake verification achieved |
 | `TransferKind` | `MESSAGE (0x00)`, `PAYLOAD (0x01)` | Explicit UByte codes for wire format discrimination |
+| `TransferState` | `AWAITING_DECISION`, `TRANSFERRING`, `ROUTE_UNAVAILABLE`, `RETRANSMITTING` | Non-terminal transfer lifecycle (see §3.6) |
+| `TransferResultCode` | `COMPLETED (0x00)`, `CANCELLED (0x01)`, `EXPIRED (0x02)`, `UNRECOVERABLE_FAILURE (0x03)`, `TRUST_FAILURE (0x04)` | Wire discriminant for TransferResult subtypes (internal) |
 | `PayloadDecision` (internal) | `ACCEPTED (0x00)`, `REJECTED (0x01)` | Internal transfer sink decision |
 | `L2capState` (internal) | `UNSUPPORTED`, `AVAILABLE`, `CONNECTING`, `ACTIVE`, `BACKING_OFF`, `DISABLED` | L2CAP channel health state |
 | `PeerState` | `CONNECTED`, `DISCONNECTED` | Public API |
@@ -1188,6 +1199,7 @@ representation and host sink policy; SDK memory remains window-bounded.
 | Max retries | 10 | 5 | 3 |
 | Retry budget | 60 s | 30 s | 15 s |
 | Grace period (disconnect→GONE) | 15 s | 30 s | 45 s |
+| Idle transition delay | 60 s | 120 s | 300 s |
 
 ### 10.2 Active and Idle Connections
 
@@ -1280,16 +1292,6 @@ raw handles, addresses, keys, ciphertext, payloads, or platform exception text.
 
 ```kotlin
 sealed interface DiagnosticEvent {
-    data class PowerModeEffectiveEvent(...) : DiagnosticEvent    // 0x01xx configuration
-    data class HandshakeEvent(...) : DiagnosticEvent              // 0x04xx crypto
-    data class KeyRotationEvent(...) : DiagnosticEvent            // 0x04xx crypto
-    data class NoiseSessionEvent(...) : DiagnosticEvent           // 0x04xx crypto
-    data class RouteDecryptFailureEvent(...) : DiagnosticEvent   // 0x05xx routing
-    data class RouteDigestMismatchEvent(...) : DiagnosticEvent   // 0x05xx routing
-    data class TransferBearerEvent(...) : DiagnosticEvent  // 0x06xx transfer
-    data class TransferSessionTransitionEvent(...) : DiagnosticEvent // 0x06xx transfer
-    data class TransferFailureEvent(...) : DiagnosticEvent      // 0x06xx transfer
-    data class TransportFallbackEvent(...) : DiagnosticEvent    // 0x09xx transport
     // ... extensible per diagnostic-events.yaml catalog
 }
 ```

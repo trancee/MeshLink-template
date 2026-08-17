@@ -1,5 +1,6 @@
 package ch.trancee.meshlink
 
+import ch.trancee.meshlink.model.ConfigurationException
 import ch.trancee.meshlink.model.KnownPeer
 import ch.trancee.meshlink.model.MeshLinkState
 import ch.trancee.meshlink.model.PeerIdentity
@@ -22,7 +23,7 @@ class MeshLinkTest {
         val settings = MeshLinkSettings(appId = "")
         val environment = JvmMeshLinkEnvironment()
 
-        assertFailsWith<IllegalArgumentException> { MeshLink.create(settings, environment) }
+        assertFailsWith<ConfigurationException> { MeshLink.create(settings, environment) }
     }
 
     @Test
@@ -30,7 +31,7 @@ class MeshLinkTest {
         val settings = MeshLinkSettings(appId = "   ")
         val environment = JvmMeshLinkEnvironment()
 
-        assertFailsWith<IllegalArgumentException> { MeshLink.create(settings, environment) }
+        assertFailsWith<ConfigurationException> { MeshLink.create(settings, environment) }
     }
 
     @Test
@@ -38,7 +39,7 @@ class MeshLinkTest {
         val settings = MeshLinkSettings(appId = "x".repeat(256))
         val environment = JvmMeshLinkEnvironment()
 
-        assertFailsWith<IllegalArgumentException> { MeshLink.create(settings, environment) }
+        assertFailsWith<ConfigurationException> { MeshLink.create(settings, environment) }
     }
 
     @Test

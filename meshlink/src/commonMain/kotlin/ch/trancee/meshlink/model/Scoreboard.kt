@@ -1,4 +1,3 @@
-@file:Suppress("TooManyFunctions")
 
 package ch.trancee.meshlink.model
 /**
@@ -14,7 +13,7 @@ package ch.trancee.meshlink.model
  *
  * SPEC-ANCHOR: scoreboard-model
  */
-public class Scoreboard
+internal class Scoreboard
 private constructor(
     public val totalChunks: UInt,
     public val byteSize: Int,
@@ -94,7 +93,7 @@ private constructor(
     }
 
     /** Returns the raw bitfield as a [ByteArray]. */
-    public fun toByteArray(): ByteArray = bytes.copyOf()
+    public fun toBytes(): ByteArray = bytes.copyOf()
 
     // -------------------------------------------------------------------
     // Internal helpers
@@ -120,7 +119,7 @@ private constructor(
  *
  * Counts are O(1) — tracked incrementally on each mutation.
  */
-public class MutableScoreboard(public val totalChunks: UInt) {
+internal class MutableScoreboard(public val totalChunks: UInt) {
     private val bytes = ByteArray(((totalChunks.toInt() + LAST_BIT_INDEX) / BITS_PER_BYTE))
     private var received: Int = 0
 
@@ -229,15 +228,15 @@ private const val BYTE_MASK: Int = 0xFF
 // ---------------------------------------------------------------------------
 
 /** Returns missing chunk indices as a newly allocated list. */
-public fun Scoreboard.missingChunks(): List<Int> =
+internal fun Scoreboard.missingChunks(): List<Int> =
     (0 until totalChunks.toInt()).filter { isMissing(it) }
 
 /** Lazily iterates missing chunk indices. */
-public fun Scoreboard.missingSequence(): Sequence<Int> =
+internal fun Scoreboard.missingSequence(): Sequence<Int> =
     (0 until totalChunks.toInt()).asSequence().filter { isMissing(it) }
 
 /** Visits missing chunk indices without allocating a collection. */
-public inline fun Scoreboard.forEachMissing(action: (index: Int) -> Unit) {
+internal inline fun Scoreboard.forEachMissing(action: (index: Int) -> Unit) {
     for (index in 0 until totalChunks.toInt()) {
         if (isMissing(index)) {
             action(index)
@@ -246,23 +245,23 @@ public inline fun Scoreboard.forEachMissing(action: (index: Int) -> Unit) {
 }
 
 /** Returns the union of two compatible acknowledgement bitfields. */
-public fun Scoreboard.or(other: Scoreboard): Scoreboard =
+internal fun Scoreboard.or(other: Scoreboard): Scoreboard =
     merge(other) { left, right -> left.toInt() or right.toInt() }
 
 /** Returns the intersection of two compatible acknowledgement bitfields. */
-public fun Scoreboard.and(other: Scoreboard): Scoreboard =
+internal fun Scoreboard.and(other: Scoreboard): Scoreboard =
     merge(other) { left, right -> left.toInt() and right.toInt() }
 
 /** Returns the symmetric difference of two compatible acknowledgement bitfields. */
-public fun Scoreboard.xor(other: Scoreboard): Scoreboard =
+internal fun Scoreboard.xor(other: Scoreboard): Scoreboard =
     merge(other) { left, right -> left.toInt() xor right.toInt() }
 
 private fun Scoreboard.merge(other: Scoreboard, operation: (Byte, Byte) -> Int): Scoreboard {
     require(totalChunks == other.totalChunks) {
         "Scoreboard operations require matching totalChunks: $totalChunks vs ${other.totalChunks}"
     }
-    val left = toByteArray()
-    val right = other.toByteArray()
+    val left = toBytes()
+    val right = other.toBytes()
     val merged = ByteArray(left.size)
     for (index in left.indices) {
         merged[index] = operation(left[index], right[index]).toByte()

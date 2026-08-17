@@ -1,5 +1,6 @@
 package ch.trancee.meshlink
 
+import ch.trancee.meshlink.model.ConfigurationException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -11,7 +12,7 @@ import kotlin.time.Duration.Companion.seconds
 class MeshLinkSettingsValidationTest {
     @Test
     fun `empty app id is rejected during settings construction`() {
-        val ex = assertFailsWith<IllegalArgumentException> { meshLinkSettings { appId = "" } }
+        val ex = assertFailsWith<ConfigurationException> { meshLinkSettings { appId = "" } }
         assertTrue(
             ex.message!!.contains("appId"),
             "Expected message to mention 'appId', got: ${ex.message}",
@@ -20,7 +21,7 @@ class MeshLinkSettingsValidationTest {
 
     @Test
     fun `whitespace only app id is rejected during settings construction`() {
-        val ex = assertFailsWith<IllegalArgumentException> { meshLinkSettings { appId = "   " } }
+        val ex = assertFailsWith<ConfigurationException> { meshLinkSettings { appId = "   " } }
         assertTrue(
             ex.message!!.contains("appId"),
             "Expected message to mention 'appId', got: ${ex.message}",
@@ -30,7 +31,7 @@ class MeshLinkSettingsValidationTest {
     @Test
     fun `app id exceeding 255 UTF-8 bytes is rejected during construction`() {
         val ex =
-            assertFailsWith<IllegalArgumentException> {
+            assertFailsWith<ConfigurationException> {
                 meshLinkSettings { appId = "é".repeat(128) }
             }
         assertTrue(
@@ -41,19 +42,19 @@ class MeshLinkSettingsValidationTest {
 
     @Test
     fun `invalid key rotation values are rejected`() {
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<ConfigurationException> {
             meshLinkSettings {
                 appId = "com.example.mesh"
                 keyRotation { interval = Duration.ZERO }
             }
         }
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<ConfigurationException> {
             meshLinkSettings {
                 appId = "com.example.mesh"
                 keyRotation { rotationGracePeriod = -1.seconds }
             }
         }
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<ConfigurationException> {
             meshLinkSettings {
                 appId = "com.example.mesh"
                 keyRotation { compromiseGracePeriod = -1.seconds }
@@ -63,19 +64,19 @@ class MeshLinkSettingsValidationTest {
 
     @Test
     fun `invalid transfer values are rejected`() {
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<ConfigurationException> {
             meshLinkSettings {
                 appId = "com.example.mesh"
                 transfer { maxRetries = -1 }
             }
         }
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<ConfigurationException> {
             meshLinkSettings {
                 appId = "com.example.mesh"
                 transfer { chunkSize = 0 }
             }
         }
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<ConfigurationException> {
             meshLinkSettings {
                 appId = "com.example.mesh"
                 transfer { maxTransfersPerPeer = 4 }
@@ -85,19 +86,19 @@ class MeshLinkSettingsValidationTest {
 
     @Test
     fun `invalid routing values are rejected`() {
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<ConfigurationException> {
             meshLinkSettings {
                 appId = "com.example.mesh"
                 routing { routeAdvertisementChangeThreshold = -1 }
             }
         }
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<ConfigurationException> {
             meshLinkSettings {
                 appId = "com.example.mesh"
                 routing { routeDigestInterval = Duration.ZERO }
             }
         }
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<ConfigurationException> {
             meshLinkSettings {
                 appId = "com.example.mesh"
                 routing {
@@ -106,7 +107,7 @@ class MeshLinkSettingsValidationTest {
                 }
             }
         }
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<ConfigurationException> {
             meshLinkSettings {
                 appId = "com.example.mesh"
                 routing { maxRoutes = 257 }
@@ -122,7 +123,7 @@ class MeshLinkSettingsValidationTest {
         builder.transferMaxTransfersPerPeer = 0
 
         // Act / Assert
-        val ex = assertFailsWith<IllegalArgumentException> { builder.build() }
+        val ex = assertFailsWith<ConfigurationException> { builder.build() }
         assertTrue(ex.message!!.isNotEmpty(), "Exception message should not be empty")
     }
 
@@ -134,7 +135,7 @@ class MeshLinkSettingsValidationTest {
         builder.transferMaxTransfersPerPeer = 4
 
         // Act / Assert
-        val ex = assertFailsWith<IllegalArgumentException> { builder.build() }
+        val ex = assertFailsWith<ConfigurationException> { builder.build() }
         assertTrue(ex.message!!.isNotEmpty(), "Exception message should not be empty")
     }
 
@@ -146,7 +147,7 @@ class MeshLinkSettingsValidationTest {
         builder.maxRoutes = 0
 
         // Act / Assert
-        val ex = assertFailsWith<IllegalArgumentException> { builder.build() }
+        val ex = assertFailsWith<ConfigurationException> { builder.build() }
         assertTrue(ex.message!!.isNotEmpty(), "Exception message should not be empty")
     }
 
@@ -158,7 +159,7 @@ class MeshLinkSettingsValidationTest {
         builder.maxRoutes = 257
 
         // Act / Assert
-        val ex = assertFailsWith<IllegalArgumentException> { builder.build() }
+        val ex = assertFailsWith<ConfigurationException> { builder.build() }
         assertTrue(ex.message!!.isNotEmpty(), "Exception message should not be empty")
     }
 
@@ -196,7 +197,7 @@ class MeshLinkSettingsValidationTest {
 
     @Test
     fun `invalid diagnostic buffer size is rejected`() {
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<ConfigurationException> {
             meshLinkSettings {
                 appId = "com.example.mesh"
                 diagnostics { eventBufferSize = 0 }

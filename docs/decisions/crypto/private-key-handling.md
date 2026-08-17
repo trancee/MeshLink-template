@@ -38,7 +38,7 @@ cold-start budget forces efficient implementation.
 **Decision:** Non-exportable platform keys remain provider-owned by opaque
 alias. Fallback/exportable keys serialized only inside provider/storage bridge
 directly into authenticated encryption or Keychain storage. Handles render only
-redacted metadata (provider label, non-secret key ID). No `toByteArray`,
+redacted metadata (provider label, non-secret key ID). No `toBytes`,
 encoding, copy, or raw equality.
 
 **Rationale:** Provider ownership ensures the platform's key isolation (StrongBox,

@@ -67,7 +67,7 @@ public value class AppHash(private val value: Pair<ULong, ULong>) {
     }
 
     /** Returns the 16-byte big-endian representation. */
-    public fun toByteArray(): ByteArray {
+    public fun toBytes(): ByteArray {
         val result = ByteArray(APP_HASH_BYTE_LENGTH)
         value.first.toBytesBE().copyInto(result, 0)
         value.second.toBytesBE().copyInto(result, APP_HASH_HALF_BYTE_LENGTH)
