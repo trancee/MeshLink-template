@@ -1,5 +1,7 @@
 package ch.trancee.meshlink
 
+import ch.trancee.meshlink.model.ConfigurationException
+import ch.trancee.meshlink.util.requireSetting
 import ch.trancee.meshlink.model.PowerMode
 import ch.trancee.meshlink.model.RegulatoryRegion
 import kotlin.time.Duration
@@ -51,21 +53,21 @@ public class MeshLinkSettingsBuilder {
     public var regulatoryRegion: RegulatoryRegion = RegulatoryRegion.DEFAULT
     public var enableBackground: Boolean = false
 
-    public var keyRotationInterval: Duration = 3.days
-    public var keyRotationGracePeriod: Duration = 1.hours
-    public var keyRotationCompromiseGracePeriod: Duration = Duration.ZERO
+    internal var keyRotationInterval: Duration = 3.days
+    internal var keyRotationGracePeriod: Duration = 1.hours
+    internal var keyRotationCompromiseGracePeriod: Duration = Duration.ZERO
 
-    public var transferMaxRetries: Int = 5
-    public var transferChunkSize: Int = 256
-    public var transferMaxTransfersPerPeer: Int = 3
+    internal var transferMaxRetries: Int = 5
+    internal var transferChunkSize: Int = 256
+    internal var transferMaxTransfersPerPeer: Int = 3
 
-    public var routeAdvertisementChangeThreshold: Int = 3
-    public var routeDigestInterval: Duration = 5.minutes
-    public var routeExpiry: Duration = 15.minutes
-    public var maxRoutes: Int = 256
+    internal var routeAdvertisementChangeThreshold: Int = 3
+    internal var routeDigestInterval: Duration = 5.minutes
+    internal var routeExpiry: Duration = 15.minutes
+    internal var maxRoutes: Int = 256
 
-    public var diagnosticsEventBufferSize: Int = 1000
-    public var diagnosticsEmitLog: Boolean = false
+    internal var diagnosticsEventBufferSize: Int = 1000
+    internal var diagnosticsEmitLog: Boolean = false
 
     public fun keyRotation(block: KeyRotationSettingsBuilder.() -> Unit) {
         KeyRotationSettingsBuilder().apply(block).also { builder ->
@@ -100,31 +102,22 @@ public class MeshLinkSettingsBuilder {
     }
 
     public fun build(): MeshLinkSettings {
-        require(appId.isNotBlank()) { "appId must not be blank" }
-        require(appId.encodeToByteArray().size <= MAX_APP_ID_BYTES) {
-            "appId must be at most 255 UTF-8 bytes"
-        }
-        require(keyRotationInterval > Duration.ZERO) { "key rotation interval must be positive" }
-        require(keyRotationGracePeriod >= Duration.ZERO) {
-            "key rotation grace period must not be negative"
-        }
-        require(keyRotationCompromiseGracePeriod >= Duration.ZERO) {
-            "compromise grace period must not be negative"
-        }
-        require(transferMaxRetries >= 0) { "maxRetries must not be negative" }
-        require(transferChunkSize > 0) { "chunkSize must be positive" }
-        require(transferMaxTransfersPerPeer in MIN_TRANSFERS_PER_PEER..MAX_TRANSFERS_PER_PEER) {
-            "maxTransfersPerPeer must be between 1 and 3"
-        }
-        require(routeAdvertisementChangeThreshold >= 0) {
-            "routeAdvertisementChangeThreshold must not be negative"
-        }
-        require(routeDigestInterval > Duration.ZERO) { "routeDigestInterval must be positive" }
-        require(routeExpiry > routeDigestInterval) {
-            "routeExpiry must be greater than routeDigestInterval"
-        }
-        require(maxRoutes in MIN_ROUTES..MAX_ROUTES) { "maxRoutes must be between 1 and 256" }
-        require(diagnosticsEventBufferSize > 0) { "eventBufferSize must be positive" }
+        requireSetting(appId.isNotBlank(), "appId must not be blank")
+        requireSetting(appId.encodeToByteArray().size <= MAX_APP_ID_BYTES, "appId must be at most 255 UTF-8 bytes")
+        requireSetting(keyRotationInterval > Duration.ZERO, "key rotation interval must be positive")
+        requireSetting(keyRotationGracePeriod >= Duration.ZERO, "key rotation grace period must not be negative")
+        requireSetting(keyRotationCompromiseGracePeriod >= Duration.ZERO, "compromise grace period must not be negative")
+        requireSetting(transferMaxRetries >= 0, "maxRetries must not be negative")
+        requireSetting(transferChunkSize > 0, "chunkSize must be positive")
+        requireSetting(
+            transferMaxTransfersPerPeer in MIN_TRANSFERS_PER_PEER..MAX_TRANSFERS_PER_PEER,
+            "maxTransfersPerPeer must be between 1 and 3",
+        )
+        requireSetting(routeAdvertisementChangeThreshold >= 0, "routeAdvertisementChangeThreshold must not be negative")
+        requireSetting(routeDigestInterval > Duration.ZERO, "routeDigestInterval must be positive")
+        requireSetting(routeExpiry > routeDigestInterval, "routeExpiry must be greater than routeDigestInterval")
+        requireSetting(maxRoutes in MIN_ROUTES..MAX_ROUTES, "maxRoutes must be between 1 and 256")
+        requireSetting(diagnosticsEventBufferSize > 0, "eventBufferSize must be positive")
 
         return MeshLinkSettings(
             appId = appId,
@@ -172,10 +165,10 @@ public class TransferSettingsBuilder {
 }
 
 public class RoutingSettingsBuilder {
-    public var routeAdvertisementChangeThreshold: Int = 3
-    public var routeDigestInterval: Duration = 5.minutes
-    public var routeExpiry: Duration = 15.minutes
-    public var maxRoutes: Int = 256
+    internal var routeAdvertisementChangeThreshold: Int = 3
+    internal var routeDigestInterval: Duration = 5.minutes
+    internal var routeExpiry: Duration = 15.minutes
+    internal var maxRoutes: Int = 256
 }
 
 public class DiagnosticsSettingsBuilder {

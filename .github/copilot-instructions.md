@@ -79,14 +79,27 @@ See [`docs/explanation/module-structure.md`](../docs/explanation/module-structur
 
 ## Conventions Mined from PR Reviews
 
-The repo is young (PRs #1–#4 so far); conventions are stable from
-`CONSTITUTION.md` and `AGENTS.md`:
+PRs #1–#10 have established the following conventions, in addition to the
+binding rules in `CONSTITUTION.md` and `AGENTS.md`:
 
-- Convention Commits required on every commit (`feat:`, `fix:`, `test:`, `docs:`, etc.)
+- Convention Commits required on every commit (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `perf:`, `chore:`)
 - Constitution Check required in every PR description (principle-by-principle I–V)
 - Any `.api` diff requires a version-bump rationale in the PR
 - Matching iOS docs required for any Android doc change to a public API
 - Design memo in `docs/decisions/<area>/` required for crypto/routing/wire changes
+- **Backtick test names must not contain parentheses** — `(`, `)` break
+  Kotlin/Native compilation; the `.githooks/pre-commit` hook scans staged test
+  files and rejects them. Use words like "plus", "minus", "equals" instead
+  (e.g. `nonce at window boundary base plus 64 advances window`)
+- **Formatting uses Spotless** (wrapping the ktfmt engine with `kotlinlangStyle()`)
+  for all `.kt` and `.gradle.kts` files. `./gradlew :meshlink:spotlessApply`
+  auto-formats before every commit
+- **Spec alignment**: keep `specs/` YAML contracts, the API dump
+  (`meshlink/api/jvm/meshlink.api`), and `docs/reference/` in sync — wire
+  field/enum codes are never reinterpreted or reused
+- **Test assertions**: use power-assert for behavioral verification;
+  `assertEquals` only for pure structural comparisons. AAA pattern with
+  blank lines between Arrange/Act/Assert, one Act per test
 
 ## Maintenance Matrix
 

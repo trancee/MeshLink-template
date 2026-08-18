@@ -18,7 +18,7 @@ public value class MessageId(private val value: UInt) {
     public fun rawValue(): UInt = value
 
     /** Returns the 4-byte big-endian wire representation of this message ID. */
-    public fun toByteArray(): ByteArray = value.toBytesBE()
+    public fun toBytes(): ByteArray = value.toBytesBE()
 
     /**
      * Increments this message ID by 1, wrapping at 2^32. Operator form for idiomatic `messageId++`

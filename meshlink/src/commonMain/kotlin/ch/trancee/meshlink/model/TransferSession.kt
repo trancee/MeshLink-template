@@ -21,7 +21,7 @@ public enum class TransferState {
  *
  * SPEC-ANCHOR: transfer-session-model
  */
-public data class TransferSession(
+internal data class TransferSession(
     /** Origin-scoped 32-bit identifier identifying this finite payload. */
     public val id: TransferId,
     /** Final destination peer for this transfer. */

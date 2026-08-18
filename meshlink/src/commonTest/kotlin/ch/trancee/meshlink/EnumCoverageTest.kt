@@ -16,6 +16,7 @@ import ch.trancee.meshlink.model.NoiseSessionState
 import ch.trancee.meshlink.model.PeerLifecycle
 import ch.trancee.meshlink.model.PeerState
 import ch.trancee.meshlink.model.PeerTrust
+import ch.trancee.meshlink.model.PowerMode
 import ch.trancee.meshlink.model.Priority
 import ch.trancee.meshlink.model.RegulatoryRegion
 import ch.trancee.meshlink.model.TransferKind
@@ -58,13 +59,14 @@ class EnumCoverageTest {
                 PeerLifecycle.entries,
                 PayloadDecision.entries,
                 L2capState.entries,
+                PowerMode.entries,
             )
 
         // Act
         val names = enums.flatten().map { it.name }
 
-        // Assert — all 24 enums are listed (no enum omitted from the coverage check)
-        assertEquals(24, enums.size)
+        // Assert — all 25 enums are listed (no enum omitted from the coverage check)
+        assertEquals(25, enums.size)
         // Each entry name is non-blank (catches empty-name regressions)
         names.forEach { assertTrue(it.isNotBlank(), "Enum entry name must not be blank") }
         // Spot-check key enum sizes

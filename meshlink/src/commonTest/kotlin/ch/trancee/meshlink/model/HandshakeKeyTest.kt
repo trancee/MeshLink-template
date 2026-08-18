@@ -59,20 +59,20 @@ class HandshakeKeyTest {
     }
 
     @Test
-    fun `toByteArray returns defensive copy of raw bytes`() {
+    fun `toBytes returns defensive copy of raw bytes`() {
         val bytes = ByteArray(32) { i -> i.toByte() }
         val key = HandshakeKey.fromBytes(bytes)
-        val extracted = key.toByteArray()
+        val extracted = key.toBytes()
         assertEquals(bytes.toList(), extracted.toList())
         // mutating the extracted copy must not affect the key
         extracted[0] = (extracted[0] + 1).toByte()
-        assertEquals(bytes.toList(), key.toByteArray().toList())
+        assertEquals(bytes.toList(), key.toBytes().toList())
     }
 
     @Test
-    fun `fromBytes and toByteArray roundtrip`() {
+    fun `fromBytes and toBytes roundtrip`() {
         val hex = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
         val key = HandshakeKey.fromHex(hex)
-        assertEquals(hex, key.toByteArray().toHexString())
+        assertEquals(hex, key.toBytes().toHexString())
     }
 }

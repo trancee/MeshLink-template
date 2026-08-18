@@ -1,6 +1,7 @@
 package ch.trancee.meshlink
 
 import ch.trancee.meshlink.diagnostics.DiagnosticEvent
+import ch.trancee.meshlink.model.ConfigurationException
 import ch.trancee.meshlink.model.KnownPeer
 import ch.trancee.meshlink.model.MeshLinkException
 import ch.trancee.meshlink.model.MeshLinkState
@@ -9,10 +10,12 @@ import ch.trancee.meshlink.model.MessageHandle
 import ch.trancee.meshlink.model.PeerIdentity
 import ch.trancee.meshlink.model.PowerMode
 import ch.trancee.meshlink.model.PowerModeSettings
+import ch.trancee.meshlink.model.RegulatoryRegion
 import ch.trancee.meshlink.model.Transfer
 import ch.trancee.meshlink.model.TransferHandle
 import ch.trancee.meshlink.model.TransferOptions
 import ch.trancee.meshlink.model.TransferResult
+import ch.trancee.meshlink.util.requireSetting
 import ch.trancee.meshlink.model.TransferSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -56,11 +59,13 @@ private constructor(
          * @throws ConfigurationException if settings validation fails
          */
         public fun create(settings: MeshLinkSettings, environment: MeshLinkEnvironment): MeshLink {
-            // Validate settings
-            require(settings.appId.isNotBlank()) { "appId must not be blank" }
-            require(settings.appId.encodeToByteArray().size <= MAX_APP_ID_BYTES) {
-                "appId exceeds $MAX_APP_ID_BYTES bytes"
-            }
+            // Validate critical settings — also covers direct MeshLinkSettings construction
+            // bypassing the DSL builder. Full parameter validation runs in MeshLinkSettingsBuilder.build().
+            requireSetting(settings.appId.isNotBlank(), "appId must not be blank")
+            requireSetting(
+                settings.appId.encodeToByteArray().size <= MAX_APP_ID_BYTES,
+                "appId exceeds $MAX_APP_ID_BYTES bytes",
+            )
 
             return MeshLink(settings, environment)
         }
@@ -151,7 +156,6 @@ private constructor(
      * @throws LifecycleException if not in RUNNING or PAUSED state
      * @throws ConfigurationException if power mode not available
      */
-    @Suppress("UNUSED_PARAMETER")
     public suspend fun setPowerMode(powerMode: PowerMode) {
         TODO("Not implemented — scaffold for BCV baseline")
     }
@@ -165,7 +169,6 @@ private constructor(
      * @return handle for observing status and awaiting outcome
      * @throws TransferException if transfer cannot be initiated
      */
-    @Suppress("UNUSED_PARAMETER")
     public suspend fun sendMessage(
         destination: PeerIdentity,
         payload: ByteArray,
@@ -183,7 +186,6 @@ private constructor(
      * @return handle for observing status and awaiting outcome
      * @throws TransferException if transfer cannot be initiated
      */
-    @Suppress("UNUSED_PARAMETER")
     public suspend fun sendPayload(
         destination: PeerIdentity,
         source: TransferSource,
@@ -202,7 +204,6 @@ private constructor(
      * @param peer peer identity to revoke
      * @throws TrustException if peer not found
      */
-    @Suppress("UNUSED_PARAMETER")
     public suspend fun revokeTrust(peer: PeerIdentity) {
         TODO("Not implemented — scaffold for BCV baseline")
     }
@@ -216,7 +217,6 @@ private constructor(
      * @param peer peer identity to reset
      * @throws TrustException if peer not found
      */
-    @Suppress("UNUSED_PARAMETER")
     public suspend fun resetTrust(peer: PeerIdentity) {
         TODO("Not implemented — scaffold for BCV baseline")
     }

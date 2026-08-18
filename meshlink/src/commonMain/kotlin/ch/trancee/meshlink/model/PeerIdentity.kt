@@ -39,7 +39,7 @@ public value class PeerIdentity(private val parts: Pair<ULong, ULong>) {
         }
     }
 
-    public fun toByteArray(): ByteArray {
+    public fun toBytes(): ByteArray {
         val result = ByteArray(ID_BYTE_LENGTH)
         parts.first.toBytesBE().copyInto(result, 0)
         parts.second.toBytesBE().copyInto(result, ID_HALF_BYTE_LENGTH)

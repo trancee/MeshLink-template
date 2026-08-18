@@ -3,77 +3,74 @@ package ch.trancee.meshlink.model
 /**
  * Base exception for all MeshLink immediate command failures.
  *
- * All public API failures throw typed subtypes of this sealed interface. Platform exceptions are
+ * All public API failures throw typed subtypes of this sealed class. Platform exceptions are
  * wrapped at the boundary and never leak to consumers. Long-running transfer failures use terminal
  * transfer outcomes, not exceptions.
  *
  * SPEC-ANCHOR: error-hierarchy
  */
-public sealed interface MeshLinkException {
-    /** Stable error code for programmatic handling. */
-    public val errorCode: ErrorCode
-
-    /** Human-readable message (redacted, no sensitive data). */
-    public val message: String
-}
+public sealed class MeshLinkException(
+    public open val errorCode: ErrorCode,
+    override val message: String,
+) : RuntimeException(message)
 
 /** Invalid configuration parameter or state. */
 public data class ConfigurationException(
-    public override val errorCode: ErrorCode,
-    public override val message: String,
-) : MeshLinkException
+    override val errorCode: ErrorCode,
+    override val message: String,
+) : MeshLinkException(errorCode, message)
 
 /** Invalid lifecycle state transition attempted. */
 public data class LifecycleException(
-    public override val errorCode: ErrorCode,
-    public override val message: String,
-) : MeshLinkException
+    override val errorCode: ErrorCode,
+    override val message: String,
+) : MeshLinkException(errorCode, message)
 
 /** Required permission not granted. */
 public data class PermissionException(
-    public override val errorCode: ErrorCode,
-    public override val message: String,
-) : MeshLinkException
+    override val errorCode: ErrorCode,
+    override val message: String,
+) : MeshLinkException(errorCode, message)
 
 /** Bluetooth radio or GATT/L2CAP operation failed. */
-public data class BluetoothException(
-    public override val errorCode: ErrorCode,
-    public override val message: String,
-) : MeshLinkException
+public open class BluetoothException(
+    override val errorCode: ErrorCode,
+    override val message: String,
+) : MeshLinkException(errorCode, message)
 
 /** Secure storage unavailable or corrupted. */
 public data class StorageException(
-    public override val errorCode: ErrorCode,
-    public override val message: String,
-) : MeshLinkException
+    override val errorCode: ErrorCode,
+    override val message: String,
+) : MeshLinkException(errorCode, message)
 
 /** Cryptographic operation failed (sign, verify, encrypt, decrypt, key agreement). */
 public data class CryptoException(
-    public override val errorCode: ErrorCode,
-    public override val message: String,
-) : MeshLinkException
+    override val errorCode: ErrorCode,
+    override val message: String,
+) : MeshLinkException(errorCode, message)
 
 /** Trust verification failed (pin mismatch, revocation, key unknown). */
 public data class TrustException(
-    public override val errorCode: ErrorCode,
-    public override val message: String,
-) : MeshLinkException
+    override val errorCode: ErrorCode,
+    override val message: String,
+) : MeshLinkException(errorCode, message)
 
 /** Routing operation failed (no route, loop detected, advertisement failed). */
 public data class RoutingException(
-    public override val errorCode: ErrorCode,
-    public override val message: String,
-) : MeshLinkException
+    override val errorCode: ErrorCode,
+    override val message: String,
+) : MeshLinkException(errorCode, message)
 
 /** Transfer operation failed (timeout, cancelled, corrupted, session not found). */
 public data class TransferException(
-    public override val errorCode: ErrorCode,
-    public override val message: String,
-) : MeshLinkException
+    override val errorCode: ErrorCode,
+    override val message: String,
+) : MeshLinkException(errorCode, message)
 
 /** BLE radio lease already held by another MeshLink instance. */
 public class RadioInUseException(
-    public override val errorCode: ErrorCode = ErrorCode.RADIO_IN_USE,
-    public override val message: String =
+    override val errorCode: ErrorCode = ErrorCode.RADIO_IN_USE,
+    override val message: String =
         "BLE radio lease already held by another MeshLink instance",
-) : MeshLinkException
+) : BluetoothException(errorCode, message)

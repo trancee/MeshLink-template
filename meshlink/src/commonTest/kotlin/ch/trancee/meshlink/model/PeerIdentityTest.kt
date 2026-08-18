@@ -20,14 +20,14 @@ class PeerIdentityTest {
     @Test
     fun `generate creates valid identity`() {
         val id = PeerIdentity.generate()
-        assertEquals(16, id.toByteArray().size)
+        assertEquals(16, id.toBytes().size)
     }
 
     @Test
     fun `fromBytes roundtrips`() {
         val bytes = ByteArray(16) { i -> i.toByte() }
         val id = PeerIdentity.fromBytes(bytes)
-        assertEquals(bytes.toList(), id.toByteArray().toList())
+        assertEquals(bytes.toList(), id.toBytes().toList())
         assertEquals(bytes.toHexString(), id.toString())
     }
 
@@ -74,7 +74,7 @@ class PeerIdentityTest {
         val hex = "0102030405060708090a0b0c0d0e0f10"
         val id = PeerIdentity.fromHex(hex)
         assertEquals(hex, id.toString())
-        assertEquals(id, PeerIdentity.fromBytes(id.toByteArray()))
+        assertEquals(id, PeerIdentity.fromBytes(id.toBytes()))
     }
 
     @Test

@@ -17,7 +17,7 @@ data_models:
       - name: toString
         return_type: String
         description: "32-char hex representation (16 chars per ULong, zero-padded)"
-      - name: toByteArray
+      - name: toBytes
         return_type: ByteArray
         description: "16-byte big-endian representation"
     constants:
@@ -35,7 +35,7 @@ data_models:
         return_type: PeerIdentity
         description: "Creates a PeerIdentity from a 16-byte ByteArray"
     functions:
-      - name: toByteArray
+      - name: toBytes
         return_type: ByteArray
         description: "Converts this identity to a 16-byte ByteArray"
 
@@ -65,19 +65,19 @@ data_models:
           - name: value
             type: UInt
         return_type: SeqNo
-        description: "Creates a SeqNo from a raw UInt value (e.g., read from the wire). Deserialization counterpart to toUInt."
-      - name: toUInt
+        description: "Creates a SeqNo from a raw UInt value (e.g., read from the wire). Deserialization counterpart to rawValue."
+      - name: rawValue
         return_type: UInt
         description: "Raw 32-bit unsigned value, for wire serialization"
-      - name: fromByteArray
+      - name: fromBytes
         params:
           - name: bytes
             type: ByteArray
         return_type: SeqNo
-        description: "Deserializes from a 4-byte big-endian byte array. Throws IllegalArgumentException if bytes.length != 4. Deserialization counterpart to toByteArray."
-      - name: toByteArray
+        description: "Deserializes from a 4-byte big-endian byte array. Throws IllegalArgumentException if bytes.length != 4. Deserialization counterpart to toBytes."
+      - name: toBytes
         return_type: ByteArray
-        description: "Serializes to a 4-byte big-endian byte array for wire transmission. Deserialization counterpart to fromByteArray."
+        description: "Serializes to a 4-byte big-endian byte array for wire transmission. Deserialization counterpart to fromBytes."
       - name: isZero
         return_type: Boolean
         description: "True if this seqno equals ZERO"
@@ -193,7 +193,7 @@ data_models:
             type: Scoreboard
         return_type: Scoreboard
         description: "Symmetric difference of ACK bitfields (chunks received by exactly one peer). Both scoreboards must have matching totalChunks and byteSize."
-      - name: toByteArray
+      - name: toBytes
         return_type: ByteArray
         description: "Returns a defensive copy of the raw bitfield for wire transmission."
 
@@ -329,9 +329,28 @@ data_models:
         visibility: private
         description: "Raw 32-bit origin-scoped transfer identifier"
     methods:
+      - name: rawValue
+        return_type: UInt
+        description: "Raw 32-bit unsigned value, for wire serialization"
+      - name: toBytes
+        return_type: ByteArray
+        description: "4-byte big-endian wire representation"
       - name: toString
         return_type: String
         description: "Eight-character hexadecimal representation"
+      - name: inc
+        return_type: TransferId
+        description: "Operator form; increments with wrapping at 2^32"
+      - name: fromBytes
+        params:
+          - name: bytes
+            type: ByteArray
+        return_type: TransferId
+        description: "4-byte big-endian deserialization counterpart to toByteArray"
+    constants:
+      - name: ZERO
+        value: "TransferId(0u)"
+        description: "Invalid zero transfer ID (reserved)"
     allocation:
       strategy: monotonically_increasing_reserved_ranges
       first_value: 1
@@ -411,7 +430,7 @@ data_models:
       - name: toString
         return_type: String
         description: "Hex-encoded representation"
-      - name: toByteArray
+      - name: toBytes
         return_type: ByteArray
         description: "Returns the raw 32-byte key data"
     companion_functions:
@@ -441,7 +460,7 @@ data_models:
       - name: toString
         return_type: String
         description: "Hex-encoded representation"
-      - name: toByteArray
+      - name: toBytes
         return_type: ByteArray
         description: "Returns the raw 32-byte key data"
     companion_functions:
@@ -471,7 +490,7 @@ data_models:
       - name: toString
         return_type: String
         description: "32-character hex representation (16 chars per ULong, zero-padded)"
-      - name: toByteArray
+      - name: toBytes
         return_type: ByteArray
         description: "16-byte big-endian representation for canonical wire field encoding"
     companion_functions:
@@ -488,6 +507,6 @@ data_models:
         return_type: AppHash
         description: "Creates an AppHash from a 16-byte ByteArray"
     functions:
-      - name: toByteArray
+      - name: toBytes
         return_type: ByteArray
         description: "Returns the 16-byte big-endian representation"

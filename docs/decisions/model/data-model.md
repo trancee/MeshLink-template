@@ -143,7 +143,7 @@ inline fun forEachMissing(action: (index: Int) -> Unit)
 
 // Wire serialization
 companion fun fromBytes(totalChunks: UInt, bytes: ByteArray): Scoreboard
-fun toByteArray(): ByteArray
+fun toBytes(): ByteArray
 fun get byteSize: Int                            // Bitfield byte count for framing
 ```
 
@@ -223,8 +223,8 @@ Machine-readable reference: [specs/catalogs/diagnostic-events.yaml](../../../spe
 Events are machine-observable through `MeshLink.diagnostics` and may also be mirrored to platform logging when `DiagnosticsSettings.emitLog` is enabled.
 
 **Rationale:** Sealed interface hierarchy ensures exhaustive handling. Event codes use
-explicit stable ranges aligned with exception error codes (0x01xx config, 0x04xx
-crypto, 0x05xx routing, 0x06xx transfer, 0x09xx transport). This allows host
+explicit stable ranges aligned with exception error codes (0x81xx config, 0x84xx
+crypto, 0x85xx routing, 0x86xx transfer, 0x89xx transport). This allows host
 apps to filter by layer. Redaction rules prevent secrets/payloads in events.
 
 ## Testing Matrix

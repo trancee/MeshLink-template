@@ -17,7 +17,7 @@ public value class TransferId(private val value: UInt) {
     public fun rawValue(): UInt = value
 
     /** Returns the 4-byte big-endian wire representation of this transfer ID. */
-    public fun toByteArray(): ByteArray = value.toBytesBE()
+    public fun toBytes(): ByteArray = value.toBytesBE()
 
     /**
      * Increments this transfer ID by 1, wrapping at 2^32. Operator form for idiomatic
@@ -32,7 +32,7 @@ public value class TransferId(private val value: UInt) {
         /**
          * Creates a [TransferId] from a 4-byte big-endian representation, for wire deserialization.
          *
-         * This is the deserialization counterpart to [toByteArray], used when decoding payload
+         * This is the deserialization counterpart to [toBytes], used when decoding payload
          * frames from a byte stream.
          *
          * @param bytes exactly 4 bytes; throws [IllegalArgumentException] if [bytes.size] is not 4.

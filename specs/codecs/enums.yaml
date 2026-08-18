@@ -120,13 +120,14 @@ enums:
       - name: ACCEPTED
         code: "0x00"
       - name: REJECTED
+        code: "0x01"
 
   - name: TransferResultCode
     package: ch.trancee.meshlink.model
-    visibility: public
+    visibility: internal
     storage: UByte
     unknown: reject
-    description: "Wire discriminant for TransferResult sealed subtypes; COMPLETED/CANCELLED/EXPIRED carry only the code, UNRECOVERABLE_FAILURE/Trust_FAILURE carry a trailing payload"
+    description: "Wire discriminant for TransferResult sealed subtypes; COMPLETED/CANCELLED/EXPIRED carry only the code, UNRECOVERABLE_FAILURE/TRUST_FAILURE carry a trailing payload"
     values:
       - name: COMPLETED
         code: "0x00"

@@ -94,7 +94,10 @@ kotlin {
     }
 }
 
-detekt { buildUponDefaultConfig = true }
+detekt {
+    buildUponDefaultConfig = true
+    config = files("detekt.yml")
+}
 
 tasks.withType<Detekt>().configureEach {
     setSource(files("src/commonMain/kotlin", "src/commonTest/kotlin"))

@@ -1,6 +1,6 @@
 package ch.trancee.meshlink
 
-import ch.trancee.meshlink.diagnostics.DiagnosticCodes
+import ch.trancee.meshlink.diagnostics.DiagnosticCode
 import ch.trancee.meshlink.diagnostics.DiagnosticEvent
 import ch.trancee.meshlink.diagnostics.HandshakeId
 import ch.trancee.meshlink.diagnostics.NoiseSessionId
@@ -50,16 +50,16 @@ class DiagnosticEventTest {
         // Arrange
         val codes =
             listOf(
-                DiagnosticCodes.ROUTE_DECRYPTION_FAILED,
-                DiagnosticCodes.TRANSPORT_FALLBACK,
-                DiagnosticCodes.TRANSFER_BEARER,
-                DiagnosticCodes.POWER_MODE_SETTINGS,
-                DiagnosticCodes.HANDSHAKE,
-                DiagnosticCodes.KEY_ROTATION,
-                DiagnosticCodes.NOISE_SESSION,
-                DiagnosticCodes.ROUTE_DIGEST_MISMATCH,
-                DiagnosticCodes.TRANSFER_STATE,
-                DiagnosticCodes.TRANSFER_FAILURE,
+                DiagnosticCode.ROUTE_DECRYPTION_FAILED,
+                DiagnosticCode.TRANSPORT_FALLBACK,
+                DiagnosticCode.TRANSFER_BEARER,
+                DiagnosticCode.POWER_MODE_SETTINGS,
+                DiagnosticCode.HANDSHAKE,
+                DiagnosticCode.KEY_ROTATION,
+                DiagnosticCode.NOISE_SESSION,
+                DiagnosticCode.ROUTE_DIGEST_MISMATCH,
+                DiagnosticCode.TRANSFER_STATE,
+                DiagnosticCode.TRANSFER_FAILURE,
             )
 
         // Act
@@ -74,16 +74,16 @@ class DiagnosticEventTest {
         // Arrange — all DiagnosticCode constants
         val diagnosticCodes =
             listOf(
-                DiagnosticCodes.ROUTE_DECRYPTION_FAILED,
-                DiagnosticCodes.TRANSPORT_FALLBACK,
-                DiagnosticCodes.TRANSFER_BEARER,
-                DiagnosticCodes.POWER_MODE_SETTINGS,
-                DiagnosticCodes.HANDSHAKE,
-                DiagnosticCodes.KEY_ROTATION,
-                DiagnosticCodes.NOISE_SESSION,
-                DiagnosticCodes.ROUTE_DIGEST_MISMATCH,
-                DiagnosticCodes.TRANSFER_STATE,
-                DiagnosticCodes.TRANSFER_FAILURE,
+                DiagnosticCode.ROUTE_DECRYPTION_FAILED,
+                DiagnosticCode.TRANSPORT_FALLBACK,
+                DiagnosticCode.TRANSFER_BEARER,
+                DiagnosticCode.POWER_MODE_SETTINGS,
+                DiagnosticCode.HANDSHAKE,
+                DiagnosticCode.KEY_ROTATION,
+                DiagnosticCode.NOISE_SESSION,
+                DiagnosticCode.ROUTE_DIGEST_MISMATCH,
+                DiagnosticCode.TRANSFER_STATE,
+                DiagnosticCode.TRANSFER_FAILURE,
             )
         // ErrorCode UShort values are reserved for exceptions — diagnostics must not overlap
         val errorCodeValues = ErrorCode.entries.map { it.code() }.toSet()

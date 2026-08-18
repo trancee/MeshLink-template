@@ -40,7 +40,7 @@ In Kotlin, `AppHash` is a `@JvmInline value class` backed by `Pair<ULong, ULong>
   object with header overhead; `Pair<ULong, ULong>` avoids that.
 - **Android**: Same as JVM via `@JvmInline`.
 
-`AppHash.toByteArray()` yields a 16-byte big-endian representation for canonical
+`AppHash.toBytes()` yields a 16-byte big-endian representation for canonical
 wire field encoding. Two MeshLink instances with different `appId`
 values produce different `appHash` values and **never** interoperate, even if they
 share the same `meshHash`.

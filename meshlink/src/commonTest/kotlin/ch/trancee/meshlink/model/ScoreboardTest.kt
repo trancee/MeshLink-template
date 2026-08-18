@@ -61,12 +61,12 @@ class ScoreboardTest {
     }
 
     @Test
-    fun `Scoreboard toByteArray returns copy`() {
+    fun `Scoreboard toBytes returns copy`() {
         // Arrange
         val sb = Scoreboard(4u)
 
         // Act
-        val bytes = sb.toByteArray()
+        val bytes = sb.toBytes()
 
         // Assert
         assertEquals(1, bytes.size)
@@ -205,7 +205,7 @@ class ScoreboardTest {
         // Assert — only bits 0-4 are meaningful; received count must be 5, not 8
         assertEquals(5, sb.receivedCount())
         assertTrue(sb.isComplete())
-        assertEquals(0b00011111.toByte(), sb.toByteArray()[0])
+        assertEquals(0b00011111.toByte(), sb.toBytes()[0])
     }
 
     @Test
@@ -232,7 +232,7 @@ class ScoreboardTest {
 
         // Assert
         assertEquals(8, sb.receivedCount())
-        assertEquals(0b11111111.toByte(), sb.toByteArray()[0])
+        assertEquals(0b11111111.toByte(), sb.toBytes()[0])
     }
 
     // ---- Compatibility check tests ----

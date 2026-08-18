@@ -247,6 +247,18 @@ implementation_status:
     - "MeshLinkState"
     - "DiagnosticEvent sealed hierarchy"
     - "PowerMode"
+    - "TransferId"
+    - "MessageId"
+    - "MeshLinkVersion"
+    - "AppHash"
+    - "ErrorCode"
+    - "TransferKind"
+    - "TrustRecord"
+    - "MeshHash"
+    - "RoutingPolicy"
+    - "KnownPeer"
+    - "MeshLinkEnvironment"
+    - "DiagnosticCode constants (companion object)"
     - "HandshakeKey"
   not_implemented:
     - "MeshLink public API and lifecycle"
@@ -269,8 +281,7 @@ implementation_status:
     - "MeshLinkSettings DSL integration"
     - "Virtual mesh harness"
     - "Custom MeshLink Wire Codec (frames, enums, models, bounded reader/writer)"
-    - "TransferId and source-owned persisted range allocator"
-    - "AppHash type and derivation (documented in ADR identity-binding-and-fail-closed.md; Pair<ULong,ULong> representation)"
+    - "Source-owned persisted range allocator (TransferId allocation strategy) - not yet wired into MeshLink lifecycle"
 
 test_files_by_layer:
   data_model:

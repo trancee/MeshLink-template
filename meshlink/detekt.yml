@@ -1,0 +1,27 @@
+complexity:
+  TooManyFunctions:
+    active: true
+    allowedFunctionsPerClass: 40
+    allowedFunctionsPerFile: 50
+
+style:
+  MagicNumber:
+    active: true
+    ignoreEnums: true
+    ignoreNumbers:
+      - '-1'
+      - '0'
+      - '1'
+      - '2'
+      - '255'
+      - '256'
+      - '1024'
+      - '4096'
+  ThrowsCount:
+    active: true
+    max: 15
+  MaxLineLength:
+    active: true
+    maxLineLength: 140
+  UnusedParameter:
+    active: false

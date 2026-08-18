@@ -7,15 +7,15 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 
 class SeqNoWireTest {
-    // ---- toByteArray / fromBytes ----
+    // ---- toBytes / fromBytes ----
 
     @Test
-    fun `toByteArray produces 4-byte big-endian`() {
+    fun `toBytes produces 4-byte big-endian`() {
         // Arrange
         val seqNo = SeqNo(0x12345678u)
 
         // Act
-        val bytes = seqNo.toByteArray()
+        val bytes = seqNo.toBytes()
 
         // Assert
         assertEquals(4, bytes.size)
@@ -26,9 +26,9 @@ class SeqNoWireTest {
     }
 
     @Test
-    fun `toByteArray for ZERO produces all zeros`() {
+    fun `toBytes for ZERO produces all zeros`() {
         // Act
-        val bytes = SeqNo.ZERO.toByteArray()
+        val bytes = SeqNo.ZERO.toBytes()
 
         // Assert
         assertEquals(4, bytes.size)
@@ -39,9 +39,9 @@ class SeqNoWireTest {
     }
 
     @Test
-    fun `toByteArray for MAX_VALUE produces 0xFFFFFFFF`() {
+    fun `toBytes for MAX_VALUE produces 0xFFFFFFFF`() {
         // Act
-        val bytes = SeqNo.MAX_VALUE.toByteArray()
+        val bytes = SeqNo.MAX_VALUE.toBytes()
 
         // Assert
         assertEquals(4, bytes.size)
@@ -52,12 +52,12 @@ class SeqNoWireTest {
     }
 
     @Test
-    fun `fromBytes roundtrips through toByteArray`() {
+    fun `fromBytes roundtrips through toBytes`() {
         // Arrange
         val seqNo = SeqNo(0xDEADBEEFu)
 
         // Act
-        val bytes = seqNo.toByteArray()
+        val bytes = seqNo.toBytes()
         val restored = SeqNo.fromBytes(bytes)
 
         // Assert
@@ -83,12 +83,12 @@ class SeqNoWireTest {
     }
 
     @Test
-    fun `toByteArray for seqNo 1 produces correct bytes`() {
+    fun `toBytes for seqNo 1 produces correct bytes`() {
         // Arrange
         val seqNo = SeqNo(1u)
 
         // Act
-        val bytes = seqNo.toByteArray()
+        val bytes = seqNo.toBytes()
 
         // Assert
         assertEquals(4, bytes.size)
