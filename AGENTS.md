@@ -108,3 +108,17 @@ performance, and maintainable design all live in `CONSTITUTION.md`:
 [Governance](CONSTITUTION.md#governance).
 
 Day-to-day conventions below constitutional level live in `docs/`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues for this repo live on GitHub. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical triage labels map 1:1 to their role names. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` at the repo root and ADRs under `docs/adr/`. See `docs/agents/domain.md`.
