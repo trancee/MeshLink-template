@@ -1,5 +1,7 @@
 # MeshLink Template
 
+[![AI Ready](https://img.shields.io/badge/AI--Ready-yes-brightgreen?style=flat)](https://github.com/johnpapa/ai-ready)
+
 A Kotlin Multiplatform template for building MeshLink, an encrypted, serverless, fully offline peer-to-peer messaging SDK between mobile devices over short-range radio mesh.
 
 ## Vision
