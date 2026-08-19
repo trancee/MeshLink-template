@@ -50,15 +50,15 @@ class DiagnosticEventTest {
         // Arrange
         val codes =
             listOf(
-                DiagnosticCode.ROUTE_DECRYPTION_FAILED,
+                DiagnosticCode.ROUTE_DECRYPT_FAILURE,
                 DiagnosticCode.TRANSPORT_FALLBACK,
                 DiagnosticCode.TRANSFER_BEARER,
-                DiagnosticCode.POWER_MODE_SETTINGS,
+                DiagnosticCode.POWER_MODE_EFFECTIVE,
                 DiagnosticCode.HANDSHAKE,
                 DiagnosticCode.KEY_ROTATION,
                 DiagnosticCode.NOISE_SESSION,
                 DiagnosticCode.ROUTE_DIGEST_MISMATCH,
-                DiagnosticCode.TRANSFER_STATE,
+                DiagnosticCode.TRANSFER_SESSION_TRANSITION,
                 DiagnosticCode.TRANSFER_FAILURE,
             )
 
@@ -74,15 +74,15 @@ class DiagnosticEventTest {
         // Arrange — all DiagnosticCode constants
         val diagnosticCodes =
             listOf(
-                DiagnosticCode.ROUTE_DECRYPTION_FAILED,
+                DiagnosticCode.ROUTE_DECRYPT_FAILURE,
                 DiagnosticCode.TRANSPORT_FALLBACK,
                 DiagnosticCode.TRANSFER_BEARER,
-                DiagnosticCode.POWER_MODE_SETTINGS,
+                DiagnosticCode.POWER_MODE_EFFECTIVE,
                 DiagnosticCode.HANDSHAKE,
                 DiagnosticCode.KEY_ROTATION,
                 DiagnosticCode.NOISE_SESSION,
                 DiagnosticCode.ROUTE_DIGEST_MISMATCH,
-                DiagnosticCode.TRANSFER_STATE,
+                DiagnosticCode.TRANSFER_SESSION_TRANSITION,
                 DiagnosticCode.TRANSFER_FAILURE,
             )
         // ErrorCode UShort values are reserved for exceptions — diagnostics must not overlap

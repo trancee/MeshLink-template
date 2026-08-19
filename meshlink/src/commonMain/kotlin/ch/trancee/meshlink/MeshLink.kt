@@ -22,6 +22,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
+import kotlin.native.ObjCName
+import co.touchlab.skie.configuration.annotations.SuppressSkieWarning
+
 private const val MAX_APP_ID_BYTES = 255
 
 /**
@@ -41,6 +44,8 @@ private const val MAX_APP_ID_BYTES = 255
  *
  * SPEC-ANCHOR: meshlink-public-api
  */
+@ObjCName(name = "MeshLink")
+@SuppressSkieWarning.NameCollision(suppress = true)
 public class MeshLink
 private constructor(
     private val settings: MeshLinkSettings,

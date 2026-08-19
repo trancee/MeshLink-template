@@ -181,7 +181,7 @@ differences hidden behind the environment factories and internal
         fun generate(): PeerIdentity
         fun fromBytes(bytes: ByteArray): PeerIdentity  // requires 16 bytes
     }
-    fun toByteArray(): ByteArray
+    fun toBytes(): ByteArray
     override fun toString(): String  // 32-char hex
 }
 ```
@@ -206,7 +206,7 @@ differences hidden behind the environment factories and internal
         fun fromBytes(bytes: ByteArray): SeqNo  // 4-byte big-endian deserialization
     }
     fun rawValue(): UInt = value
-    fun toByteArray(): ByteArray                    // 4-byte big-endian serialization
+    fun toBytes(): ByteArray                    // 4-byte big-endian serialization
     val isZero: Boolean
     fun isNewerThan(other: SeqNo): Boolean = (value - other.value).toInt() > 0
     fun isNewerThanOrEqualTo(other: SeqNo): Boolean = (value - other.value).toInt() >= 0
@@ -220,7 +220,7 @@ differences hidden behind the environment factories and internal
 - Incremented **only on cold start** (`MeshLink.start()`)
 - Self-reported by destination in `RouteAdvertisement` frames
 - `rawValue()`/`fromUInt()` for logical wire serialization (value extraction)
-- `toByteArray()`/`fromByteArray()` for 4-byte big-endian byte-level wire serialization
+- `toBytes()`/`fromBytes()` for 4-byte big-endian byte-level wire serialization
 - `isNewerThanOrEqualTo` used by Babel feasibility condition (RFC 8966 §3.7)
 - `distanceFrom` for route staleness diagnostics and gap analysis
 - **SPEC-ANCHOR**: `seqno-model`
@@ -238,7 +238,7 @@ class Scoreboard(totalChunks: UInt) {
     fun missingChunks(): List<Int>
     fun receivedCount(): Int
     fun missingCount(): Int
-    fun toByteArray(): ByteArray
+    fun toBytes(): ByteArray
 }
 ```
 
@@ -338,7 +338,7 @@ The origin allocates values from a durably reserved, monotonically increasing
 @JvmInline
 public value class TransferId(private val value: UInt) {
     public fun rawValue(): UInt
-    public fun toByteArray(): ByteArray  // 4-byte big-endian
+    public fun toBytes(): ByteArray  // 4-byte big-endian
     public operator fun inc(): TransferId  // wrapping increment
     override fun toString(): String  // eight-character hex representation
 
@@ -382,7 +382,7 @@ RSSI normalization and the quadratic link-cost conversion are specified in §8.
         fun fromHex(hex: String): IdentityKey   // 64 hex chars
         fun fromBytes(bytes: ByteArray): IdentityKey
     }
-    fun toByteArray(): ByteArray
+    fun toBytes(): ByteArray
     override fun toString(): String  // Hex
 }
 

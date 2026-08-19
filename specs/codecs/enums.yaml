@@ -53,6 +53,8 @@ enums:
     package: ch.trancee.meshlink.model
     visibility: public
     description: "Explicit UByte wire codes grouped by protocol area; encoding never uses enum ordinal."
+    storage: UByte
+    unknown: reject
     values:
       - name: MESH_ENVELOPE
         code: "0x00"

@@ -9,16 +9,16 @@
 ### Android
 
 - `meshlink` module produces AAR with `android` and `jvm` targets
-- `androidMain` contains BLE glue: `BluetoothAdapter`, `BluetoothLeScanner`, `BluetoothGatt`, `BluetoothServerSocket`
-- Fallback crypto for API 26-32 in `androidMain` (pure-Kotlin X25519, Ed25519, ChaCha20-Poly1305, HKDF, HMAC)
+- `androidMain` — **Planned** (not yet implemented): will contain BLE glue (`BluetoothAdapter`, `BluetoothLeScanner`, `BluetoothGatt`, `BluetoothServerSocket`) via expect/actual
+- Fallback crypto for API 26-32 in `androidMain` (pure-Kotlin X25519, Ed25519, ChaCha20-Poly1305, HKDF, HMAC) — also planned, not yet implemented
 - `androidHostTest` for crypto fallback validation on host JVM
 - Gradle: `com.android.library` + `org.jetbrains.kotlin.multiplatform` plugins
 
 ### iOS
 
 - `meshlink` module produces XCFramework with `iosArm64` (device) target
-- `iosMain` contains BLE glue: `CBCentralManager`, `CBPeripheralManager`, `CBPeripheral`, `CBL2CAPChannel`
-- Crypto uses CryptoKit / Security.framework; no fallback needed (iOS 14+ has all primitives)
+- `iosMain` — **Planned** (not yet implemented): will contain BLE glue (`CBCentralManager`, `CBPeripheralManager`, `CBPeripheral`, `CBL2CAPChannel`) via expect/actual
+- Crypto uses CryptoKit / Security.framework; no fallback needed (iOS 14+ has all primitives) — planned, not yet implemented
 - Swift interop via SKIE plugin: sealed classes → Swift enums, suspend → async, Flow → AsyncSequence
 - Gradle: `org.jetbrains.kotlin.multiplatform` + `co.touchlab.skie` plugins
 

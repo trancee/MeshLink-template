@@ -34,6 +34,12 @@ data_models:
             type: ByteArray
         return_type: PeerIdentity
         description: "Creates a PeerIdentity from a 16-byte ByteArray"
+      - name: fromHex
+        params:
+          - name: hex
+            type: String
+        return_type: PeerIdentity
+        description: "Creates a PeerIdentity from a 32-character hex string"
     functions:
       - name: toBytes
         return_type: ByteArray
