@@ -26,6 +26,7 @@ class ErrorCodeTest {
         // Crypto (0x04xx)
         assertEquals(0x0401u, ErrorCode.CRYPTO_OPERATION_FAILED.code())
         assertEquals(0x0402u, ErrorCode.SIGNATURE_VERIFICATION_FAILED.code())
+        assertEquals(0x0403u, ErrorCode.REPLAY_DETECTED.code())
 
         // Routing (0x05xx)
         assertEquals(0x0501u, ErrorCode.NO_ROUTE.code())

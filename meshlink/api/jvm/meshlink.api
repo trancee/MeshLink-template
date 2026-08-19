@@ -1268,13 +1268,13 @@ public final class ch/trancee/meshlink/model/TrustRecord {
 	public final fun component2-e3suiAo ()[B
 	public final fun component3-9rkoI00 ()[B
 	public final fun component4 ()Lch/trancee/meshlink/model/PeerTrust;
-	public final fun component5 ()I
+	public final fun component5-pVg5ArA ()I
 	public final fun component6 ()Lkotlin/time/Instant;
 	public final fun component7 ()Lkotlin/time/Instant;
-	public final fun copy-FFdf1P8 (Lkotlin/Pair;[B[BLch/trancee/meshlink/model/PeerTrust;ILkotlin/time/Instant;Lkotlin/time/Instant;)Lch/trancee/meshlink/model/TrustRecord;
-	public static synthetic fun copy-FFdf1P8$default (Lch/trancee/meshlink/model/TrustRecord;Lkotlin/Pair;[B[BLch/trancee/meshlink/model/PeerTrust;ILkotlin/time/Instant;Lkotlin/time/Instant;ILjava/lang/Object;)Lch/trancee/meshlink/model/TrustRecord;
+	public final fun copy-KaLlVQ8 (Lkotlin/Pair;[B[BLch/trancee/meshlink/model/PeerTrust;ILkotlin/time/Instant;Lkotlin/time/Instant;)Lch/trancee/meshlink/model/TrustRecord;
+	public static synthetic fun copy-KaLlVQ8$default (Lch/trancee/meshlink/model/TrustRecord;Lkotlin/Pair;[B[BLch/trancee/meshlink/model/PeerTrust;ILkotlin/time/Instant;Lkotlin/time/Instant;ILjava/lang/Object;)Lch/trancee/meshlink/model/TrustRecord;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getGeneration ()I
+	public final fun getGeneration-pVg5ArA ()I
 	public final fun getHandshakeKey-9rkoI00 ()[B
 	public final fun getIdentity-jkpD0pM ()Lkotlin/Pair;
 	public final fun getIdentityKey-e3suiAo ()[B

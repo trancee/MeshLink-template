@@ -8,7 +8,7 @@ This directory contains **thin navigation facades** for each specification layer
 |-------|--------|-----------------|--------|----------------------|
 | Vision & Product Pillars | [vision.md](vision.md) | §1 | — | — |
 | Architecture Overview | [architecture.md](architecture.md) | §2 | [Module Structure](../explanation/module-structure.md) | — |
-| Core Data Models | — | §3 | [Data Model](../decisions/model/data-model.md) | [specs/codecs/models.yaml](../../specs/codecs/models.yaml) |
+| Core Data Models | [data-models.md](data-models.md) | §3 | [Data Model](../decisions/model/data-model.md) | [specs/codecs/models.yaml](../../specs/codecs/models.yaml) |
 | Discovery & Identity | [discovery.md](discovery.md) | §4 | [Connectable Advertisement](../decisions/discovery/connectable-advertisement.md), [Mesh Hash Derivation](../decisions/discovery/mesh-hash-derivation.md), [Peer Hints and Identity Races](../decisions/discovery/peer-hint-and-identity-races.md) | [specs/codecs/frames.yaml#discovery_advertisement](../../specs/codecs/frames.yaml) |
 | Trust Model (TOFU) | [trust.md](trust.md) | §5 | [Crypto Design](../decisions/crypto/crypto-design.md) | [specs/codecs/enums.yaml](../../specs/codecs/enums.yaml), [specs/protocol/state-machines.yaml](../../specs/protocol/state-machines.yaml) |
 | Transport Layer | [transport.md](transport.md) | §6 | [GATT Channel and Framing](../decisions/transport/gatt-channel-and-framing.md), [MTU Negotiation](../decisions/transport/mtu-negotiation.md), [Background Operation](../decisions/transport/background-operation.md) | — |

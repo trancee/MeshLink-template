@@ -91,6 +91,8 @@ class IncomingTransferTest {
         assertEquals(TransferState.AWAITING_DECISION, incoming.status.value.state)
     }
 
+    // Scaffold verification: verifies accept() exists and throws its scaffold TODO.
+    // Replace this test with behavioral idempotency assertions when accept() is implemented.
     @Test
     fun `accept throws NotImplementedError with stub message`() {
         // Arrange
@@ -112,6 +114,8 @@ class IncomingTransferTest {
         assertTrue(exception.message?.contains("Not implemented") == true)
     }
 
+    // Scaffold verification: verifies accept() idempotency at the scaffold level.
+    // Replace this test with behavioral idempotency assertions when accept() is implemented.
     @Test
     fun `accept is idempotent — repeated calls still throw`() {
         // Arrange — the KDoc says accept is idempotent; the stub always throws
@@ -132,6 +136,8 @@ class IncomingTransferTest {
         assertFailsWith<NotImplementedError> { runBlocking { incoming.accept(sink) } }
     }
 
+    // Scaffold verification: verifies reject() exists and throws its scaffold TODO.
+    // Replace this test with behavioral idempotency assertions when reject() is implemented.
     @Test
     fun `reject throws NotImplementedError with stub message`() {
         // Arrange
@@ -144,6 +150,8 @@ class IncomingTransferTest {
         assertTrue(exception.message?.contains("Not implemented") == true)
     }
 
+    // Scaffold verification: verifies reject() idempotency at the scaffold level.
+    // Replace this test with behavioral idempotency assertions when reject() is implemented.
     @Test
     fun `reject is idempotent — repeated calls still throw`() {
         // Arrange
