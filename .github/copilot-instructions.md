@@ -14,7 +14,7 @@ without duplicating constitutional content.
 - **Version catalog**: All dependency versions pinned in `gradle/libs.versions.toml` — always
   use version catalog references (`libs.xxx`) rather than hardcoded coordinates
 - **Java toolchain**: JDK 21 (Temurin) — set via `jvmToolchain(21)` in `meshlink/build.gradle.kts`
-  and `actions/setup-java@v4` in CI
+  and `actions/setup-java@v5` in CI
 - **Kotlin coding style**: `kotlin.code.style=official` in `gradle.properties`;
   `Spotless` (ktfmt/kotlinlang style) formats all Kotlin and `.gradle.kts` files — no manual style deviations
 
