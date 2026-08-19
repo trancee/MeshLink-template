@@ -33,6 +33,7 @@ println("✓ All YAML spec files present")
 // applies to meshlink-reference/meshlink-proof/meshlink-benchmark.
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kotlin.power.assert)
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.detekt)
     alias(libs.plugins.spotless)
@@ -93,6 +94,20 @@ kotlin {
 
         commonTest.dependencies { implementation(kotlin("test")) }
     }
+}
+
+powerAssert {
+    functions =
+        listOf(
+            "kotlin.test.assertEquals",
+            "kotlin.test.assertNotEquals",
+            "kotlin.test.assertTrue",
+            "kotlin.test.assertFalse",
+            "kotlin.test.assertNull",
+            "kotlin.test.assertNotNull",
+            "kotlin.test.assertContentEquals",
+            "kotlin.test.assertContains",
+        )
 }
 
 detekt {
