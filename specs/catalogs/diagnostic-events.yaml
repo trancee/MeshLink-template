@@ -298,6 +298,21 @@ exception_error_codes:
 
 transfer_results:
   description: "Sealed interface of terminal outcomes surfaced to host apps. Non-terminal progress is represented by TransferState (AWAITING_DECISION, TRANSFERRING, ROUTE_UNAVAILABLE, RETRANSMITTING); transfer status remains null until a terminal condition occurs. Terminal outcomes (Completed, Cancelled, Expired) come from external completion/cancellation/expiration conditions; failure outcomes carry structured data directly (UnrecoverableFailure with message, TrustFailure with identity)."
+  wire_codes:
+    encoding: UByte
+    description: "Explicit wire codes for TransferResult subtypes; never enum ordinals"
+    values:
+      - name: Completed
+        code: "0x00"
+      - name: Cancelled
+        code: "0x01"
+      - name: Expired
+        code: "0x02"
+      - name: UnrecoverableFailure
+        code: "0x03"
+      - name: TrustFailure
+        code: "0x04"
+    rule: "Explicit stable values; never enum ordinals"
   subtypes:
     - name: Completed
       carries: "—"

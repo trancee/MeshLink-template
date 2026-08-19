@@ -214,7 +214,6 @@ spec_anchors_in_code:
   - "meshlink-public-api" # MeshLink.kt
   - "meshlink-environment" # MeshLinkEnvironment.kt
   - "meshlink-state" # MeshLinkState.kt
-  - "peer-identity-model" # PeerIdentity.kt
   - "transfer-id-model" # TransferId.kt
   - "message-id-model" # MessageId.kt
   - "seqno-model" # SeqNo.kt
@@ -240,6 +239,7 @@ implementation_status:
   implemented:
     - "PeerIdentity"
     - "Scoreboard / MutableScoreboard"
+    - "SeqNo"
     - "TransferSession / TransferState / TransferResult"
     - "IdentityKey"
     - "PeerState"
@@ -265,7 +265,7 @@ implementation_status:
     - "KnownPeer snapshots and trust commands"
     - "Message and transfer handles, sources, and sinks"
     - "Diagnostic flow delivery"
-    - "Internal non-Comparable SeqNo and persisted source-owned sequence allocator"
+    - "Persisted source-owned sequence allocator (TransferId allocation strategy) - not yet wired into MeshLink lifecycle"
     - "RouteCandidate, LinkQuality, additive cost, EWMA, and hysteresis"
     - "RouteStatement and mandatory destination signatures"
     - "RouteCoordinator"
@@ -281,7 +281,6 @@ implementation_status:
     - "MeshLinkSettings DSL integration"
     - "Virtual mesh harness"
     - "Custom MeshLink Wire Codec (frames, enums, models, bounded reader/writer)"
-    - "Source-owned persisted range allocator (TransferId allocation strategy) - not yet wired into MeshLink lifecycle"
 
 test_files_by_layer:
   data_model:

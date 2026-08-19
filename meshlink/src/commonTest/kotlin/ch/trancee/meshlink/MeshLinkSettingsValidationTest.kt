@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import kotlin.test.assertFalse
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -14,7 +15,7 @@ class MeshLinkSettingsValidationTest {
     fun `empty app id is rejected during settings construction`() {
         val ex = assertFailsWith<ConfigurationException> { meshLinkSettings { appId = "" } }
         assertTrue(
-            ex.message!!.contains("appId"),
+            ex.message.contains("appId"),
             "Expected message to mention 'appId', got: ${ex.message}",
         )
     }
@@ -23,7 +24,7 @@ class MeshLinkSettingsValidationTest {
     fun `whitespace only app id is rejected during settings construction`() {
         val ex = assertFailsWith<ConfigurationException> { meshLinkSettings { appId = "   " } }
         assertTrue(
-            ex.message!!.contains("appId"),
+            ex.message.contains("appId"),
             "Expected message to mention 'appId', got: ${ex.message}",
         )
     }
@@ -35,7 +36,7 @@ class MeshLinkSettingsValidationTest {
                 meshLinkSettings { appId = "é".repeat(128) }
             }
         assertTrue(
-            ex.message!!.contains("appId"),
+            ex.message.contains("appId"),
             "Expected message to mention 'appId', got: ${ex.message}",
         )
     }
@@ -124,7 +125,7 @@ class MeshLinkSettingsValidationTest {
 
         // Act / Assert
         val ex = assertFailsWith<ConfigurationException> { builder.build() }
-        assertTrue(ex.message!!.isNotEmpty(), "Exception message should not be empty")
+        assertFalse(ex.message.isNullOrEmpty(), "Exception message should not be empty")
     }
 
     @Test
@@ -136,7 +137,7 @@ class MeshLinkSettingsValidationTest {
 
         // Act / Assert
         val ex = assertFailsWith<ConfigurationException> { builder.build() }
-        assertTrue(ex.message!!.isNotEmpty(), "Exception message should not be empty")
+        assertFalse(ex.message.isNullOrEmpty(), "Exception message should not be empty")
     }
 
     @Test
@@ -148,7 +149,7 @@ class MeshLinkSettingsValidationTest {
 
         // Act / Assert
         val ex = assertFailsWith<ConfigurationException> { builder.build() }
-        assertTrue(ex.message!!.isNotEmpty(), "Exception message should not be empty")
+        assertFalse(ex.message.isNullOrEmpty(), "Exception message should not be empty")
     }
 
     @Test
@@ -160,7 +161,7 @@ class MeshLinkSettingsValidationTest {
 
         // Act / Assert
         val ex = assertFailsWith<ConfigurationException> { builder.build() }
-        assertTrue(ex.message!!.isNotEmpty(), "Exception message should not be empty")
+        assertFalse(ex.message.isNullOrEmpty(), "Exception message should not be empty")
     }
 
     @Test

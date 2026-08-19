@@ -263,12 +263,12 @@ public final class ch/trancee/meshlink/diagnostics/DiagnosticCode$Companion {
 	public final fun getHANDSHAKE-qm_Ev1w ()S
 	public final fun getKEY_ROTATION-qm_Ev1w ()S
 	public final fun getNOISE_SESSION-qm_Ev1w ()S
-	public final fun getPOWER_MODE_SETTINGS-qm_Ev1w ()S
-	public final fun getROUTE_DECRYPTION_FAILED-qm_Ev1w ()S
+	public final fun getPOWER_MODE_EFFECTIVE-qm_Ev1w ()S
+	public final fun getROUTE_DECRYPT_FAILURE-qm_Ev1w ()S
 	public final fun getROUTE_DIGEST_MISMATCH-qm_Ev1w ()S
 	public final fun getTRANSFER_BEARER-qm_Ev1w ()S
 	public final fun getTRANSFER_FAILURE-qm_Ev1w ()S
-	public final fun getTRANSFER_STATE-qm_Ev1w ()S
+	public final fun getTRANSFER_SESSION_TRANSITION-qm_Ev1w ()S
 	public final fun getTRANSPORT_FALLBACK-qm_Ev1w ()S
 }
 

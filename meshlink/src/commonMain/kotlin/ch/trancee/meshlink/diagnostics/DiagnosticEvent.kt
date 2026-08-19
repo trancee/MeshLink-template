@@ -29,15 +29,15 @@ import kotlin.time.Instant
  */
 @JvmInline public value class DiagnosticCode(public val value: UShort) {
     public companion object {
-        public val ROUTE_DECRYPTION_FAILED: DiagnosticCode = DiagnosticCode(0x8501u)
+        public val ROUTE_DECRYPT_FAILURE: DiagnosticCode = DiagnosticCode(0x8501u)
         public val TRANSPORT_FALLBACK: DiagnosticCode = DiagnosticCode(0x8901u)
         public val TRANSFER_BEARER: DiagnosticCode = DiagnosticCode(0x8601u)
-        public val POWER_MODE_SETTINGS: DiagnosticCode = DiagnosticCode(0x8101u)
+        public val POWER_MODE_EFFECTIVE: DiagnosticCode = DiagnosticCode(0x8101u)
         public val HANDSHAKE: DiagnosticCode = DiagnosticCode(0x8401u)
         public val KEY_ROTATION: DiagnosticCode = DiagnosticCode(0x8402u)
         public val NOISE_SESSION: DiagnosticCode = DiagnosticCode(0x8403u)
         public val ROUTE_DIGEST_MISMATCH: DiagnosticCode = DiagnosticCode(0x8502u)
-        public val TRANSFER_STATE: DiagnosticCode = DiagnosticCode(0x8602u)
+        public val TRANSFER_SESSION_TRANSITION: DiagnosticCode = DiagnosticCode(0x8602u)
         public val TRANSFER_FAILURE: DiagnosticCode = DiagnosticCode(0x8603u)
     }
 }
@@ -58,7 +58,7 @@ public sealed interface DiagnosticEvent {
         public val failureReason: DecryptFailureReason,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
-        override val code: DiagnosticCode = DiagnosticCode.ROUTE_DECRYPTION_FAILED
+        override val code: DiagnosticCode = DiagnosticCode.ROUTE_DECRYPT_FAILURE
         override val severity: DiagnosticSeverity = DiagnosticSeverity.ERROR
     }
 
@@ -96,7 +96,7 @@ public sealed interface DiagnosticEvent {
         public val disconnectGracePeriod: Duration,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
-        override val code: DiagnosticCode = DiagnosticCode.POWER_MODE_SETTINGS
+        override val code: DiagnosticCode = DiagnosticCode.POWER_MODE_EFFECTIVE
         override val severity: DiagnosticSeverity = DiagnosticSeverity.INFO
     }
 
@@ -174,7 +174,7 @@ public sealed interface DiagnosticEvent {
         public val result: TransferResult?,
         override val occurredAt: Instant = Clock.System.now(),
     ) : DiagnosticEvent {
-        override val code: DiagnosticCode = DiagnosticCode.TRANSFER_STATE
+        override val code: DiagnosticCode = DiagnosticCode.TRANSFER_SESSION_TRANSITION
         override val severity: DiagnosticSeverity =
             when (result) {
                 null -> DiagnosticSeverity.INFO

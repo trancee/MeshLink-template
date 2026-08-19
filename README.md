@@ -62,7 +62,7 @@ The `.githooks/` directory contains:
 - `pre-push` — Runs full gitleaks detect, spotless check, detekt on touched modules
 - `commit-msg` — Validates Conventional Commits format
 
-Hooks are auto-installed by `bootstrap.sh` or `.scripts/install-git-hooks.sh`.
+Hooks are auto-installed by `./scripts/bootstrap.sh` or `./scripts/install-git-hooks.sh`.
 
 ## Quality Gates
 

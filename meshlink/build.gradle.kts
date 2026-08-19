@@ -48,6 +48,7 @@ kotlin {
     compilerOptions {
         // Suppress pre-existing warning in ConstantTimeTest.kt for unsigned types.
         optIn.add("kotlin.ExperimentalUnsignedTypes")
+        optIn.add("kotlin.experimental.ExperimentalObjCName")
     }
 
     android {

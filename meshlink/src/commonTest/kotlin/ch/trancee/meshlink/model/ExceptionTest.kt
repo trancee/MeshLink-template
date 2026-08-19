@@ -48,9 +48,10 @@ class ExceptionTest {
                 radioEx,
             )
         all.forEach { assertTrue(it is MeshLinkException) }
-
-        // RadioInUseException is a subtype of BluetoothException
-        assertTrue(radioEx is BluetoothException)
+        // Verify RadioInUseException is at runtime a BluetoothException.
+        // Assigned to Any first so the is-check is not statically always-true.
+        val radioExAny: Any = radioEx
+        assertTrue(radioExAny is BluetoothException, "RadioInUseException should be a BluetoothException")
     }
 
     @Test
