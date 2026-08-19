@@ -51,7 +51,7 @@ Mobile devices need to communicate securely without internet, backend servers, o
 | Delivery outcomes | Explicit terminal: `COMPLETED`, `CANCELLED`, `EXPIRED`, `UNRECOVERABLE_FAILURE`, `TRUST_FAILURE`; non-terminal progress is `null` (see §3.6 TransferState, §11.4) |
 | Wire compatibility | Backward-compatible evolution; breaking changes require major version bump + migration |
 | Performance budgets | See [§12](#12-build--quality-constraints) |
-| Runtime dependency | Maximum one Maven artifact: `kotlinx-coroutines-core`. Crypto uses platform APIs or pure-Kotlin fallbacks |
+| Runtime dependency | `kotlinx-coroutines-core` + `ch.trancee.meshlink:meshlink-crypto` v0.1.1 (see §12.4) — Crypto uses the dedicated `meshlink-crypto` artifact from Maven Central; no additional runtime artifacts |
 | Test coverage | 100% line/branch coverage for `:meshlink`; crypto validated against Wycheproof vectors |
 
 ### 1.4 Reference Standards
@@ -101,7 +101,7 @@ Dokka, SKIE, and 100% coverage gate apply **only to `meshlink`**.
 | `androidHostTest` | Host-side Android tests (crypto fallback paths) |
 | `androidDeviceTest` | Reserved for future use |
 
-### 2.3 Public API Surface
+### 2.3 Public API Surface {#meshlink-public-api}
 
 `MeshLink` is a final instance-based class constructed from immutable settings
 and an opaque platform environment:
@@ -146,6 +146,8 @@ Note: This API is the target design; implementation is in progress via TDD.
 The current meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLink.kt is a placeholder for BCV baseline.
 ```
 
+### 2.4 Platform Environment {#meshlink-environment}
+
 Platform factory functions create `MeshLinkEnvironment`; Android context and
 iOS framework types never enter shared protocol code. Multiple instances may
 coexist, but one physical environment grants its BLE radio lease to only one
@@ -155,6 +157,8 @@ Applications address each remote installation by one stable PeerIdentity.
 peerHint, TransportHandle, keys, key generations, proof chains, Noise epochs,
 and route next hops remain internal; valid rotations and reconnects never make
 the application replace identity or key material.
+
+### 2.5 Lifecycle States {#meshlink-state}
 
 Lifecycle states are `UNINITIALIZED`, `CONFIGURED`, `RUNNING`, `PAUSED`, and `STOPPED`. The
 constructor transitions `UNINITIALIZED` → `CONFIGURED`; `start()` transitions `CONFIGURED` → `RUNNING`.
@@ -449,6 +453,29 @@ public data class MeshLinkVersion(
 
 **SPEC-ANCHOR**: `enums`
 
+### 3.12 KnownPeer {#known-peer-model}
+
+```kotlin
+public data class KnownPeer(
+    public val identity: PeerIdentity,
+    public val state: PeerState,
+    public val trust: PeerTrust,
+    public val routeCost: UInt?,
+    public val hopCount: UByte?,
+    public val sessionCount: Int,
+    public val diagnosticCode: DiagnosticCode?,
+    public val diagnosticSeverity: DiagnosticSeverity? = null,
+    public val seenAt: Instant,
+    public val verifiedAt: Instant?,
+)
+```
+
+`KnownPeer` snapshots are exposed via `MeshLink.peers` StateFlow. Advertisement-only
+candidates are not canonical peers. `seenAt` is the immutable instant the full
+identity was first learned; `verifiedAt` is the nullable instant of the latest
+successful authentication. `routeCost`, `hopCount`, and `sessionCount` are nullable
+or zero until routing and connection are established.
+
 ---
 
 ## 4. Discovery & Identity
@@ -487,7 +514,7 @@ GATT service exposes full PeerIdentity, version, key generation, 16-bit PSM, and
 peerHint remains advertisement-only. Advertisement and GATT metadata are
 untrusted until the security handshake authenticates identity and keys.
 
-### 4.2 Mesh Hash Derivation {#mesh-hash}
+### 4.2 Mesh Hash Derivation {#mesh-hash} {#app-hash}
 
 ```kotlin
 // FNV-1a 32-bit of appId, truncated to 16 bits
@@ -918,7 +945,7 @@ All operations on secret data (private keys, shared secrets, session keys, KDF o
 
 **ADR**: docs/decisions/crypto/replay-window.md
 
-### 7.6 Error Hierarchy (Sealed) {#error-hierarchy}
+### 7.6 Error Hierarchy (Sealed) {#error-hierarchy} {#error-code}
 
 ```text
 MeshLinkException

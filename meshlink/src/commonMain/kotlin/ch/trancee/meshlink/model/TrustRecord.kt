@@ -8,7 +8,7 @@ import kotlin.time.Instant
  * Tracks the TOFU pinning lifecycle: INITIATED → TRUSTED → REVOKED. Only minimal state is persisted
  * — identity material and timestamps. No plaintext, no diagnostics, no full identifiers.
  *
- * See docs/decisions/model/data-model.md and docs/decisions/model/persistence-strategy.md.
+ * See docs/decisions/model/data-model.md and docs/decisions/storage/persistence-strategy.md.
  *
  * SPEC-ANCHOR: trust-record
  */
@@ -17,7 +17,7 @@ public data class TrustRecord(
     public val identityKey: IdentityKey,
     public val handshakeKey: HandshakeKey,
     public val state: PeerTrust = PeerTrust.UNVERIFIED,
-    public val generation: Int = 0,
+    public val generation: UInt = 0u,
     public val seenAt: Instant,
     public val verifiedAt: Instant,
 )

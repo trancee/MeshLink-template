@@ -38,7 +38,7 @@ internal value class SeqNo(private val value: UInt) {
          * Creates a [SeqNo] from a raw [UInt] value (e.g., read from the wire).
          *
          * This is the deserialization counterpart to [rawValue], used when decoding
-         * `ROUTE_UPDATE`,` `ROUTE_WITHDRAWAL`, and `KEY_ROTATION` frames.
+         * `ROUTE_ADVERTISEMENT`, `ROUTE_WITHDRAWAL`, and `KEY_ROTATION` frames.
          */
         public fun fromUInt(value: UInt): SeqNo = SeqNo(value)
 
@@ -46,7 +46,7 @@ internal value class SeqNo(private val value: UInt) {
          * Creates a [SeqNo] from a 4-byte big-endian representation, for wire deserialization.
          *
          * This is the deserialization counterpart to [toBytes], used when decoding
-         * `ROUTE_UPDATE`, `ROUTE_WITHDRAWAL`, and `KEY_ROTATION` frames from a byte stream.
+         * `ROUTE_ADVERTISEMENT`, `ROUTE_WITHDRAWAL`, and `KEY_ROTATION` frames from a byte stream.
          *
          * @param bytes exactly 4 bytes; throws [IllegalArgumentException] if [bytes.size] is not 4.
          */

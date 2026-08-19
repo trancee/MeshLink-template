@@ -89,7 +89,7 @@ echo "  (Full enum validation requires Kotlin AST parsing - run detekt/Kover)"
 # 5. Validate settings.yaml matches MeshLinkSettings.kt
 echo ""
 echo "5. Checking settings consistency..."
-if grep -q "powerMode:" "$SPECS_DIR/catalogs/settings.yaml" && grep -q "PowerMode" "$MESHLINK_SRC/MeshLinkSettings.kt"; then
+if grep -q "name: powerMode" "$SPECS_DIR/catalogs/settings.yaml" && grep -q "PowerMode" "$MESHLINK_SRC/MeshLinkSettings.kt"; then
     echo "  ✓ settings.yaml and MeshLinkSettings.kt both reference PowerMode"
 else
     echo "  ⚠ Could not verify settings consistency"

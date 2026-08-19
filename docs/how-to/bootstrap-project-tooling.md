@@ -97,11 +97,10 @@ git commit --allow-empty -m "chore: verify hooks"  # should run gitleaks + hook 
 
 ## What this does *not* cover
 
-- The Gradle/Kotlin Multiplatform project itself doesn't exist yet — see
-  `PROJECT.md`'s suggested rebuild approach for the spec-first build order.
-  Once it lands, a JDK (Temurin 21, per `.github/workflows/ci.yml`) and the
-  Gradle wrapper become additional prerequisites; this script doesn't
-  install those.
+- The Gradle/Kotlin Multiplatform project builds successfully — see
+  `PROJECT.md`'s suggested rebuild approach and [SPEC.md §12](../../SPEC.md#12)
+  for the build/quality constraints. A JDK (Temurin 21, per `.github/workflows/ci.yml`)
+  and the Gradle wrapper are prerequisites; this script doesn't install those.
 - Xcode/iOS toolchain setup for the `ios-build` CI job — that job runs on
   `macos-latest` with Xcode preinstalled; there's no local bootstrap step
   for it yet.
