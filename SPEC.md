@@ -706,6 +706,8 @@ blocking record. An explicit reset is required to permit trust again.
 
 Neither command accepts or exposes key material.
 
+**ADR**: docs/decisions/storage/persistence-strategy.md
+
 ### 5.7 Revocation
 
 - Explicit reset/revoke API action is required
@@ -1124,6 +1126,8 @@ configurable as the other.
 
 **ADR**: docs/decisions/routing/routing-design.md
 
+**ADR**: docs/decisions/model/mesh-size-limits.md
+
 ---
 
 ## 9. Transfer Layer
@@ -1138,6 +1142,8 @@ Messages up to 64 KiB auto-accept under a 2 MiB global incomplete-message budget
 Large transfers require a host TransferSink. At most three offers per peer and
 eight globally wait up to 30 seconds in AWAITING_DECISION. No chunks transmit
 before PayloadDecision ACCEPTED.
+
+**ADR**: docs/decisions/transfer/payload-identity-and-naming.md
 
 ### 9.2 Lifecycle and Lifetime
 
@@ -1163,6 +1169,8 @@ ROUTE_UNAVAILABLE / RETRANSMITTING
 Origin owns a monotonic lifetime; manifest duration is UInt milliseconds and no
 wall-clock timestamp is trusted. Relays forward cut-through with bounded queues
 and own no persistent payload/retry state.
+
+**ADR**: docs/decisions/transfer/transfer-source-sink-contract.md
 
 ### 9.3 Chunks and Selective Acknowledgement
 
@@ -1385,6 +1393,8 @@ and `kotlin.time.Clock` are part of the Kotlin standard library as of Kotlin
 2.1+; no separate `kotlinx-datetime` dependency is required. See
 CONSTITUTION.md Technical Constraints.
 
+**ADR**: docs/decisions/crypto/meshlink-crypto-dependency.md
+
 ---
 
 ## 13. Testing & Verification
@@ -1509,7 +1519,7 @@ data class DiagnosticsSettings(
 - Diagnostics are collected from `MeshLink.diagnostics`; no callback is configured in settings
 - `MeshLinkSettings` is the **source of truth** for defaults — `specs/catalogs/settings.yaml` is checked against it. Static settings validation occurs at construction; runtime prerequisites are checked by `start()`.
 
-**SPEC-ANCHOR**: `setting-model`
+**SPEC-ANCHOR**: `settings-model`
 
 **ADR**: docs/decisions/model/settings-model.md (rationale only)
 
@@ -1566,14 +1576,15 @@ tooling must make CI fail when committed projections are stale.
 | §2 Architecture | docs/explanation/module-structure.md | meshlink/build.gradle.kts |
 | §3 Data Models | docs/decisions/model/data-model.md | meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/ |
 | §4 Discovery | docs/decisions/discovery/connectable-advertisement.md, docs/decisions/discovery/mesh-hash-derivation.md | specs/codecs/frames.yaml |
-| §5 Trust/TOFU | docs/decisions/crypto/crypto-design.md | specs/codecs/enums.yaml, specs/protocol/state-machines.yaml |
+| §5 Trust/TOFU | docs/decisions/crypto/crypto-design.md, docs/decisions/storage/persistence-strategy.md | specs/codecs/enums.yaml, specs/protocol/state-machines.yaml |
 | §6 Transport | docs/decisions/transport/mtu-negotiation.md, docs/decisions/transport/gatt-channel-and-framing.md, docs/decisions/transport/background-operation.md | meshlink/src/androidMain/, meshlink/src/iosMain/ (BLE glue) |
-| §7 Security | docs/decisions/crypto/crypto-design.md, identity-binding-and-fail-closed.md, constant-time-policy.md, replay-window.md, key-rotation-propagation.md, error-hierarchy.md | specs/codecs/enums.yaml, specs/protocol/state-machines.yaml |
-| §8 Routing | docs/decisions/routing/routing-design.md | RouteCandidate, LinkQuality, RouteStatement; routing coordinator (planned) |
+| §7 Security | docs/decisions/crypto/crypto-design.md, docs/decisions/crypto/identity-binding-and-fail-closed.md, docs/decisions/crypto/constant-time-policy.md, docs/decisions/crypto/replay-window.md, docs/decisions/crypto/key-rotation-propagation.md, docs/decisions/model/error-hierarchy.md | specs/codecs/enums.yaml, specs/protocol/state-machines.yaml |
+| §8 Routing | docs/decisions/routing/routing-design.md, docs/decisions/model/mesh-size-limits.md | RouteCandidate, LinkQuality, RouteStatement; routing coordinator (planned) |
 
-| §9 Transfer | docs/decisions/model/data-model.md, docs/decisions/transfer/transfer-identifier.md | TransferSession.kt, Scoreboard.kt, TransferResult.kt; TransferCoordinator (planned) |
+| §9 Transfer | docs/decisions/model/data-model.md, docs/decisions/transfer/transfer-identifier.md, docs/decisions/transfer/payload-identity-and-naming.md, docs/decisions/transfer/transfer-source-sink-contract.md | TransferSession.kt, Scoreboard.kt, TransferResult.kt; TransferCoordinator (planned) |
+| §10 Power | docs/decisions/power/power-mode-behavior.md | meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PowerMode.kt |
 | §11 Diagnostics | docs/decisions/diagnostics/flow-delivery.md, docs/decisions/api/public-api-and-lifecycle.md | DiagnosticEvent.kt |
-| §12 Build Quality | — | meshlink/build.gradle.kts |
+| §12 Build Quality | docs/decisions/crypto/meshlink-crypto-dependency.md | meshlink/build.gradle.kts |
 | §13 Testing | — | — |
 | §14 Settings | docs/decisions/model/settings-model.md | MeshLinkSettings.kt |
 | §15 Future | docs/decisions/crypto/pq-hybrid-candidate-matrix.md | — |
