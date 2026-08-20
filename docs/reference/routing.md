@@ -1,6 +1,6 @@
 # Routing Layer
 
-> **Specification**: [SPEC.md §8](../../SPEC.md#routing-layer)  
+> **Specification**: [SPEC.md §8](../../SPEC.md#8-routing-layer)  
 > **Design rationale**: [Routing Design](../decisions/routing/routing-design.md)  
 > **Machine-readable**: [specs/protocol/state-machines.yaml](../../specs/protocol/state-machines.yaml), [specs/codecs/enums.yaml](../../specs/codecs/enums.yaml), [specs/codecs/frames.yaml](../../specs/codecs/frames.yaml)
 
@@ -20,7 +20,7 @@
 
 ## Quick Links
 
-- [SPEC.md §8 — Full routing spec](../../SPEC.md#routing-layer)
+- [SPEC.md §8 — Full routing spec](../../SPEC.md#8-routing-layer)
 - [Routing Design ADR](../decisions/routing/routing-design.md)
 - [State Machines Spec](../../specs/protocol/state-machines.yaml)
 - [Enums Spec](../../specs/codecs/enums.yaml)

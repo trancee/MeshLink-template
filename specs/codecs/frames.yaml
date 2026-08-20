@@ -495,36 +495,37 @@ discovery_advertisement:
 
 frame_type_enum:
   description: "Explicit UByte codes; encoders never use declaration ordinal. Derived from enums.yaml FrameType — kept here as a wire codec reference convenience."
-  - name: MESH_ENVELOPE
-    code: "0x00"
-  - name: ROUTE_ADVERTISEMENT
-    code: "0x01"
-  - name: ROUTE_WITHDRAWAL
-    code: "0x02"
-  - name: ROUTE_DIGEST
-    code: "0x03"
-  - name: ROUTE_SEQUENCE_ADVANCEMENT
-    code: "0x04"
-  - name: ROUTE_SYNCHRONIZATION
-    code: "0x05"
-  - name: ROUTE_SNAPSHOT
-    code: "0x06"
-  - name: PAYLOAD_MANIFEST
-    code: "0x20"
-  - name: PAYLOAD_DECISION
-    code: "0x21"
-  - name: PAYLOAD_CHUNK
-    code: "0x22"
-  - name: PAYLOAD_ACKNOWLEDGEMENT
-    code: "0x23"
-  - name: PAYLOAD_CANCELLATION
-    code: "0x24"
-  - name: KEY_ROTATION
-    code: "0x40"
-  - name: EPOCH_COMMIT
-    code: "0x41"
-  - name: EPOCH_ACKNOWLEDGEMENT
-    code: "0x42"
+  values:
+    - name: MESH_ENVELOPE
+      code: "0x00"
+    - name: ROUTE_ADVERTISEMENT
+      code: "0x01"
+    - name: ROUTE_WITHDRAWAL
+      code: "0x02"
+    - name: ROUTE_DIGEST
+      code: "0x03"
+    - name: ROUTE_SEQUENCE_ADVANCEMENT
+      code: "0x04"
+    - name: ROUTE_SYNCHRONIZATION
+      code: "0x05"
+    - name: ROUTE_SNAPSHOT
+      code: "0x06"
+    - name: PAYLOAD_MANIFEST
+      code: "0x20"
+    - name: PAYLOAD_DECISION
+      code: "0x21"
+    - name: PAYLOAD_CHUNK
+      code: "0x22"
+    - name: PAYLOAD_ACKNOWLEDGEMENT
+      code: "0x23"
+    - name: PAYLOAD_CANCELLATION
+      code: "0x24"
+    - name: KEY_ROTATION
+      code: "0x40"
+    - name: EPOCH_COMMIT
+      code: "0x41"
+    - name: EPOCH_ACKNOWLEDGEMENT
+      code: "0x42"
 
 notes:
   - "Frame codes are explicit UByte values grouped by protocol area; declaration ordinal is never serialized, duplicate codes fail tests, and unknown codes are dropped before payload parsing."

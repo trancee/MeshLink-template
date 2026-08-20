@@ -2,6 +2,7 @@ import dev.detekt.gradle.Detekt
 import kotlinx.kover.gradle.plugin.dsl.AggregationType
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
 import org.gradle.api.GradleException
+import org.gradle.api.tasks.testing.Test
 import org.jetbrains.kotlin.konan.target.HostManager
 
 // Validate YAML specs at configuration time - use root project's specs directory
@@ -33,6 +34,7 @@ println("✓ All YAML spec files present")
 // applies to meshlink-reference/meshlink-proof/meshlink-benchmark.
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kotlin.power.assert)
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.detekt)
     alias(libs.plugins.spotless)
@@ -54,7 +56,7 @@ kotlin {
     android {
         namespace = "ch.trancee.meshlink"
         compileSdk = 37
-        minSdk = 26
+        minSdk = 21
         // Enables local unit tests (androidHostTest); device tests are not
         // needed here since :meshlink itself has no Android-specific code.
         withHostTestBuilder {}.configure {}
@@ -93,6 +95,28 @@ kotlin {
 
         commonTest.dependencies { implementation(kotlin("test")) }
     }
+}
+
+// Explicitly configure JUnit Platform for all Test tasks (JVM + Android host tests).
+// Kotlin 2.4.10 (KMP plugin) defaults to JUnit 5 (Jupiter) for JVM targets since
+// Kotlin 2.1.0, but making useJUnitPlatform() explicit ensures the JUnit 5 platform
+// adapter is auditable per AGENTS.md rather than relying on implicit KMP defaults.
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
+}
+
+powerAssert {
+    functions =
+        listOf(
+            "kotlin.test.assertEquals",
+            "kotlin.test.assertNotEquals",
+            "kotlin.test.assertTrue",
+            "kotlin.test.assertFalse",
+            "kotlin.test.assertNull",
+            "kotlin.test.assertNotNull",
+            "kotlin.test.assertContentEquals",
+            "kotlin.test.assertContains",
+        )
 }
 
 detekt {

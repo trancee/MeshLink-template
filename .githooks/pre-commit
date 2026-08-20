@@ -27,6 +27,7 @@ need_proof=0
 need_yaml=0
 need_markdown=0
 need_hook_validation=0
+need_spec_validation=0
 yaml_files=()
 markdown_files=()
 
@@ -44,8 +45,11 @@ for file in "${staged_files[@]}"; do
     meshlink-proof/*)
       need_proof=1
       ;;
-    .githooks/*|scripts/install-git-hooks.sh|scripts/bootstrap.sh|scripts/check-markdown.sh)
+    .githooks/*|scripts/install-git-hooks.sh|scripts/bootstrap.sh|scripts/check-markdown.sh|scripts/validate-specs.sh)
       need_hook_validation=1
+      ;;
+    specs/*|SPEC.md|docs/decisions/*|docs/reference/*)
+      need_spec_validation=1
       ;;
     build.gradle.kts|settings.gradle.kts|gradle.properties|gradle/*)
       need_meshlink=1
@@ -89,7 +93,13 @@ if [[ "$need_hook_validation" -eq 1 ]]; then
     .githooks/commit-msg \
     scripts/install-git-hooks.sh \
     scripts/bootstrap.sh \
-    scripts/check-markdown.sh
+    scripts/check-markdown.sh \
+    scripts/validate-specs.sh
+fi
+
+if [[ "$need_spec_validation" -eq 1 ]]; then
+  echo "[pre-commit] Running spec validation..."
+  ./scripts/validate-specs.sh
 fi
 
 if [[ "$need_yaml" -eq 1 ]]; then
@@ -99,8 +109,18 @@ if [[ "$need_yaml" -eq 1 ]]; then
     echo "[pre-commit] (or run ./scripts/bootstrap.sh)" >&2
     exit 1
   fi
-  echo "[pre-commit] Running YAML lint: ${yaml_files[*]}"
-  yamllint "${yaml_files[@]}"
+  # Spec YAML files use long inline strings (up to 248 chars) and omit
+  # document-start markers. yamllint overrides don't apply in file mode,
+  # so use inline config with relaxed line-length for spec files.
+  for file in "${yaml_files[@]}"; do
+    if [[ "$file" == specs/* ]]; then
+      echo "[pre-commit] Running YAML lint (specs): $file"
+      yamllint -c .yamllint-spec "$file"
+    else
+      echo "[pre-commit] Running YAML lint: $file"
+      yamllint "$file"
+    fi
+  done
 fi
 
 if [[ "$need_markdown" -eq 1 ]]; then

@@ -1,6 +1,6 @@
 # Transfer Layer
 
-> **Specification**: [SPEC.md §9](../../SPEC.md#transfer-layer)  
+> **Specification**: [SPEC.md §9](../../SPEC.md#9-transfer-layer)  
 > **Design rationale**: [Payload Transfer Protocol](../decisions/transfer/payload-transfer-protocol.md), [Transfer Identifier](../decisions/transfer/transfer-identifier.md), [Source/Sink Contract](../decisions/transfer/transfer-source-sink-contract.md)  
 > **Machine-readable**: [specs/protocol/state-machines.yaml](../../specs/protocol/state-machines.yaml), [specs/codecs/frames.yaml](../../specs/codecs/frames.yaml), [specs/codecs/models.yaml](../../specs/codecs/models.yaml)
 
@@ -22,7 +22,7 @@
 
 ## Quick Links
 
-- [SPEC.md §9 — Full transfer spec](../../SPEC.md#transfer-layer)
+- [SPEC.md §9 — Full transfer spec](../../SPEC.md#9-transfer-layer)
 - [Payload Transfer Protocol ADR](../decisions/transfer/payload-transfer-protocol.md)
 - [Transfer Identifier ADR](../decisions/transfer/transfer-identifier.md)
 - [Source/Sink Contract ADR](../decisions/transfer/transfer-source-sink-contract.md)

@@ -1,0 +1,15 @@
+---
+# yamllint config for spec YAML files (used via `yamllint -c .yamllint-spec`)
+#
+# Spec files intentionally omit document-start markers and use long inline
+# strings (up to 248 chars), so document-start and line-length are relaxed.
+# All other yamllint rules are strict to catch structural errors like the
+# frames.yaml YAML parsing bug (#25).
+extends: default
+rules:
+  document-start: disable
+  line-length: disable
+  truthy:
+    check-keys: false
+  comments:
+    min-spaces-from-content: 0

@@ -3,7 +3,7 @@
 **Status:** Locked — 2026-07-31
 
 > The event catalog and public stream live in
-> [SPEC.md §11](../../../SPEC.md#diagnostics--events). This decision record
+> [SPEC.md §11](../../../SPEC.md#11-diagnostics--events). This decision record
 > explains delivery, buffering, collector context, and platform logging.
 
 ## Event metadata
@@ -122,5 +122,5 @@ Tests use injected dispatchers and virtual time to verify:
 ## Related
 
 - [Public API and lifecycle](../api/public-api-and-lifecycle.md)
-- [SPEC.md §11](../../../SPEC.md#diagnostics--events)
+- [SPEC.md §11](../../../SPEC.md#11-diagnostics--events)
 - [CONSTITUTION.md §I](../../../CONSTITUTION.md#i-rigorous-code-quality)

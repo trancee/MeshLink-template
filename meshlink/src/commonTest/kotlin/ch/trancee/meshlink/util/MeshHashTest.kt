@@ -1,6 +1,5 @@
-package ch.trancee.meshlink
+package ch.trancee.meshlink.util
 
-import ch.trancee.meshlink.util.MeshHash
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals

@@ -1,6 +1,6 @@
 # Power Management
 
-> **Specification**: [SPEC.md §10](../../SPEC.md#power-management)  
+> **Specification**: [SPEC.md §10](../../SPEC.md#10-power-management)  
 > **Design rationale**: [Power Mode Behavior](../decisions/power/power-mode-behavior.md)  
 > **Machine-readable**: [specs/catalogs/settings.yaml](../../specs/catalogs/settings.yaml#power_mode_parameter_mapping), [specs/codecs/enums.yaml](../../specs/codecs/enums.yaml#power-mode)
 
@@ -26,9 +26,9 @@
 
 ## Quick Links
 
-- [SPEC.md §10 — Full power spec](../../SPEC.md#power-management)
+- [SPEC.md §10 — Full power spec](../../SPEC.md#10-power-management)
 - [Power Mode Behavior ADR](../decisions/power/power-mode-behavior.md)
-- [SPEC.md §11 — Diagnostics (PowerModeEffectiveEvent)](../../SPEC.md#diagnostics--events)
+- [SPEC.md §11 — Diagnostics (PowerModeEffectiveEvent)](../../SPEC.md#11-diagnostics--events)
 - [MTU Negotiation ADR](../decisions/transport/mtu-negotiation.md)
 - [Settings Spec](../../specs/catalogs/settings.yaml)
 - [Enums Spec](../../specs/codecs/enums.yaml)

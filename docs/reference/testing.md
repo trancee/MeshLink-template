@@ -1,6 +1,6 @@
 # Testing & Verification
 
-> **Specification**: [SPEC.md §13](../../SPEC.md#testing--verification)
+> **Specification**: [SPEC.md §13](../../SPEC.md#13-testing--verification)
 
 ## Test Suite Structure
 
@@ -36,7 +36,7 @@
 
 ## Quick Links
 
-- [SPEC.md §13 — Full testing spec](../../SPEC.md#testing--verification)
+- [SPEC.md §13 — Full testing spec](../../SPEC.md#13-testing--verification)
 - [CONSTITUTION.md §II — Testing Standards](../../CONSTITUTION.md#ii-exhaustive-testing-standards)
 - [Module Structure Explanation](../explanation/module-structure.md)
 - [Wycheproof Skill](../../.agents/skills/wycheproof/SKILL.md)

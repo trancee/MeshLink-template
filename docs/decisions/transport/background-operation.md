@@ -3,7 +3,7 @@
 **Status:** Locked — 2026-07-31
 
 > Normative platform behavior lives in [SPEC.md §§6 and
-> 14](../../../SPEC.md#transport-layer). This record defines the best-effort
+> 14](../../../SPEC.md#6-transport-layer). This record defines the best-effort
 > guarantee, host/library ownership, restoration, and failure behavior.
 
 ## Guarantee
@@ -54,7 +54,7 @@ MeshLink owns BLE scanning, advertising, GATT/L2CAP, PendingIntent scan helpers,
 radio leasing, state reconstruction, and version-specific behavior. It never
 starts a foreground service or chooses notification text behind the host's back.
 
-Integration covers API 26–30 legacy Bluetooth/location permissions, API 31+
+Integration covers API 21–30 legacy Bluetooth/location permissions, API 31+ Nearby Devices permissions,
 Nearby Devices permissions, foreground-service start restrictions, Doze/screen
 off, scan-start rate limits, PendingIntent scans, connected-device service type,
 and Android 17 behavior. RPA/MAC/TransportHandle changes never become identity

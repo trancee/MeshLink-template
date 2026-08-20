@@ -2,7 +2,7 @@
 
 **Status:** Locked — 2026-07-31
 
-> **Implementation details** (proof chain, timer logic, recovery, and diagnostics) live in [SPEC.md §5.4](../../../SPEC.md#key-rotation-protocol). This ADR captures the *why*.
+> **Implementation details** (proof chain, timer logic, recovery, and diagnostics) live in [SPEC.md §5.4](../../../SPEC.md#54-key-rotation-protocol). This ADR captures the *why*.
 
 ---
 
@@ -67,4 +67,4 @@ Relies on:
 - [Crypto Design ADR](crypto-design.md#key-rotation-protocol)
 - [Routing Design ADR](../routing/routing-design.md#routedigest-on-mismatch-push-full-table)
 - [Peer Hint and Identity Races](../discovery/peer-hint-and-identity-races.md)
-- [SPEC.md §5.4](../../../SPEC.md#key-rotation-protocol)
+- [SPEC.md §5.4](../../../SPEC.md#54-key-rotation-protocol)

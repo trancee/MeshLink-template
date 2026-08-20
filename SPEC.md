@@ -95,11 +95,13 @@ Dokka, SKIE, and 100% coverage gate apply **only to `meshlink`**.
 | Source Set | Purpose |
 |------------|---------|
 | `commonMain` | Shared business logic (security, routing, transfer, diagnostics) |
-| `androidMain` | Platform-specific BLE glue, fallback crypto for Android API 26-32 |
+| `androidMain` | Platform-specific BLE glue, fallback crypto for Android API 21-32 |
 | `iosMain` | Platform-specific BLE glue |
 | `commonTest` | Pure JVM tests (protocol logic, wire codecs, crypto) |
 | `androidHostTest` | Host-side Android tests (crypto fallback paths) |
 | `androidDeviceTest` | Reserved for future use |
+
+<a id="meshlink-public-api"></a>
 
 ### 2.3 Public API Surface {#meshlink-public-api}
 
@@ -146,6 +148,8 @@ Note: This API is the target design; implementation is in progress via TDD.
 The current meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLink.kt is a placeholder for BCV baseline.
 ```
 
+<a id="meshlink-environment"></a>
+
 ### 2.4 Platform Environment {#meshlink-environment}
 
 Platform factory functions create `MeshLinkEnvironment`; Android context and
@@ -157,6 +161,8 @@ Applications address each remote installation by one stable PeerIdentity.
 peerHint, TransportHandle, keys, key generations, proof chains, Noise epochs,
 and route next hops remain internal; valid rotations and reconnects never make
 the application replace identity or key material.
+
+<a id="meshlink-state"></a>
 
 ### 2.5 Lifecycle States {#meshlink-state}
 
@@ -173,6 +179,8 @@ differences hidden behind the environment factories and internal
 ---
 
 ## 3. Core Data Models
+
+<a id="peer-identity-model"></a>
 
 ### 3.1 PeerIdentity {#peer-identity-model}
 
@@ -196,6 +204,8 @@ differences hidden behind the environment factories and internal
 | `parts.second` | Upper 8 bytes (big-endian) |
 
 **SPEC-ANCHOR**: `peer-identity-model`
+
+<a id="seqno-model"></a>
 
 ### 3.2 SeqNo {#seqno-model}
 
@@ -229,6 +239,8 @@ differences hidden behind the environment factories and internal
 - `distanceFrom` for route staleness diagnostics and gap analysis
 - **SPEC-ANCHOR**: `seqno-model`
 
+<a id="scoreboard-model"></a>
+
 ### 3.3 Scoreboard (Immutable) & MutableScoreboard {#scoreboard-model}
 
 **Immutable bitfield for selective acknowledgement (SACK).** Bit N = 1 means chunk N received. Length = `ceil(totalChunks / 8)` bytes.
@@ -250,6 +262,8 @@ class Scoreboard(totalChunks: UInt) {
 
 **SPEC-ANCHOR**: `scoreboard-model`
 
+<a id="route-candidate-model"></a>
+
 ### 3.4 RouteCandidate {#route-candidate-model}
 
 ```kotlin
@@ -269,6 +283,8 @@ signed RouteStatement. `nextHop` is inferred locally from the authenticated
 adjacent sender. Routing models remain internal to the SDK.
 
 **SPEC-ANCHOR**: `route-candidate-model`
+
+<a id="transfer-session-model"></a>
 
 ### 3.5 TransferSession {#transfer-session-model}
 
@@ -301,6 +317,8 @@ data class TransferSession(
 | `ROUTE_UNAVAILABLE` | No | Route lost, waiting for recovery |
 | `RETRANSMITTING` | No | Selectively retransmitting missing chunks under adaptive RTO |
 
+<a id="transfer-result"></a>
+
 ### 3.7 TransferResult {#transfer-result}
 
 ```kotlin
@@ -326,6 +344,9 @@ data. Non-terminal progress is represented by TransferState (see §3.6); transfe
 returns null until a terminal condition occurs.
 
 **SPEC-ANCHOR**: `transfer-result`
+
+<a id="transfer-id-model"></a>
+<a id="message-id-model"></a>
 
 ### 3.8 TransferId and MessageId {#transfer-id-model} {#message-id-model}
 
@@ -362,6 +383,8 @@ allocated value under the same `PeerIdentity`.
 
 **ADR**: docs/decisions/transfer/transfer-identifier.md
 
+<a id="link-quality-model"></a>
+
 ### 3.9 LinkQuality {#link-quality-model}
 
 ```kotlin
@@ -377,6 +400,9 @@ belong to transport state and never enter this routing model.
 RSSI normalization and the quadratic link-cost conversion are specified in §8.
 
 **SPEC-ANCHOR**: `link-quality-model`
+
+<a id="identity-key-model"></a>
+<a id="handshake-key-model"></a>
 
 ### 3.10 IdentityKey / HandshakeKey {#identity-key-model} {#handshake-key-model}
 
@@ -396,6 +422,8 @@ RSSI normalization and the quadratic link-cost conversion are specified in §8.
 ```
 
 **SPEC-ANCHOR**: `identity-key-model`, `handshake-key-model`
+
+<a id="meshlink-version"></a>
 
 ### 3.10.1 MeshLinkVersion {#meshlink-version}
 
@@ -419,6 +447,8 @@ public data class MeshLinkVersion(
 - `parse("1.2.3")` constructs from a semver string; throws `IllegalArgumentException` on malformed input
 - Comparison is major → minor → patch, matching standard semver ordering
 - **SPEC-ANCHOR**: `meshlink-version`
+
+<a id="enums"></a>
 
 ### 3.11 Enums (Shared) {#enums}
 
@@ -452,6 +482,8 @@ public data class MeshLinkVersion(
 | `DiagnosticSeverity` | `DEBUG`, `INFO`, `WARN`, `ERROR` | Severity for diagnostic events (see §11) |
 
 **SPEC-ANCHOR**: `enums`
+
+<a id="known-peer-model"></a>
 
 ### 3.12 KnownPeer {#known-peer-model}
 
@@ -513,6 +545,9 @@ particular under iOS background advertising restrictions — the fixed MeshLink
 GATT service exposes full PeerIdentity, version, key generation, 16-bit PSM, and a fresh nonce.
 peerHint remains advertisement-only. Advertisement and GATT metadata are
 untrusted until the security handshake authenticates identity and keys.
+
+<a id="mesh-hash"></a>
+<a id="app-hash"></a>
 
 ### 4.2 Mesh Hash Derivation {#mesh-hash} {#app-hash}
 
@@ -669,6 +704,8 @@ generations, or proof chains.
 
 **ADR**: docs/decisions/crypto/key-rotation-propagation.md
 
+<a id="trust-record"></a>
+
 ### 5.5 E2E Handshake Routing Over Mesh {#trust-record}
 
 When the destination is not a direct neighbor:
@@ -705,6 +742,8 @@ future XX/IK/rotation recovery after identity resolution, and does not delete th
 blocking record. An explicit reset is required to permit trust again.
 
 Neither command accepts or exposes key material.
+
+**ADR**: docs/decisions/storage/persistence-strategy.md
 
 ### 5.7 Revocation
 
@@ -879,6 +918,8 @@ survive process death. Force-stop/force-quit has no relaunch guarantee.
 | HMAC-SHA256 | RFC 2104 | 174 (66 valid + 108 invalid) |
 | SHA-256 | RFC 6234 | Covered via other primitives |
 
+<a id="fail-closed"></a>
+
 ### 7.2 Fail-Closed Rules {#fail-closed}
 
 Fail closed is the project-wide default. Uncertainty cannot create authority,
@@ -921,6 +962,8 @@ never silently regenerates keys under the same PeerIdentity.
 
 **ADR**: docs/decisions/crypto/private-key-handling.md
 
+<a id="constant-time"></a>
+
 ### 7.4 Constant-Time Policy {#constant-time}
 
 All operations on secret data (private keys, shared secrets, session keys, KDF output) **MUST** use constant-time implementations:
@@ -933,6 +976,8 @@ All operations on secret data (private keys, shared secrets, session keys, KDF o
 
 **ADR**: docs/decisions/crypto/constant-time-policy.md
 
+<a id="replay-window"></a>
+
 ### 7.5 Replay Window {#replay-window}
 
 **Sliding bitmap window** per RFC 9147:
@@ -944,6 +989,9 @@ All operations on secret data (private keys, shared secrets, session keys, KDF o
 - **Replay detection** on both hop-by-hop and E2E layers
 
 **ADR**: docs/decisions/crypto/replay-window.md
+
+<a id="error-hierarchy"></a>
+<a id="error-code"></a>
 
 ### 7.6 Error Hierarchy (Sealed) {#error-hierarchy} {#error-code}
 
@@ -1099,6 +1147,8 @@ raw implementation-buffer layout. RouteDigest, RouteSynchronization, and RouteSn
 per-adjacency UInt revision that starts at zero for a fresh hop Noise session and
 increments whenever RouteExport changes. Stale revisions are rejected.
 
+<a id="ttl-by-priority"></a>
+
 ### 8.9 Route Update Triggers {#ttl-by-priority}
 
 | Trigger | Behavior |
@@ -1124,6 +1174,8 @@ configurable as the other.
 
 **ADR**: docs/decisions/routing/routing-design.md
 
+**ADR**: docs/decisions/model/mesh-size-limits.md
+
 ---
 
 ## 9. Transfer Layer
@@ -1138,6 +1190,8 @@ Messages up to 64 KiB auto-accept under a 2 MiB global incomplete-message budget
 Large transfers require a host TransferSink. At most three offers per peer and
 eight globally wait up to 30 seconds in AWAITING_DECISION. No chunks transmit
 before PayloadDecision ACCEPTED.
+
+**ADR**: docs/decisions/transfer/payload-identity-and-naming.md
 
 ### 9.2 Lifecycle and Lifetime
 
@@ -1163,6 +1217,8 @@ ROUTE_UNAVAILABLE / RETRANSMITTING
 Origin owns a monotonic lifetime; manifest duration is UInt milliseconds and no
 wall-clock timestamp is trusted. Relays forward cut-through with bounded queues
 and own no persistent payload/retry state.
+
+**ADR**: docs/decisions/transfer/transfer-source-sink-contract.md
 
 ### 9.3 Chunks and Selective Acknowledgement
 
@@ -1212,6 +1268,8 @@ representation and host sink policy; SDK memory remains window-bounded.
 ---
 
 ## 10. Power Management
+
+<a id="power-mode-settings"></a>
 
 ### 10.1 Power Modes {#power-mode-settings}
 
@@ -1264,6 +1322,8 @@ Per-mode grace period controls `PeerLifecycle` transition `DISCONNECTED → GONE
 ---
 
 ## 11. Diagnostics & Events
+
+<a id="diagnostic-event"></a>
 
 ### 11.1 Public Observation {#diagnostic-event}
 
@@ -1372,7 +1432,7 @@ overflow event.
 
 ### 12.3 Platform Minimums
 
-- Android API 26 (Android 8.0)
+- Android API 21 (Android 5.0)
 - iOS 14
 - Higher APIs guarded at runtime
 
@@ -1384,6 +1444,8 @@ v0.1.1 from Maven Central. `kotlin.time.Duration`, `kotlin.time.Instant`,
 and `kotlin.time.Clock` are part of the Kotlin standard library as of Kotlin
 2.1+; no separate `kotlinx-datetime` dependency is required. See
 CONSTITUTION.md Technical Constraints.
+
+**ADR**: docs/decisions/crypto/meshlink-crypto-dependency.md
 
 ---
 
@@ -1509,7 +1571,7 @@ data class DiagnosticsSettings(
 - Diagnostics are collected from `MeshLink.diagnostics`; no callback is configured in settings
 - `MeshLinkSettings` is the **source of truth** for defaults — `specs/catalogs/settings.yaml` is checked against it. Static settings validation occurs at construction; runtime prerequisites are checked by `start()`.
 
-**SPEC-ANCHOR**: `setting-model`
+**SPEC-ANCHOR**: `settings-model`
 
 **ADR**: docs/decisions/model/settings-model.md (rationale only)
 
@@ -1566,14 +1628,15 @@ tooling must make CI fail when committed projections are stale.
 | §2 Architecture | docs/explanation/module-structure.md | meshlink/build.gradle.kts |
 | §3 Data Models | docs/decisions/model/data-model.md | meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/ |
 | §4 Discovery | docs/decisions/discovery/connectable-advertisement.md, docs/decisions/discovery/mesh-hash-derivation.md | specs/codecs/frames.yaml |
-| §5 Trust/TOFU | docs/decisions/crypto/crypto-design.md | specs/codecs/enums.yaml, specs/protocol/state-machines.yaml |
+| §5 Trust/TOFU | docs/decisions/crypto/crypto-design.md, docs/decisions/storage/persistence-strategy.md | specs/codecs/enums.yaml, specs/protocol/state-machines.yaml |
 | §6 Transport | docs/decisions/transport/mtu-negotiation.md, docs/decisions/transport/gatt-channel-and-framing.md, docs/decisions/transport/background-operation.md | meshlink/src/androidMain/, meshlink/src/iosMain/ (BLE glue) |
-| §7 Security | docs/decisions/crypto/crypto-design.md, identity-binding-and-fail-closed.md, constant-time-policy.md, replay-window.md, key-rotation-propagation.md, error-hierarchy.md | specs/codecs/enums.yaml, specs/protocol/state-machines.yaml |
-| §8 Routing | docs/decisions/routing/routing-design.md | RouteCandidate, LinkQuality, RouteStatement; routing coordinator (planned) |
+| §7 Security | docs/decisions/crypto/crypto-design.md, docs/decisions/crypto/identity-binding-and-fail-closed.md, docs/decisions/crypto/constant-time-policy.md, docs/decisions/crypto/replay-window.md, docs/decisions/crypto/key-rotation-propagation.md, docs/decisions/model/error-hierarchy.md | specs/codecs/enums.yaml, specs/protocol/state-machines.yaml |
+| §8 Routing | docs/decisions/routing/routing-design.md, docs/decisions/model/mesh-size-limits.md | RouteCandidate, LinkQuality, RouteStatement; routing coordinator (planned) |
 
-| §9 Transfer | docs/decisions/model/data-model.md, docs/decisions/transfer/transfer-identifier.md | TransferSession.kt, Scoreboard.kt, TransferResult.kt; TransferCoordinator (planned) |
+| §9 Transfer | docs/decisions/model/data-model.md, docs/decisions/transfer/transfer-identifier.md, docs/decisions/transfer/payload-identity-and-naming.md, docs/decisions/transfer/transfer-source-sink-contract.md | TransferSession.kt, Scoreboard.kt, TransferResult.kt; TransferCoordinator (planned) |
+| §10 Power | docs/decisions/power/power-mode-behavior.md | meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PowerMode.kt |
 | §11 Diagnostics | docs/decisions/diagnostics/flow-delivery.md, docs/decisions/api/public-api-and-lifecycle.md | DiagnosticEvent.kt |
-| §12 Build Quality | — | meshlink/build.gradle.kts |
+| §12 Build Quality | docs/decisions/crypto/meshlink-crypto-dependency.md | meshlink/build.gradle.kts |
 | §13 Testing | — | — |
 | §14 Settings | docs/decisions/model/settings-model.md | MeshLinkSettings.kt |
 | §15 Future | docs/decisions/crypto/pq-hybrid-candidate-matrix.md | — |

@@ -1,6 +1,6 @@
 # Diagnostics & Events
 
-> **Specification**: [SPEC.md §11](../../SPEC.md#diagnostics--events)  
+> **Specification**: [SPEC.md §11](../../SPEC.md#11-diagnostics--events)  
 > **Design rationale**: [Diagnostic Flow Delivery](../decisions/diagnostics/flow-delivery.md), [Public API and Lifecycle](../decisions/api/public-api-and-lifecycle.md)  
 > **Machine-readable**: [specs/catalogs/diagnostic-events.yaml](../../specs/catalogs/diagnostic-events.yaml), [specs/codecs/enums.yaml](../../specs/codecs/enums.yaml)
 
@@ -20,7 +20,7 @@
 
 ## Quick Links
 
-- [SPEC.md §11 — Full diagnostics spec](../../SPEC.md#diagnostics--events)
+- [SPEC.md §11 — Full diagnostics spec](../../SPEC.md#11-diagnostics--events)
 - [Diagnostic Flow Delivery ADR](../decisions/diagnostics/flow-delivery.md)
 - [Public API and Lifecycle ADR](../decisions/api/public-api-and-lifecycle.md)
 - [Diagnostic Events Spec](../../specs/catalogs/diagnostic-events.yaml)

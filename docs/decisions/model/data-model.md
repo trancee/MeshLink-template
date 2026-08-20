@@ -2,7 +2,7 @@
 
 **Status:** Locked — 2026-07-20
 
-Complete type definitions in [SPEC.md §3](../../../SPEC.md#core-data-models).
+Complete type definitions in [SPEC.md §3](../../../SPEC.md#3-core-data-models).
 Machine-readable references:
 
 - [specs/codecs/enums.yaml](../../../specs/codecs/enums.yaml) — all enum values
@@ -175,7 +175,7 @@ was O(n) and allocated nothing but still required full iteration.
 
 ### TransferState transitions
 
-Complete state machine in [SPEC.md §3.4.1](../../../SPEC.md#transfer-session-state-transitions) and [specs/protocol/state-machines.yaml](../../../specs/protocol/state-machines.yaml#transferstate).
+Complete state machine in [SPEC.md §3.4.1](../../../SPEC.md#transfer-session-model) and [specs/protocol/state-machines.yaml](../../../specs/protocol/state-machines.yaml#transferstate).
 
 Transition logic lives in `TransferCoordinator.kt`. Scoreboard completeness checked before COMPLETED.
 
@@ -248,7 +248,7 @@ bitwise ops are correctness/security risks.
 
 ## Related
 
-- [SPEC.md Core Models](../../../SPEC.md#core-data-models)
+- [SPEC.md Core Models](../../../SPEC.md#3-core-data-models)
 - [Routing Design](../routing/routing-design.md)
 - [Power Mode Behavior](../power/power-mode-behavior.md)
 - [Crypto Design](../crypto/crypto-design.md)

@@ -1,6 +1,6 @@
 # Architecture Overview
 
-> **Specification**: [SPEC.md §2](../../SPEC.md#architecture-overview)  
+> **Specification**: [SPEC.md §2](../../SPEC.md#2-architecture-overview)  
 > **Design rationale**: [Module Structure](../explanation/module-structure.md)  
 > **Machine-readable**: [meshlink/build.gradle.kts](../../meshlink/build.gradle.kts)
 
@@ -10,7 +10,7 @@
 
 - `meshlink` module produces AAR with `android` and `jvm` targets
 - `androidMain` — **Planned** (not yet implemented): will contain BLE glue (`BluetoothAdapter`, `BluetoothLeScanner`, `BluetoothGatt`, `BluetoothServerSocket`) via expect/actual
-- Fallback crypto for API 26-32 in `androidMain` (pure-Kotlin X25519, Ed25519, ChaCha20-Poly1305, HKDF, HMAC) — also planned, not yet implemented
+- Fallback crypto for API 21-32 in `androidMain` (pure-Kotlin X25519, Ed25519, ChaCha20-Pol1305, HKDF, HMAC) — also planned, not yet implemented
 - `androidHostTest` for crypto fallback validation on host JVM
 - Gradle: `com.android.library` + `org.jetbrains.kotlin.multiplatform` plugins
 
@@ -30,6 +30,6 @@
 
 ## Quick Links
 
-- [SPEC.md §2 — Full architecture details](../../SPEC.md#architecture-overview)
+- [SPEC.md §2 — Full architecture details](../../SPEC.md#2-architecture-overview)
 - [Module Structure Explanation](../explanation/module-structure.md)
 - [CONSTITUTION.md Technical Constraints](../../CONSTITUTION.md#technical-constraints)

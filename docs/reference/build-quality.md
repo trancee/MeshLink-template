@@ -1,6 +1,6 @@
 # Build & Quality Constraints
 
-> **Specification**: [SPEC.md §12](../../SPEC.md#build--quality-constraints)  
+> **Specification**: [SPEC.md §12](../../SPEC.md#12-build--quality-constraints)  
 > **Binding rules**: [CONSTITUTION.md](../../CONSTITUTION.md)
 
 ## Performance Budgets (CI-Enforced)
@@ -30,7 +30,7 @@
 
 ## Platform Minimums
 
-- Android API 26 (Android 8.0)
+- Android API 21 (Android 5.0)
 - iOS 14
 - Higher APIs guarded at runtime
 
@@ -50,7 +50,7 @@ Apply to `:meshlink` **only** — not reference/proof/benchmark modules.
 
 ## Quick Links
 
-- [SPEC.md §12 — Full build/quality spec](../../SPEC.md#build--quality-constraints)
+- [SPEC.md §12 — Full build/quality spec](../../SPEC.md#12-build--quality-constraints)
 - [CONSTITUTION.md — Binding Rules](../../CONSTITUTION.md)
 - [meshlink/build.gradle.kts](../../meshlink/build.gradle.kts)
 - [Kover Config](../../meshlink/build.gradle.kts)

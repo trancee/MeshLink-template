@@ -1,7 +1,7 @@
 # MeshLink Configuration Model
 # Machine-readable reference for all configuration settings.
 # Source of truth: SPEC.md §14 and meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/PowerMode.kt
-# SPEC-ANCHOR: setting-model
+# SPEC-ANCHOR: settings-model
 
 validation:
   construction:

@@ -1,6 +1,6 @@
 # Security Layer
 
-> **Specification**: [SPEC.md §7](../../SPEC.md#security-layer)  
+> **Specification**: [SPEC.md §7](../../SPEC.md#7-security-layer)  
 > **Design rationale**: [Crypto Design](../decisions/crypto/crypto-design.md), [Identity Binding and Fail-Closed](../decisions/crypto/identity-binding-and-fail-closed.md), [Constant-Time Policy](../decisions/crypto/constant-time-policy.md), [Replay Window](../decisions/crypto/replay-window.md), [Key Rotation Propagation](../decisions/crypto/key-rotation-propagation.md), [Error Hierarchy](../decisions/model/error-hierarchy.md)  
 > **Machine-readable**: [specs/codecs/enums.yaml](../../specs/codecs/enums.yaml), [specs/protocol/state-machines.yaml](../../specs/protocol/state-machines.yaml)
 
@@ -9,7 +9,7 @@
 ### Android
 
 - Crypto primitives prefer Android Keystore / `Cipher` / `KeyAgreement` / `Signature` APIs (API 28+)
-- Fallback: pure-Kotlin implementations for API 26-27, validated against Wycheproof
+- Fallback: pure-Kotlin implementations for API 21-27, validated against Wycheproof
 - Private keys: Android Keystore AES-256-GCM wrapped, backup-excluded, `AfterFirstUnlock` protection
 - `KeyGenParameterSpec.Builder().setUserAuthenticationRequired(true)` for high-security keys
 - SELinux policies may restrict key access; test on target API levels
@@ -24,7 +24,7 @@
 
 ## Quick Links
 
-- [SPEC.md §7 — Full security spec](../../SPEC.md#security-layer)
+- [SPEC.md §7 — Full security spec](../../SPEC.md#7-security-layer)
 - [Crypto Design ADR](../decisions/crypto/crypto-design.md)
 - [Identity Binding and Fail-Closed ADR](../decisions/crypto/identity-binding-and-fail-closed.md)
 - [Constant-Time Policy ADR](../decisions/crypto/constant-time-policy.md)

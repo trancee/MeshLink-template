@@ -61,6 +61,12 @@ jobs:
       - name: YAML lint
         run: yamllint .
 
+      - name: YAML lint — spec files (relaxed line-length)
+        run: yamllint -c .yamllint-spec specs/
+
+      - name: Spec validation
+        run: ./scripts/validate-specs.sh
+
       - name: Install lychee
         env:
           GH_TOKEN: ${{ github.token }}

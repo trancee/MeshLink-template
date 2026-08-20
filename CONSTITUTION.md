@@ -246,7 +246,7 @@ Every PR MUST, before merge:
 - Shared logic lives in `commonMain` only; `androidMain`/`iosMain` hold
   `actual` implementations and platform glue only.
 - Zero-connectivity operation required — no feature may need a server.
-- Minimum platforms: Android API 26, iOS 14. Guard any higher-only API at
+- Minimum platforms: Android API 21, iOS 14. Guard any higher-only API at
   runtime.
 - All crypto goes through `CryptoProvider`, validated against Wycheproof.
   No third-party crypto library ships in the release artifact. `MeshLink-crypto`

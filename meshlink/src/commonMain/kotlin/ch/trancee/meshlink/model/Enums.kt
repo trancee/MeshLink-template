@@ -52,6 +52,14 @@ public enum class FrameType(public val code: UByte) {
     KEY_ROTATION(FrameCode.KEY_ROTATION),
     EPOCH_COMMIT(FrameCode.EPOCH_COMMIT),
     EPOCH_ACKNOWLEDGEMENT(FrameCode.EPOCH_ACKNOWLEDGEMENT),
+;
+
+    public companion object {
+        /** Decode a [FrameType] from its explicit wire code, rejecting unknown values. */
+        public fun fromCode(code: UByte): FrameType =
+            entries.firstOrNull { it.code == code }
+                ?: throw IllegalArgumentException("Unknown FrameType wire code: $code")
+    }
 }
 
 private object FrameCode {

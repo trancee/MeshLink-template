@@ -90,5 +90,5 @@ need diagnostic correlation; they do not reuse `TransferId`.
 
 - [Transfer reference](../../reference/transfer.md)
 - [Data model decisions](../model/data-model.md)
-- [SPEC.md §9 — Transfer layer](../../../SPEC.md#transfer-layer)
+- [SPEC.md §9 — Transfer layer](../../../SPEC.md#9-transfer-layer)
 - [Wire-frame machine-readable specification](../../../specs/codecs/frames.yaml)

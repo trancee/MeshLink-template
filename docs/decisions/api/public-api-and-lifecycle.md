@@ -3,7 +3,7 @@
 **Status:** Locked — 2026-07-31
 
 > The normative API shape lives in
-> [SPEC.md §2.3](../../../SPEC.md#public-api-surface). This decision record
+> [SPEC.md §2.3](../../../SPEC.md#meshlink-public-api). This decision record
 > explains the instance, lifecycle, observation, and runtime-configuration
 > model.
 
@@ -210,4 +210,4 @@ state list would waste memory and misrepresent their semantics.
 - [Transfer identifier](../transfer/transfer-identifier.md)
 - [Settings DSL](../model/settings-model.md)
 - [Exception hierarchy](../model/error-hierarchy.md)
-- [SPEC.md §14 — Settings](../../../SPEC.md#settings-model)
+- [SPEC.md §14 — Settings](../../../SPEC.md#14-settings-model)

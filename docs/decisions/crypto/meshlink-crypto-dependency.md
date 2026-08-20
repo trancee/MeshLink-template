@@ -86,7 +86,7 @@ namespace (`ch.trancee.meshlink`).
    `compileSdk = 37` (its current maximum). The AAR metadata compatibility
    check requires consuming modules to compile against API 37+. All template
    modules (`meshlink`, `meshlink-reference`, `meshlink-proof`) are bumped
-   from 36 to 37. `minSdk` is unchanged (26/21 respectively).
+   from 36 to 37. `minSdk` is unchanged (21).
 
 ## Consequences
 

@@ -30,7 +30,7 @@
 |------|----------|-------------|
 | `TransferResult` | `Completed`, `Cancelled`, `Expired`, `UnrecoverableFailure`, `TrustFailure` | Terminal transfer outcomes |
 | `MeshLinkException` | `ConfigurationException`, `LifecycleException`, `PermissionException`, `BluetoothException`, `StorageException`, `CryptoException`, `TrustException`, `RoutingException`, `TransferException` | Error hierarchy for command failures |
-| `ErrorCode` | 20 stable UShort values | Stable error codes per category (see [§7.6](../../SPEC.md#76-error-hierarchy-sealed)) |
+| `ErrorCode` | 20 stable UShort values | Stable error codes per category (see [§7.6](../../SPEC.md#error-hierarchy)) |
 | `TransferState` | `AWAITING_DECISION`, `TRANSFERRING`, `ROUTE_UNAVAILABLE`, `RETRANSMITTING` | Non-terminal transfer lifecycle |
 | `TransferKind` | `MESSAGE (0x00)`, `PAYLOAD (0x01)` | Wire discriminant for transfer payloads |
 | `PeerTrust` | `UNVERIFIED`, `VERIFYING`, `TRUSTED`, `MISMATCHED`, `REVOKED` | Per-peer trust classification |

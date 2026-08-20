@@ -5,7 +5,7 @@
 This record consolidates the rationale for Noise pattern selection, session
 behavior, key rotation, and E2E handshake routing. Normative state machines,
 parameters, and wire layouts live in [SPEC.md §§5 and
-7](../../../SPEC.md#trust-model-tofu).
+7](../../../SPEC.md#5-trust-model-tofu).
 
 All Noise layers use X25519, HKDF-SHA256, ChaCha20-Poly1305, and SHA-256.
 Ed25519 signs the stable MeshLink identity binding carried inside encrypted

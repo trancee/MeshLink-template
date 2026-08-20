@@ -1,6 +1,5 @@
-package ch.trancee.meshlink
+package ch.trancee.meshlink.model
 
-import ch.trancee.meshlink.model.MeshLinkState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
