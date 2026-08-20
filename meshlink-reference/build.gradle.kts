@@ -20,7 +20,7 @@ kotlin {
     android {
         namespace = "ch.trancee.meshlink.reference"
         compileSdk = 37
-        minSdk = 26
+        minSdk = 21
     }
 
     if (HostManager.hostIsMac) {

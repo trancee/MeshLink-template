@@ -9,7 +9,7 @@
 ### Android
 
 - Crypto primitives prefer Android Keystore / `Cipher` / `KeyAgreement` / `Signature` APIs (API 28+)
-- Fallback: pure-Kotlin implementations for API 26-27, validated against Wycheproof
+- Fallback: pure-Kotlin implementations for API 21-27, validated against Wycheproof
 - Private keys: Android Keystore AES-256-GCM wrapped, backup-excluded, `AfterFirstUnlock` protection
 - `KeyGenParameterSpec.Builder().setUserAuthenticationRequired(true)` for high-security keys
 - SELinux policies may restrict key access; test on target API levels

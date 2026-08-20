@@ -108,7 +108,7 @@ Crypto primitives (SHA-256, HKDF, HMAC, X25519, Ed25519, ChaCha20-Poly1305) are 
 
 ## Platform Requirements
 
-- **Android** — API 26+ (runtime crypto checks for API 26-32)
+- **Android** — API 21+ (runtime crypto checks for API 21-32)
 - **iOS** — 14.0+
 - **JDK** — Temurin 21 (per CI)
 

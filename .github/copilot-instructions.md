@@ -9,7 +9,7 @@ without duplicating constitutional content.
 
 - **Language**: Kotlin (multiplatform) — Kotlin 2.4.10 per `gradle/libs.versions.toml`
 - **Build system**: Gradle 8.5+ (wrapper at `./gradlew`), Kotlin DSL (`*.gradle.kts`)
-- **Multiplatform targets**: JVM (host tests), Android (library, minSdk 26, compileSdk 37),
+- **Multiplatform targets**: JVM (host tests), Android (library, minSdk 21, compileSdk 37),
   iOS arm64 (device, macOS-only)
 - **Version catalog**: All dependency versions pinned in `gradle/libs.versions.toml` — always
   use version catalog references (`libs.xxx`) rather than hardcoded coordinates

@@ -10,7 +10,7 @@
 
 - `meshlink` module produces AAR with `android` and `jvm` targets
 - `androidMain` — **Planned** (not yet implemented): will contain BLE glue (`BluetoothAdapter`, `BluetoothLeScanner`, `BluetoothGatt`, `BluetoothServerSocket`) via expect/actual
-- Fallback crypto for API 26-32 in `androidMain` (pure-Kotlin X25519, Ed25519, ChaCha20-Poly1305, HKDF, HMAC) — also planned, not yet implemented
+- Fallback crypto for API 21-32 in `androidMain` (pure-Kotlin X25519, Ed25519, ChaCha20-Pol1305, HKDF, HMAC) — also planned, not yet implemented
 - `androidHostTest` for crypto fallback validation on host JVM
 - Gradle: `com.android.library` + `org.jetbrains.kotlin.multiplatform` plugins
 

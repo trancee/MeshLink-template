@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-The MeshLink-template repository is **production-ready for implementation** at the scaffold level: CI/CD quality gates are correctly configured, the build system is sound, and the API surface is stable. However, the audit identified **2 critical gaps**, **1 known high-priority gap**, and **7 medium/low findings** across spec validation, documentation cross-references, and test infrastructure.
+The MeshLink-template repository is **production-ready for implementation** at the scaffold level: CI/CD quality gates are correctly configured, the build system is sound, and the API surface is stable. However, the audit identified **2 critical gaps** (both since resolved), **1 known high-priority gap**, and **7 medium/low findings** across spec validation, documentation cross-references, and test infrastructure.
 
 | Category | Findings | Status |
 |---|---|---|
@@ -19,7 +19,7 @@ The MeshLink-template repository is **production-ready for implementation** at t
 | Spec validation pipeline | 0 | **PASS** — validate-specs.sh in CI + hooks; yamllint covers specs/ |
 | Spec-to-code traceability | 0 | **PASS** — all 42 source files mapped; 24 SPEC-ANCHORs in `spec_anchors_in_code`; enums anchor lists all 3 files |
 | Spec-to-docs alignment | 0 | **PASS** — all 33 broken cross-reference links fixed: heading-name anchors gained section-number prefixes; Pandoc `{#id}` anchors backed by HTML `<a id>` tags; 3 non-existent anchors remapped |
-| Test infrastructure | 1 | **GAP** — test organization deviations (3 wrong packages, 5 missing tests) |
+| Build configuration | 0 | **PASS** — all versions/targets/explicitApi correct |
 | Wire codec | 1 | **KNOWN GAP** — intentionally unimplemented (Vertical slice 4, scaffold plan) |
 
 **Verdict:** The template's scaffold, CI plumbing, and quality-gate configuration are sound enough for an implementer to begin building wire codec, routing, transport, and trust subsystems. The findings above should be addressed during implementation, with 0 remaining critical gaps. No spec validation pipeline gaps remain.
@@ -57,7 +57,7 @@ CI is a complete and correct representation of all 7 Constitution-required gates
 
 #### Build configuration — [#22](https://github.com/trancee/MeshLink-template/issues/22)
 
-All versions, targets, explicitApi, and BCV configuration are correct. Kotlin 2.4.10, JDK 21, AGP 9.3.1, Android minSdk 26, compileSdk 37, iOS arm64 only. Version catalog pins all dependencies exactly. BCV applied at root with `ignoredProjects` for non-shipped modules. One doc-only recommendation: ADR `meshlink-crypto-dependency.md` has a stale minSdk 21 reference → see follow-up ticket [#34](https://github.com/trancee/MeshLink-template/issues/34).
+All versions, targets, explicitApi, and BCV configuration are correct. Kotlin 2.4.10, JDK 21, AGP 9.3.1, Android minSdk 21, compileSdk 37, iOS arm64 only. Version catalog pins all dependencies exactly. BCV applied at root with `ignoredProjects` for non-shipped modules.
 
 ---
 
@@ -146,11 +146,26 @@ Five ADRs exist on disk but are not referenced in SPEC.md. §10 (Power Managemen
 - Updated `enums` comment to list all 3 files: Enums.kt, PayloadDecision.kt, L2capState.kt
 - All 42 source files now listed in at least one `code_files` entry (0 missing); `validate-specs.sh` all 7 checks pass
 
-#### 9. Test organization deviations — [#21](https://github.com/trancee/MeshLink-template/issues/21) → [#33](https://github.com/trancee/MeshLink-template/issues/33)
+#### 9. Test organization deviations — [#21](https://github.com/trancee/MeshLink-template/issues/21) → [#33](https://github.com/trancee/MeshLink-template/issues/33) ✅ RESOLVED
 
-JUnit 5 platform adapter is implicit (not explicitly configured). 3 test files are in the wrong package directory. 5 source files lack dedicated unit tests.
+**Severity:** Medium
+**File:** `meshlink/src/commonTest/kotlin/ch/trancee/meshlink/`
 
-**Follow-up:** [#33 — Fix test organization](https://github.com/trancee/MeshLink-template/issues/33)
+JUnit 5 platform adapter was implicit (not explicitly configured). 9 test files were in the wrong package directory. 5 source files lacked dedicated unit tests.
+
+**Resolution:** [#33 — Closed]
+
+- **JUnit5 platform adapter made explicit**: Added `tasks.withType<Test>().configureEach { useJUnitPlatform() }` in `meshlink/build.gradle.kts` (line 100-103). Kotlin 2.4.10 KMP defaults to JUnit Jupiter for JVM targets since Kotlin 2.1.0, but this makes the configuration auditable matching AGENTS.md's "JUnit 5 platform adapter" requirement.
+- **9 wrong-package test files moved** via `git mv` to their correct package directories, with package declarations updated and redundant same-package imports removed:
+  - `ConstantTimeTest.kt`, `MeshHashTest.kt` → `ch/trancee/meshlink/util/` (source in util)
+  - `DiagnosticEventTest.kt` → `ch/trancee/meshlink/diagnostics/` (source in diagnostics)
+  - `MeshLinkStateTest.kt`, `PowerModeTest.kt`, `RoutingPolicyTest.kt`, `TransferResultTest.kt`, `SeqNoComparisonTest.kt`, `SeqNoWireTest.kt` → `ch/trancee/meshlink/model/` (source in model)
+
+> Note: The original audit cited 3 wrong-package files. Deeper analysis during #33 revealed 9 — the audit missed 6 files whose sources were in the `model/` package.
+
+- **5 missing test files added** for 1:1 mapping: `CryptoKeyConstantsTest.kt` (model), `L2capStateTest.kt` (transport), `PayloadDecisionTest.kt` (transfer), `RequireSettingTest.kt` (util), `SecureRandomTest.kt` (util).
+- `MeshLink.kt` (scaffold with `TODO()` in every method) and `MeshLinkEnvironment.kt` (interfaces + empty `RadioLease` class) excluded — no meaningful assertions possible.
+- `EnumCoverageTest.kt` already covers `L2capState` and `PayloadDecision` enum entries; the new dedicated tests add wire-code/ordinal verification per the spec.
 
 ---
 
@@ -165,11 +180,11 @@ Two `implementation_status: not_implemented` entries were imprecise: "MeshLinkSe
 - Split "Message and transfer handles, sources, and sinks" → types moved to `implemented`, functional integration stays `not_implemented`
 - Split "MeshLinkSettings DSL integration" → data model construction-time validation moved to `implemented`, DSL-to-MeshLink wiring stays `not_implemented`
 
-#### 11. Stale minSdk reference in ADR — [#22](https://github.com/trancee/MeshLink-template/issues/22) → [#34](https://github.com/trancee/MeshLink-template/issues/34)
+#### 11. minSdk alignment — [#22](https://github.com/trancee/MeshLink-template/issues/22) → [#34](https://github.com/trancee/MeshLink-template/issues/34) ✅ RESOLVED
 
-`docs/decisions/crypto/meshlink-crypto-dependency.md` references minSdk 21 (leftover from the sibling meshlink-crypto project). All MeshLink modules use minSdk 26.
+All three MeshLink template modules declared `minSdk = 26` in their `build.gradle.kts`, while `docs/decisions/crypto/meshlink-crypto-dependency.md` referenced minSdk 21 (the MeshLink-crypto module's floor). Standardised on minSdk 21 across all modules to match the crypto dependency's minimum and the ADR's documented shared target set.
 
-**Follow-up:** [#34 — Fix stale minSdk reference in ADR](https://github.com/trancee/MeshLink-template/issues/34)
+**Resolution:** [#34 — Closed] Changed `minSdk = 26` → `minSdk = 21` in `meshlink/`, `meshlink-proof/`, and `meshlink-reference/` `build.gradle.kts`. Updated minSdk references across `CONSTITUTION.md`, `SPEC.md`, `README.md`, `.github/copilot-instructions.md`, and all reference/decision docs to reflect Android API 21 (Android 5.0) as the project minimum. ADR `(26/21 respectively)` → `(21)`.
 
 ---
 
@@ -186,11 +201,11 @@ All findings are tracked as GitHub issues, labeled `from:audit-map`:
 | [#30](https://github.com/trancee/MeshLink-template/issues/30) | Fix precision in not_implemented traceability entries | Low | ✅ Closed |
 | [#31](https://github.com/trancee/MeshLink-template/issues/31) | Fix 30 broken SPEC.md/doc cross-reference links + Pandoc syntax | Medium | ✅ Closed |
 | [#32](https://github.com/trancee/MeshLink-template/issues/32) | Configure power-assert compiler plugin | Critical | ✅ Closed |
-| [#33](https://github.com/trancee/MeshLink-template/issues/33) | Fix test organization (JUnit5, 3 wrong packages, 5 missing tests) | Medium | `ready-for-agent` |
-| [#34](https://github.com/trancee/MeshLink-template/issues/34) | Fix stale minSdk 21 reference in ADR | Low | `ready-for-human` |
+| [#33](https://github.com/trancee/MeshLink-template/issues/33) | Fix test organization (JUnit5, 9 wrong packages, 5 missing tests) | Medium | ✅ Closed |
+| [#34](https://github.com/trancee/MeshLink-template/issues/34) | Align minSdk across template modules with crypto dependency | Low | ✅ Closed |
 | [#35](https://github.com/trancee/MeshLink-template/issues/35) | Implement wire codec scaffold (Vertical slice 4) | High | `ready-for-human` |
 
-**Recommendation:** The 3 remaining open tickets (#33 test org, #34 minSdk ADR, #35 wire codec) should be addressed as part of, or before, the implementation phase. Wire codec (#35) is highest priority — all routing, transport, and transfer work depends on it.
+**Recommendation:** The 1 remaining open ticket (#35 wire codec) should be addressed as part of, or before, the implementation phase. Wire codec (#35) is highest priority — all routing, transport, and transfer work depends on it.
 
 ---
 
@@ -198,6 +213,5 @@ All findings are tracked as GitHub issues, labeled `from:audit-map`:
 
 The MeshLink-template repository's infrastructure (CI/CD, build config, API surface, dependency pinning) is **production-ready**. The template correctly scaffolds the data model, settings, diagnostics, and utilities per the 4-vertical-slice plan in `specs/tests/scaffold-alignment-plan.md`.
 
-The two critical gaps from the audit (power-assert plugin and frames.yaml YAML error) are now resolved. The spec validation pipeline is fully closed. Spec-to-code traceability is fully mapped. Spec-to-docs alignment is fully fixed (all cross-reference links corrected). Remaining gaps are in **test infrastructure** (test organization) and the **wire codec scaffold** — all straightforward to address and do not block implementation. The wire codec gap is explicitly planned as Vertical slice 4 and is not a defect.
-
-**Readiness verdict:** The template is ready for implementers to begin building the wire codec, routing, transport, and trust subsystems. The 3 remaining follow-up tickets above should be addressed as part of, or before, the implementation phase.
+The two critical gaps from the audit (power-assert plugin and frames.yaml YAML error) are now resolved. The spec validation pipeline is fully closed. Spec-to-code traceability is fully mapped. Spec-to-docs alignment is fully fixed (all cross-reference links corrected). Test infrastructure deviations (wrong package locations, missing tests, implicit JUnit5 platform adapter) are now resolved. The only remaining gap is the **wire codec scaffold** — straightforward to address and does not block implementation, and is explicitly planned as Vertical slice 4.
+**Readiness verdict:** The template is ready for implementers to begin building the wire codec, routing, transport, and trust subsystems. The 1 remaining follow-up ticket (#35 wire codec) should be addressed as part of, or before, the implementation phase.

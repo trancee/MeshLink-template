@@ -95,7 +95,7 @@ Dokka, SKIE, and 100% coverage gate apply **only to `meshlink`**.
 | Source Set | Purpose |
 |------------|---------|
 | `commonMain` | Shared business logic (security, routing, transfer, diagnostics) |
-| `androidMain` | Platform-specific BLE glue, fallback crypto for Android API 26-32 |
+| `androidMain` | Platform-specific BLE glue, fallback crypto for Android API 21-32 |
 | `iosMain` | Platform-specific BLE glue |
 | `commonTest` | Pure JVM tests (protocol logic, wire codecs, crypto) |
 | `androidHostTest` | Host-side Android tests (crypto fallback paths) |
@@ -1432,7 +1432,7 @@ overflow event.
 
 ### 12.3 Platform Minimums
 
-- Android API 26 (Android 8.0)
+- Android API 21 (Android 5.0)
 - iOS 14
 - Higher APIs guarded at runtime
 

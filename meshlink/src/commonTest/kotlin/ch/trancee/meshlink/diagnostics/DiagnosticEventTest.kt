@@ -1,9 +1,5 @@
-package ch.trancee.meshlink
+package ch.trancee.meshlink.diagnostics
 
-import ch.trancee.meshlink.diagnostics.DiagnosticCode
-import ch.trancee.meshlink.diagnostics.DiagnosticEvent
-import ch.trancee.meshlink.diagnostics.HandshakeId
-import ch.trancee.meshlink.diagnostics.NoiseSessionId
 import ch.trancee.meshlink.model.Bearer
 import ch.trancee.meshlink.model.DecryptFailureReason
 import ch.trancee.meshlink.model.DiagnosticSeverity

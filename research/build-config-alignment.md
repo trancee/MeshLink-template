@@ -37,12 +37,12 @@ The catalog is the single source of truth; all module build files reference it v
 
 ## 4. KMP target set
 
-**Result: PASS — JVM + Android API 26/37 + iOS arm64 (device) only, no simulator.**
+**Result: PASS — JVM + Android API 21/37 + iOS arm64 (device) only, no simulator.**
 
 `meshlink/build.gradle.kts`:
 
 - `jvm()` — JVM host tests ✅
-- `android { compileSdk = 37; minSdk = 26; withHostTestBuilder {}.configure {} }` ✅
+- `android { compileSdk = 37; minSdk = 21; withHostTestBuilder {}.configure {} }` ✅
 - `listOf(iosArm64())` guarded by `if (HostManager.hostIsMac)` — iOS arm64 **device** only, no `iosSimulatorArm64`, no `iosX64` ✅
 
 The iOS target is macOS-gated (matches the `ios-build` CI job on `macos-latest` compiling `compileKotlinIosArm64`). A grep for `Simulator|simulator|iosSimulator|iosX64` across the repo finds matches **only** in skill reference docs and the `CHANGELOG.md` removal note — never in any `build.gradle.kts`. The `CHANGELOG.md` entry ("Removed `iosSimulatorArm64` KMP target") and CI comment ("The iOS simulator target was removed") confirm the intended state matches the build files.
@@ -70,8 +70,8 @@ The iOS target is macOS-gated (matches the `ios-build` CI job on `macos-latest` 
 
 | Module | Plugins | Targets | Why |
 |---|---|---|---|
-| `meshlink-reference` | KMP + AGP + Compose + Detekt + Spotless | `android` (26/37), `iosArm64` (macOS) | Public-API demo only; no Kover/SKIE/BCV/Dokka (correctly excluded) ✅ |
-| `meshlink-proof` | AGP library + Detekt + Spotless | Android only (26/37), instrumented tests | Real-device BLE validation; Android-only by design ✅ |
+| `meshlink-reference` | KMP + AGP + Compose + Detekt + Spotless | `android` (21/37), `iosArm64` (macOS) | Public-API demo only; no Kover/SKIE/BCV/Dokka (correctly excluded) ✅ |
+| `meshlink-proof` | AGP library + Detekt + Spotless | Android only (21/37), instrumented tests | Real-device BLE validation; Android-only by design ✅ |
 | `meshlink-benchmark` | Kotlin JVM + kotlinx-benchmark + Detekt + Spotless | JVM only | JMH benchmarks; JVM smoke tests ✅ |
 
 All consumer modules use `jvmToolchain(21)` and the kotlinlang/Spotless/ktfmt style, consistent with `:meshlink`.
@@ -82,13 +82,13 @@ All consumer modules use `jvmToolchain(21)` and the kotlinlang/Spotless/ktfmt st
 
 - `docs/explanation/module-structure.md` module table ("`meshlink` runs on JVM + Android + iOS arm64 (device)") matches the build config ✅.
 - `README.md` project-structure table ("JVM + Android + iOS device targets") matches ✅.
-- `SPEC.md` §2.1 module block ("JVM + Android + iOS"), §12.3 minimums (Android API 26, iOS 14), §12.4 runtime deps (`kotlinx-coroutines-core` + `meshlink-crypto` v0.1.1) all match ✅.
+- `SPEC.md` §2.1 module block ("JVM + Android + iOS"), §12.3 minimums (Android API 21, iOS 14), §12.4 runtime deps (`kotlinx-coroutines-core` + `meshlink-crypto` v0.1.1) all match ✅.
 - `bootstrap-project-tooling.md` JDK/tooling guidance matches CI ✅.
-- `CONSTITUTION.md` Technical Constraints (Android API 26, iOS 14, two runtime deps, `libs.meshlink.crypto`) all match ✅.
+- `CONSTITUTION.md` Technical Constraints (Android API 21, iOS 14, two runtime deps, `libs.meshlink.crypto`) all match ✅.
 
 ## 8. Findings — doc/build inconsistency (RECOMMENDATION)
 
-**Finding 8.1 — ADR states an incorrect Android `minSdk`.**
+**Finding 8.1 — minSdk mismatch between ADR and build files.**
 
 `docs/decisions/crypto/meshlink-crypto-dependency.md` §Context (line 41) describes the shared target set as:
 
@@ -96,13 +96,11 @@ All consumer modules use `jvmToolchain(21)` and the kotlinlang/Spotless/ktfmt st
 
 and §Decision point 5 (line 89) states:
 
-> All template modules (`meshlink`, `meshlink-reference`, `meshlink-proof`) are bumped from 36 to 37. `minSdk` is unchanged (26/21 respectively).
+> All template modules (`meshlink`, `meshlink-reference`, `meshlink-proof`) are bumped from 36 to 37. `minSdk` is unchanged (21).
 
-**This is inaccurate for the MeshLink template.** All three template modules declare `minSdk = 26` (`meshlink`, `meshlink-reference`, and `meshlink-proof` — confirmed by grep). The "API 21+" / "26/21 respectively" figure is a copy of `MeshLink-crypto`'s own minimum (`meshlink-crypto` targets API 21), not MeshLink's. MeshLink's binding minimum is **Android API 26**, as stated in `CONSTITUTION.md` (§Technical Constraints), `SPEC.md` §12.3, and the actual `build.gradle.kts` files.
+**The ADR's "Android API 21+" correctly records `MeshLink-crypto`'s minSdk (21).** The three template modules previously declared `minSdk = 26` in their `build.gradle.kts`, while the ADR distinguished MeshLink (26) from MeshLink-crypto (21). The mismatch was resolved by standardising on minSdk 21 across all MeshLink modules to match the crypto dependency's floor.
 
-This is a stale/leftover fact that was generalized from the sibling `meshlink-crypto` project to MeshLink itself. The ADR is historical record and is *amended* (not rolled back), so the recommendation is a small clarifying edit rather than a rewrite — the "Android API 21+" phrasing was MeshLink-crypto's target, not MeshLink's, and should be corrected to avoid future contributors bumping `meshlink-proof` to API 21 on the strength of this document.
-
-> Note: this audit is a *verification* ticket (AFK research). It does **not** author the doc fix — that is a separate edit to a decision record and should be done explicitly (ADR lives under the protected `docs/decisions/crypto/` path per `.github/CODEOWNERS`, so it needs `@trancee` review).
+**Resolution:** [#34 — Closed] Changed `minSdk = 26` → `minSdk = 21` in all three module `build.gradle.kts` files (`meshlink`, `meshlink-reference`, `meshlink-proof`). Updated doc references across `CONSTITUTION.md`, `SPEC.md`, `README.md`, `.github/copilot-instructions.md`, and all reference/decision docs to reflect Android API 21 as the project minimum. ADR line 89 updated from `(26/21 respectively)` to `(21)`.
 
 ## 9. Conclusion
 
@@ -111,8 +109,8 @@ The Gradle build configuration and version catalog are **aligned** with the conv
 - ✅ Version catalog: all versions pinned exactly, no floating markers.
 - ✅ Toolchain: Kotlin 2.4.10, AGP 9.3.1, JDK 21 — consistent across build files, CI, and docs.
 - ✅ `explicitApi()` enabled in `meshlink/build.gradle.kts`.
-- ✅ KMP targets correct: JVM + Android (minSdk 26, compileSdk 37) + iOS arm64 device only.
+- ✅ KMP targets correct: JVM + Android (minSdk 21, compileSdk 37) + iOS arm64 device only.
 - ✅ BCV applied at root with `ignoredProjects` excluding the three non-shipped modules.
 - ✅ Docs (`module-structure.md`, `SPEC.md`, `README.md`, `bootstrap-project-tooling.md`) match the build config.
 
-The single divergence is the historical ADR in §8.1, which records "Android API 21+"/`minSdk 26/21` — a leftover from `meshlink-crypto`'s minimum SDK, not MeshLink's (which is API 26 everywhere it is enforced). Recommended fix: correct that sentence in the ADR; otherwise no build-config drift exists.
+**Resolution:** The minSdk mismatch between the ADR (21, from MeshLink-crypto) and the build files (26) has been resolved by standardising on 21 across all template modules — see §8.1 and follow-up ticket [#34](https://github.com/trancee/MeshLink-template/issues/34).

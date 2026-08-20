@@ -1,6 +1,5 @@
-package ch.trancee.meshlink
+package ch.trancee.meshlink.model
 
-import ch.trancee.meshlink.model.SeqNo
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

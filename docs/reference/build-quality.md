@@ -30,7 +30,7 @@
 
 ## Platform Minimums
 
-- Android API 26 (Android 8.0)
+- Android API 21 (Android 5.0)
 - iOS 14
 - Higher APIs guarded at runtime
 
