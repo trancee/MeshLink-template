@@ -13,7 +13,9 @@ cross_references:
     spec_section: "SPEC.md#architecture-overview"
     adrs:
       - "docs/explanation/module-structure.md"
-    code_files: []
+    code_files:
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLink.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLinkEnvironment.kt"
     description: "Module structure, source set organization, wire protocol reference standards"
 
   - spec_id: "data-model"
@@ -31,6 +33,25 @@ cross_references:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferResult.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLinkVersion.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/MeshLinkState.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/AppHash.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/CryptoKeyConstants.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/ErrorCode.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Exceptions.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/IncomingTransfer.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/KnownPeer.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/MessageId.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Message.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/MessageHandle.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferId.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferKind.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferOptions.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferStatus.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Transfer.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferHandle.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferSink.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferSource.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TrustRecord.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/util/BigEndianConversions.kt"
     specs:
       - "specs/codecs/models.yaml"
     description: "Core data models: PeerIdentity, internal SeqNo, Scoreboard, TransferSession, keys, MeshLinkVersion, and enums; routing candidates are specified separately"
@@ -41,7 +62,8 @@ cross_references:
       - "docs/decisions/discovery/connectable-advertisement.md"
       - "docs/decisions/discovery/mesh-hash-derivation.md"
       - "docs/decisions/discovery/peer-hint-and-identity-races.md"
-    code_files: []
+    code_files:
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/util/MeshHash.kt"
     specs:
       - "specs/codecs/frames.yaml"
     implementation_status: not_implemented
@@ -64,7 +86,9 @@ cross_references:
       - "docs/decisions/transport/gatt-channel-and-framing.md"
       - "docs/decisions/transport/mtu-negotiation.md"
       - "docs/decisions/transport/background-operation.md"
-    code_files: []
+    code_files:
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/transport/L2capState.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/util/SecureRandom.kt"
     implementation_status: not_implemented
     description: "Bearer selection (GATT control plane, L2CAP CoC data plane), negotiation sequence, fallback reasons"
 
@@ -78,7 +102,10 @@ cross_references:
       - "docs/decisions/crypto/replay-window.md"
       - "docs/decisions/crypto/noise-session-renewal.md"
       - "docs/decisions/crypto/key-rotation-propagation.md"
-    code_files: []
+    code_files:
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/util/ConstantTime.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/security/ReplayWindow.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/transfer/PayloadDecision.kt"
     specs:
       - "specs/codecs/enums.yaml"
       - "specs/protocol/state-machines.yaml"
@@ -89,7 +116,8 @@ cross_references:
     spec_section: "SPEC.md#routing-layer"
     adrs:
       - "docs/decisions/routing/routing-design.md"
-    code_files: []
+    code_files:
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/RoutingPolicy.kt"
     specs:
       - "specs/codecs/models.yaml"
       - "specs/protocol/state-machines.yaml"
@@ -110,6 +138,17 @@ cross_references:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferSession.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Scoreboard.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferResult.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferId.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferKind.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferOptions.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferStatus.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Transfer.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferHandle.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferSink.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/TransferSource.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/MessageId.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/Message.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/model/MessageHandle.kt"
     specs:
       - "specs/codecs/models.yaml"
       - "specs/protocol/state-machines.yaml"
@@ -160,6 +199,7 @@ cross_references:
       - "docs/decisions/api/public-api-and-lifecycle.md"
     code_files:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLinkSettings.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/util/RequireSetting.kt"
     specs:
       - "specs/catalogs/settings.yaml"
     description: "Configuration DSL (MeshLinkSettings, KeyRotationSettings, TransferSettings, RoutingSettings, DiagnosticsSettings); mandatory security invariants are not configurable"
@@ -224,7 +264,7 @@ spec_anchors_in_code:
   - "handshake-key-model" # HandshakeKey.kt
   - "trust-record" # TrustRecord.kt
   - "ttl-by-priority" # RoutingPolicy.kt
-  - "enums" # Enums.kt
+  - "enums" # Enums.kt, PayloadDecision.kt, L2capState.kt
   - "error-code" # ErrorCode.kt
   - "error-hierarchy" # Exceptions.kt
   - "diagnostic-event" # DiagnosticEvent.kt
@@ -234,6 +274,7 @@ spec_anchors_in_code:
   - "known-peer-model" # KnownPeer.kt
   - "constant-time" # ConstantTime.kt
   - "mesh-hash" # MeshHash.kt
+  - "peer-identity-model" # PeerIdentity.kt
 
 implementation_status:
   implemented:
