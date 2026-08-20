@@ -670,6 +670,7 @@ public final class ch/trancee/meshlink/model/ErrorCode$Companion {
 }
 
 public final class ch/trancee/meshlink/model/FrameType : java/lang/Enum {
+	public static final field Companion Lch/trancee/meshlink/model/FrameType$Companion;
 	public static final field EPOCH_ACKNOWLEDGEMENT Lch/trancee/meshlink/model/FrameType;
 	public static final field EPOCH_COMMIT Lch/trancee/meshlink/model/FrameType;
 	public static final field KEY_ROTATION Lch/trancee/meshlink/model/FrameType;
@@ -689,6 +690,10 @@ public final class ch/trancee/meshlink/model/FrameType : java/lang/Enum {
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lch/trancee/meshlink/model/FrameType;
 	public static fun values ()[Lch/trancee/meshlink/model/FrameType;
+}
+
+public final class ch/trancee/meshlink/model/FrameType$Companion {
+	public final fun fromCode-7apg3OU (B)Lch/trancee/meshlink/model/FrameType;
 }
 
 public final class ch/trancee/meshlink/model/HandshakeKey {
@@ -1334,5 +1339,68 @@ public final class ch/trancee/meshlink/util/MeshHash {
 
 public final class ch/trancee/meshlink/util/SecureRandomKt {
 	public static final fun randomULong ()J
+}
+
+public final class ch/trancee/meshlink/wire/codec/FrameCodec {
+	public static final field INSTANCE Lch/trancee/meshlink/wire/codec/FrameCodec;
+	public static final field MAX_PAYLOAD I
+	public final fun decode ([B)Lch/trancee/meshlink/wire/model/WireFrame;
+	public final fun encode-Zo7BePA (Lch/trancee/meshlink/model/FrameType;B[B)[B
+}
+
+public final class ch/trancee/meshlink/wire/model/ByteOrder : java/lang/Enum {
+	public static final field BIG_ENDIAN Lch/trancee/meshlink/wire/model/ByteOrder;
+	public static final field LITTLE_ENDIAN Lch/trancee/meshlink/wire/model/ByteOrder;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lch/trancee/meshlink/wire/model/ByteOrder;
+	public static fun values ()[Lch/trancee/meshlink/wire/model/ByteOrder;
+}
+
+public final class ch/trancee/meshlink/wire/model/Field {
+	public fun <init> (Ljava/lang/String;Lch/trancee/meshlink/wire/model/FieldType;Ljava/lang/Integer;Lch/trancee/meshlink/wire/model/ByteOrder;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Lch/trancee/meshlink/wire/model/FieldType;Ljava/lang/Integer;Lch/trancee/meshlink/wire/model/ByteOrder;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Lch/trancee/meshlink/wire/model/FieldType;
+	public final fun component3 ()Ljava/lang/Integer;
+	public final fun component4 ()Lch/trancee/meshlink/wire/model/ByteOrder;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Lch/trancee/meshlink/wire/model/FieldType;Ljava/lang/Integer;Lch/trancee/meshlink/wire/model/ByteOrder;Ljava/lang/String;)Lch/trancee/meshlink/wire/model/Field;
+	public static synthetic fun copy$default (Lch/trancee/meshlink/wire/model/Field;Ljava/lang/String;Lch/trancee/meshlink/wire/model/FieldType;Ljava/lang/Integer;Lch/trancee/meshlink/wire/model/ByteOrder;Ljava/lang/String;ILjava/lang/Object;)Lch/trancee/meshlink/wire/model/Field;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getByteCount ()Ljava/lang/Integer;
+	public final fun getByteOrder ()Lch/trancee/meshlink/wire/model/ByteOrder;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getPresence ()Ljava/lang/String;
+	public final fun getType ()Lch/trancee/meshlink/wire/model/FieldType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class ch/trancee/meshlink/wire/model/FieldType : java/lang/Enum {
+	public static final field BYTE_ARRAY Lch/trancee/meshlink/wire/model/FieldType;
+	public static final field PEER_IDENTITY Lch/trancee/meshlink/wire/model/FieldType;
+	public static final field UBYTE Lch/trancee/meshlink/wire/model/FieldType;
+	public static final field UINT Lch/trancee/meshlink/wire/model/FieldType;
+	public static final field ULONG Lch/trancee/meshlink/wire/model/FieldType;
+	public static final field USHORT Lch/trancee/meshlink/wire/model/FieldType;
+	public final fun getByteCount ()Ljava/lang/Integer;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lch/trancee/meshlink/wire/model/FieldType;
+	public static fun values ()[Lch/trancee/meshlink/wire/model/FieldType;
+}
+
+public final class ch/trancee/meshlink/wire/model/WireFrame {
+	public synthetic fun <init> (Lch/trancee/meshlink/model/FrameType;B[BLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lch/trancee/meshlink/model/FrameType;
+	public final fun component2-w2LRezQ ()B
+	public final fun component3 ()[B
+	public final fun copy-Zo7BePA (Lch/trancee/meshlink/model/FrameType;B[B)Lch/trancee/meshlink/wire/model/WireFrame;
+	public static synthetic fun copy-Zo7BePA$default (Lch/trancee/meshlink/wire/model/WireFrame;Lch/trancee/meshlink/model/FrameType;B[BILjava/lang/Object;)Lch/trancee/meshlink/wire/model/WireFrame;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPayload ()[B
+	public final fun getType ()Lch/trancee/meshlink/model/FrameType;
+	public final fun getVersion-w2LRezQ ()B
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 

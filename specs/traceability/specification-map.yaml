@@ -274,7 +274,7 @@ spec_anchors_in_code:
   - "known-peer-model" # KnownPeer.kt
   - "constant-time" # ConstantTime.kt
   - "mesh-hash" # MeshHash.kt
-  - "peer-identity-model" # PeerIdentity.kt
+  - "wire-frame" # WireFrame.kt, FrameType.kt, ByteOrder.kt, Field.kt, FrameReader.kt, FrameWriter.kt, FrameCodec.kt
 
 implementation_status:
   implemented:
@@ -303,7 +303,7 @@ implementation_status:
     - "HandshakeKey"
     - "MessageHandle, TransferHandle, TransferSink, TransferSource types"
     - "TransferStatus, Message, Transfer data classes"
-    - "MeshLinkSettings data model (KeyRotationSettings, TransferSettings, RoutingSettings, DiagnosticsSettings)"
+    - "Custom MeshLink Wire Codec (frames, enums, models, bounded reader/writer)"
   not_implemented:
     - "MeshLink public API and lifecycle"
     - "KnownPeer snapshots and trust commands"
@@ -324,7 +324,6 @@ implementation_status:
     - "PeerStateCoordinator"
     - "MeshLinkSettings DSL integration in MeshLink.kt"
     - "Virtual mesh harness"
-    - "Custom MeshLink Wire Codec (frames, enums, models, bounded reader/writer)"
 
 test_files_by_layer:
   data_model:
@@ -347,3 +346,11 @@ test_files_by_layer:
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/TransferResultTest.kt"
   version:
     - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/MeshLinkVersionTest.kt"
+  wire:
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/wire/model/ByteOrderTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/wire/model/FieldTypeTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/wire/model/FieldTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/wire/model/WireFrameTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/wire/codec/FrameReaderTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/wire/codec/FrameWriterTest.kt"
+    - "meshlink/src/commonTest/kotlin/ch/trancee/meshlink/wire/codec/FrameCodecTest.kt"
