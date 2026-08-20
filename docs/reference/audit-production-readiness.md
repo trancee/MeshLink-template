@@ -16,13 +16,13 @@ The MeshLink-template repository is **production-ready for implementation** at t
 | CI/CD quality gates | 0 | **PASS** — all 7 Constitution gates configured, actions current |
 | API/Binary compatibility | 0 | **PASS** — `:meshlink:apiCheck` + full quality suite green |
 | Build configuration | 0 | **PASS** — all versions/targets/explicitApi correct (1 doc-only rec) |
-| Spec validation pipeline | 1 | **GAP** — .yamllint ignores specs/ (validate-specs.sh now in CI + hooks) |
+| Spec validation pipeline | 0 | **PASS** — validate-specs.sh in CI + hooks; yamllint covers specs/ |
 | Spec-to-code traceability | 2 | **GAPS** — 15 source files missing from spec map; 14 SPEC-ANCHOR annotations orphaned |
 | Spec-to-docs alignment | 1 | **BROKEN** — 30 broken SPEC.md anchor links across 14/15 reference docs |
 | Test infrastructure | 1 | **GAP** — test organization deviations (3 wrong packages, 5 missing tests) |
 | Wire codec | 1 | **KNOWN GAP** — intentionally unimplemented (Vertical slice 4, scaffold plan) |
 
-**Verdict:** The template's scaffold, CI plumbing, and quality-gate configuration are sound enough for an implementer to begin building wire codec, routing, transport, and trust subsystems. The findings above should be addressed during implementation, with 0 remaining critical gaps. The remaining spec validation gap (#27 — yamllint for specs/) should be closed to prevent future silent failures.
+**Verdict:** The template's scaffold, CI plumbing, and quality-gate configuration are sound enough for an implementer to begin building wire codec, routing, transport, and trust subsystems. The findings above should be addressed during implementation, with 0 remaining critical gaps. No spec validation pipeline gaps remain.
 
 ---
 
@@ -165,7 +165,7 @@ All findings are tracked as GitHub issues, labeled `from:audit-map`:
 |---|---|---|---|
 | [#25](https://github.com/trancee/MeshLink-template/issues/25) | Fix frames.yaml YAML structural error | Critical | ✅ Closed |
 | [#26](https://github.com/trancee/MeshLink-template/issues/26) | Integrate validate-specs.sh into CI and git hooks | Medium | ✅ Closed |
-| [#27](https://github.com/trancee/MeshLink-template/issues/27) | Configure yamllint to cover specs/ + replace no-op enum validation | Medium | `ready-for-agent` |
+| [#27](https://github.com/trancee/MeshLink-template/issues/27) | Configure yamllint to cover specs/ + replace no-op enum validation | Medium | ✅ Closed |
 | [#28](https://github.com/trancee/MeshLink-template/issues/28) | Fix SPEC.md content consistency (orphan ADRs, traceability, naming) | Medium | `ready-for-agent` |
 | [#29](https://github.com/trancee/MeshLink-template/issues/29) | Fix spec-to-code traceability gaps (15 missing files, orphaned SPEC-ANCHOR) | Medium | `ready-for-agent` |
 | [#30](https://github.com/trancee/MeshLink-template/issues/30) | Fix precision in not_implemented traceability entries | Low | `ready-for-agent` |
@@ -175,7 +175,7 @@ All findings are tracked as GitHub issues, labeled `from:audit-map`:
 | [#34](https://github.com/trancee/MeshLink-template/issues/34) | Fix stale minSdk 21 reference in ADR | Low | `ready-for-human` |
 | [#35](https://github.com/trancee/MeshLink-template/issues/35) | Implement wire codec scaffold (Vertical slice 4) | High | `ready-for-human` |
 
-**Recommendation:** Before starting protocol-layer implementation, address [#27](https://github.com/trancee/MeshLink-template/issues/27) (yamllint for specs/ + enum validation). The wire codec ([#35](https://github.com/trancee/MeshLink-template/issues/35)) is the highest-priority implementation item — all routing, transport, and transfer work depends on it.
+**Recommendation:** Before starting wire codec implementation ([#35](https://github.com/trancee/MeshLink-template/issues/35)), address [#29](https://github.com/trancee/MeshLink-template/issues/29) (spec-to-code traceability gaps). The wire codec is the highest-priority implementation item — all routing, transport, and transfer work depends on it.
 
 ---
 
@@ -183,6 +183,6 @@ All findings are tracked as GitHub issues, labeled `from:audit-map`:
 
 The MeshLink-template repository's infrastructure (CI/CD, build config, API surface, dependency pinning) is **production-ready**. The template correctly scaffolds the data model, settings, diagnostics, and utilities per the 4-vertical-slice plan in `specs/tests/scaffold-alignment-plan.md`.
 
-The two critical gaps from the audit (power-assert plugin and frames.yaml YAML error) are now resolved. Remaining gaps are in **spec validation pipeline** (yamllint ignores specs/), **documentation integrity** (broken cross-references, traceability drift), and **test infrastructure** (test organization) — all straightforward to fix and do not block implementation. The one known major gap (wire codec) is explicitly planned as Vertical slice 4 and is not a defect.
+The two critical gaps from the audit (power-assert plugin and frames.yaml YAML error) are now resolved. The spec validation pipeline is fully closed. Remaining gaps are in **documentation integrity** (broken cross-references, traceability drift), **spec-to-code traceability** (15 missing source files, orphaned SPEC-ANCHOR annotations), and **test infrastructure** (test organization) — all straightforward to fix and do not block implementation. The one known major gap (wire codec) is explicitly planned as Vertical slice 4 and is not a defect.
 
-**Readiness verdict:** The template is ready for implementers to begin building the wire codec, routing, transport, and trust subsystems. The 9 remaining follow-up tickets above should be addressed as part of, or before, the implementation phase.
+**Readiness verdict:** The template is ready for implementers to begin building the wire codec, routing, transport, and trust subsystems. The 7 remaining follow-up tickets above should be addressed as part of, or before, the implementation phase.
