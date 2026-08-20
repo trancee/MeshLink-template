@@ -17,7 +17,7 @@ The MeshLink-template repository is **production-ready for implementation** at t
 | API/Binary compatibility | 0 | **PASS** — `:meshlink:apiCheck` + full quality suite green |
 | Build configuration | 0 | **PASS** — all versions/targets/explicitApi correct (1 doc-only rec) |
 | Spec validation pipeline | 0 | **PASS** — validate-specs.sh in CI + hooks; yamllint covers specs/ |
-| Spec-to-code traceability | 2 | **GAPS** — 15 source files missing from spec map; 14 SPEC-ANCHOR annotations orphaned |
+| Spec-to-code traceability | 0 | **PASS** — all 42 source files mapped; 24 SPEC-ANCHORs in `spec_anchors_in_code`; enums anchor lists all 3 files |
 | Spec-to-docs alignment | 1 | **BROKEN** — 30 broken SPEC.md anchor links across 14/15 reference docs |
 | Test infrastructure | 1 | **GAP** — test organization deviations (3 wrong packages, 5 missing tests) |
 | Wire codec | 1 | **KNOWN GAP** — intentionally unimplemented (Vertical slice 4, scaffold plan) |
@@ -127,11 +127,16 @@ Five ADRs exist on disk but are not referenced in SPEC.md. §10 (Power Managemen
 
 **Follow-up:** [#28 — Fix SPEC.md content consistency](https://github.com/trancee/MeshLink-template/issues/28)
 
-#### 8. Spec-to-code traceability gaps — [#17](https://github.com/trancee/MeshLink-template/issues/17) → [#29](https://github.com/trancee/MeshLink-template/issues/29)
+#### 8. Spec-to-code traceability gaps — [#17](https://github.com/trancee/MeshLink-template/issues/17) → [#29](https://github.com/trancee/MeshLink-template/issues/29) ✅ RESOLVED
 
-15 source files exist in `meshlink/src/commonMain/` but are not listed in any `code_files` entry in the traceability map. 14 SPEC-ANCHOR-annotated files are orphaned from their corresponding `code_files` lists. The enums anchor spans 3 files but lists only `Enums.kt`.
+15 source files existed in `meshlink/src/commonMain/` but were not listed in any `code_files` entry in the traceability map. 14 SPEC-ANCHOR-annotated files were orphaned from their corresponding `code_files` lists. The `enums` anchor spanned 3 files but listed only `Enums.kt`.
 
-**Follow-up:** [#29 — Fix spec-to-code traceability gaps](https://github.com/trancee/MeshLink-template/issues/29)
+**Resolution:** [#29 — Closed]
+
+- Added 29 missing source files to `cross_references.code_files` lists across 8 sections
+- Added `peer-identity-model` to `spec_anchors_in_code` (was in code via PeerIdentity.kt but missing from map)
+- Updated `enums` comment to list all 3 files: Enums.kt, PayloadDecision.kt, L2capState.kt
+- All 42 source files now listed in at least one `code_files` entry (0 missing); `validate-specs.sh` all 7 checks pass
 
 #### 9. Test organization deviations — [#21](https://github.com/trancee/MeshLink-template/issues/21) → [#33](https://github.com/trancee/MeshLink-template/issues/33)
 
@@ -167,7 +172,7 @@ All findings are tracked as GitHub issues, labeled `from:audit-map`:
 | [#26](https://github.com/trancee/MeshLink-template/issues/26) | Integrate validate-specs.sh into CI and git hooks | Medium | ✅ Closed |
 | [#27](https://github.com/trancee/MeshLink-template/issues/27) | Configure yamllint to cover specs/ + replace no-op enum validation | Medium | ✅ Closed |
 | [#28](https://github.com/trancee/MeshLink-template/issues/28) | Fix SPEC.md content consistency (orphan ADRs, traceability, naming) | Medium | ✅ Closed |
-| [#29](https://github.com/trancee/MeshLink-template/issues/29) | Fix spec-to-code traceability gaps (15 missing files, orphaned SPEC-ANCHOR) | Medium | `ready-for-agent` |
+| [#29](https://github.com/trancee/MeshLink-template/issues/29) | Fix spec-to-code traceability gaps (15 missing files, orphaned SPEC-ANCHOR) | Medium | ✅ Closed |
 | [#30](https://github.com/trancee/MeshLink-template/issues/30) | Fix precision in not_implemented traceability entries | Low | `ready-for-agent` |
 | [#31](https://github.com/trancee/MeshLink-template/issues/31) | Fix 30 broken SPEC.md/doc cross-reference links + Pandoc syntax | Medium | `ready-for-agent` |
 | [#32](https://github.com/trancee/MeshLink-template/issues/32) | Configure power-assert compiler plugin | Critical | ✅ Closed |
@@ -175,7 +180,7 @@ All findings are tracked as GitHub issues, labeled `from:audit-map`:
 | [#34](https://github.com/trancee/MeshLink-template/issues/34) | Fix stale minSdk 21 reference in ADR | Low | `ready-for-human` |
 | [#35](https://github.com/trancee/MeshLink-template/issues/35) | Implement wire codec scaffold (Vertical slice 4) | High | `ready-for-human` |
 
-**Recommendation:** Before starting wire codec implementation ([#35](https://github.com/trancee/MeshLink-template/issues/35)), address [#29](https://github.com/trancee/MeshLink-template/issues/29) (spec-to-code traceability gaps). The wire codec is the highest-priority implementation item — all routing, transport, and transfer work depends on it.
+**Recommendation:** Before starting wire codec implementation ([#35](https://github.com/trancee/MeshLink-template/issues/35)), address [#31](https://github.com/trancee/MeshLink-template/issues/31) (broken SPEC.md/doc cross-reference links). The wire codec is the highest-priority implementation item — all routing, transport, and transfer work depends on it.
 
 ---
 
@@ -183,6 +188,6 @@ All findings are tracked as GitHub issues, labeled `from:audit-map`:
 
 The MeshLink-template repository's infrastructure (CI/CD, build config, API surface, dependency pinning) is **production-ready**. The template correctly scaffolds the data model, settings, diagnostics, and utilities per the 4-vertical-slice plan in `specs/tests/scaffold-alignment-plan.md`.
 
-The two critical gaps from the audit (power-assert plugin and frames.yaml YAML error) are now resolved. The spec validation pipeline is fully closed. Remaining gaps are in **documentation integrity** (broken cross-references, traceability drift), **spec-to-code traceability** (15 missing source files, orphaned SPEC-ANCHOR annotations), and **test infrastructure** (test organization) — all straightforward to fix and do not block implementation. The one known major gap (wire codec) is explicitly planned as Vertical slice 4 and is not a defect.
+The two critical gaps from the audit (power-assert plugin and frames.yaml YAML error) are now resolved. The spec validation pipeline is fully closed. Spec-to-code traceability is fully mapped. Remaining gaps are in **documentation integrity** (broken cross-references) and **test infrastructure** (test organization) — all straightforward to fix and do not block implementation. The one known major gap (wire codec) is explicitly planned as Vertical slice 4 and is not a defect.
 
-**Readiness verdict:** The template is ready for implementers to begin building the wire codec, routing, transport, and trust subsystems. The 6 remaining follow-up tickets above should be addressed as part of, or before, the implementation phase.
+**Readiness verdict:** The template is ready for implementers to begin building the wire codec, routing, transport, and trust subsystems. The 5 remaining follow-up tickets above should be addressed as part of, or before, the implementation phase.
