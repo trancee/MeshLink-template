@@ -16,13 +16,13 @@ The MeshLink-template repository is **production-ready for implementation** at t
 | CI/CD quality gates | 0 | **PASS** — all 7 Constitution gates configured, actions current |
 | API/Binary compatibility | 0 | **PASS** — `:meshlink:apiCheck` + full quality suite green |
 | Build configuration | 0 | **PASS** — all versions/targets/explicitApi correct (1 doc-only rec) |
-| Spec validation pipeline | 3+ | **FAIL** — frames.yaml has YAML structural error; validate-specs.sh not in CI; .yamllint ignores specs/ |
+| Spec validation pipeline | 2 | **GAPS** — validate-specs.sh not in CI; .yamllint ignores specs/ (frames.yaml error fixed) |
 | Spec-to-code traceability | 2 | **GAPS** — 15 source files missing from spec map; 14 SPEC-ANCHOR annotations orphaned |
 | Spec-to-docs alignment | 1 | **BROKEN** — 30 broken SPEC.md anchor links across 14/15 reference docs |
 | Test infrastructure | 1 | **GAP** — test organization deviations (3 wrong packages, 5 missing tests) |
 | Wire codec | 1 | **KNOWN GAP** — intentionally unimplemented (Vertical slice 4, scaffold plan) |
 
-**Verdict:** The template's scaffold, CI plumbing, and quality-gate configuration are sound enough for an implementer to begin building wire codec, routing, transport, and trust subsystems. The findings above should be addressed during implementation, with the 1 remaining critical gap (frames.yaml) prioritized before the first protocol-layer feature.
+**Verdict:** The template's scaffold, CI plumbing, and quality-gate configuration are sound enough for an implementer to begin building wire codec, routing, transport, and trust subsystems. The findings above should be addressed during implementation, with 0 remaining critical gaps. The spec validation pipeline gaps (#26, #27) should be closed to prevent future silent failures.
 
 ---
 
@@ -72,14 +72,14 @@ AGENTS.md explicitly requires power-assert for all test assertions, but the `kot
 
 **Resolution:** [#32 — Closed] Configured `org.jetbrains.kotlin.plugin.power-assert` (Kotlin 2.4.10 built-in) in the version catalog, root `build.gradle.kts` with `apply false`, and `:meshlink` module with `powerAssert { functions = listOf(...) }` transforming all `kotlin.test.*` assertion functions. All quality gates pass (Spotless, Detekt, Kover 100%, BCV apiCheck, tests green).
 
-#### 2. frames.yaml has a YAML structural error — [#16](https://github.com/trancee/MeshLink-template/issues/16) → [#25](https://github.com/trancee/MeshLink-template/issues/25)
+#### 2. frames.yaml has a YAML structural error — [#16](https://github.com/trancee/MeshLink-template/issues/16) → [#25](https://github.com/trancee/MeshLink-template/issues/25) ✅ RESOLVED
 
 **Severity:** Critical  
-**File:** `specs/codecs/frames.yaml` (lines 496–498)
+**File:** `specs/codecs/frames.yaml` (lines 496–527)
 
-A mapping key is followed by sequence items at the same indentation level — invalid YAML per strict parsers (PyYAML, yq). This error is **not detected** by `yamllint`, `validate-specs.sh`, or CI — every automated gate passes silently.
+A mapping key (`description`) was followed by sequence items (`- name:`) at the same indentation level — invalid YAML per strict parsers (PyYAML, yq). This error was **not detected** by `yamllint`, `validate-specs.sh`, or CI — every automated gate passed silently.
 
-**Follow-up:** [#25 — Fix frames.yaml YAML structural error](https://github.com/trancee/MeshLink-template/issues/25)
+**Resolution:** [#25 — Closed] Wrapped sequence items under a proper `values:` sub-key, matching the `FrameType` enum pattern in `enums.yaml`. Verified with `yaml.safe_load` (15 entries parse correctly), `yamllint` (exit 0), and `validate-specs.sh` (all checks pass).
 
 ---
 
@@ -170,7 +170,7 @@ All findings are tracked as GitHub issues, labeled `from:audit-map`:
 | [#34](https://github.com/trancee/MeshLink-template/issues/34) | Fix stale minSdk 21 reference in ADR | Low | `ready-for-human` |
 | [#35](https://github.com/trancee/MeshLink-template/issues/35) | Implement wire codec scaffold (Vertical slice 4) | High | `ready-for-human` |
 
-**Recommendation:** Address [#25](https://github.com/trancee/MeshLink-template/issues/25) (frames.yaml) before starting any protocol-layer implementation. The wire codec ([#35](https://github.com/trancee/MeshLink-template/issues/35)) is the highest-priority implementation item — all routing, transport, and transfer work depends on it.
+**Recommendation:** Before starting protocol-layer implementation, address [#26](https://github.com/trancee/MeshLink-template/issues/26) (validate-specs.sh in CI) and [#27](https://github.com/trancee/MeshLink-template/issues/27) (yamllint for specs/). The wire codec ([#35](https://github.com/trancee/MeshLink-template/issues/35)) is the highest-priority implementation item — all routing, transport, and transfer work depends on it.
 
 ---
 
@@ -178,6 +178,6 @@ All findings are tracked as GitHub issues, labeled `from:audit-map`:
 
 The MeshLink-template repository's infrastructure (CI/CD, build config, API surface, dependency pinning) is **production-ready**. The template correctly scaffolds the data model, settings, diagnostics, and utilities per the 4-vertical-slice plan in `specs/tests/scaffold-alignment-plan.md`.
 
-The gaps identified are primarily in **documentation integrity** (broken cross-references, traceability drift) and **test infrastructure** (missing power-assert, test organization) — all of which are straightforward to fix and do not block implementation. The one known major gap (wire codec) is explicitly planned as Vertical slice 4 and is not a defect.
+The two critical gaps from the audit (power-assert plugin and frames.yaml YAML error) are now resolved. Remaining gaps are in **spec validation pipeline** (validate-specs.sh not in CI, yamllint ignores specs/), **documentation integrity** (broken cross-references, traceability drift), and **test infrastructure** (test organization) — all straightforward to fix and do not block implementation. The one known major gap (wire codec) is explicitly planned as Vertical slice 4 and is not a defect.
 
 **Readiness verdict:** The template is ready for implementers to begin building the wire codec, routing, transport, and trust subsystems. The 11 follow-up tickets above should be addressed as part of, or before, the implementation phase.
