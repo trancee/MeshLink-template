@@ -135,6 +135,7 @@ need_proof=0
 need_yaml=0
 need_markdown=0
 need_hook_validation=0
+need_spec_validation=0
 yaml_files=()
 markdown_files=()
 
@@ -155,8 +156,11 @@ for file in "${pushed_files[@]}"; do
     meshlink-proof/*)
       need_proof=1
       ;;
-    .githooks/*|scripts/install-git-hooks.sh|scripts/bootstrap.sh|scripts/check-markdown.sh)
+    .githooks/*|scripts/install-git-hooks.sh|scripts/bootstrap.sh|scripts/check-markdown.sh|scripts/validate-specs.sh)
       need_hook_validation=1
+      ;;
+    specs/*|SPEC.md|docs/decisions/*|docs/reference/*)
+      need_spec_validation=1
       ;;
     build.gradle.kts|settings.gradle.kts|gradle.properties|gradle/*)
       need_meshlink=1
@@ -190,7 +194,8 @@ if [[ "$need_hook_validation" -eq 1 ]]; then
     .githooks/commit-msg \
     scripts/install-git-hooks.sh \
     scripts/bootstrap.sh \
-    scripts/check-markdown.sh
+    scripts/check-markdown.sh \
+    scripts/validate-specs.sh
 fi
 
 if [[ -n "$remote_name" || -n "$remote_url" ]]; then
@@ -209,6 +214,11 @@ echo "[pre-push] Scanning repository history for secrets"
 gitleaks detect --source . --redact -v --config .gitleaks.toml
 
 gradle_cmd=(./gradlew --console=plain --configuration-cache --parallel)
+
+if [[ "$need_spec_validation" -eq 1 ]]; then
+  echo "[pre-push] Running spec validation..."
+  ./scripts/validate-specs.sh
+fi
 
 if [[ "$need_yaml" -eq 1 ]]; then
   if ! command -v yamllint >/dev/null 2>&1; then
