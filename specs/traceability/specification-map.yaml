@@ -301,10 +301,13 @@ implementation_status:
     - "MeshLinkEnvironment"
     - "DiagnosticCode constants (companion object)"
     - "HandshakeKey"
+    - "MessageHandle, TransferHandle, TransferSink, TransferSource types"
+    - "TransferStatus, Message, Transfer data classes"
+    - "MeshLinkSettings data model (KeyRotationSettings, TransferSettings, RoutingSettings, DiagnosticsSettings)"
   not_implemented:
     - "MeshLink public API and lifecycle"
     - "KnownPeer snapshots and trust commands"
-    - "Message and transfer handles, sources, and sinks"
+    - "Message and transfer functional integration in MeshLink.kt (handles, sinks, sources not wired)"
     - "Diagnostic flow delivery"
     - "Persisted source-owned sequence allocator (TransferId allocation strategy) - not yet wired into MeshLink lifecycle"
     - "RouteCandidate, LinkQuality, additive cost, EWMA, and hysteresis"
@@ -319,7 +322,7 @@ implementation_status:
     - "KeyRotationProof handling, retained continuity chain, and rotation-recovery XX"
     - "TrustStore"
     - "PeerStateCoordinator"
-    - "MeshLinkSettings DSL integration"
+    - "MeshLinkSettings DSL integration in MeshLink.kt"
     - "Virtual mesh harness"
     - "Custom MeshLink Wire Codec (frames, enums, models, bounded reader/writer)"
 
