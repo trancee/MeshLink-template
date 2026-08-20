@@ -227,8 +227,18 @@ if [[ "$need_yaml" -eq 1 ]]; then
     echo "[pre-push] (or run ./scripts/bootstrap.sh)" >&2
     exit 1
   fi
-  echo "[pre-push] Running YAML lint: ${yaml_files[*]}"
-  yamllint "${yaml_files[@]}"
+  # Spec YAML files use long inline strings (up to 248 chars) and omit
+  # document-start markers. yamllint overrides don't apply in file mode,
+  # so use inline config with relaxed line-length for spec files.
+  for file in "${yaml_files[@]}"; do
+    if [[ "$file" == specs/* ]]; then
+      echo "[pre-push] Running YAML lint (specs): $file"
+      yamllint -c .yamllint-spec "$file"
+    else
+      echo "[pre-push] Running YAML lint: $file"
+      yamllint "$file"
+    fi
+  done
 fi
 
 if [[ "$need_markdown" -eq 1 ]]; then

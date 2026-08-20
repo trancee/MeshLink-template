@@ -81,10 +81,27 @@ for section in "${REQUIRED_SECTIONS[@]}"; do
     fi
 done
 
-# 4. Validate enums.yaml matches Enums.kt (placeholder)
+# 4. Validate enums.yaml matches Enums.kt wire codes
 echo ""
 echo "4. Checking enum consistency..."
-echo "  (Full enum validation requires Kotlin AST parsing - run detekt/Kover)"
+
+# Extract FrameCode constants from Enums.kt (const val NAME: UByte = 0xXXu)
+kt_codes=$(grep 'const val.*: UByte = 0x' "$MESHLINK_SRC/model/Enums.kt" | sed 's/.*= \(0x[0-9A-Fa-f]*\)u/\1/' | sort)
+
+# Extract FrameType wire codes from enums.yaml
+# FrameType values use code: "0xXX" — other enums use ordinal: N
+yaml_codes=$(awk '/^  - name: FrameType/{p=1; next} /^  - name:/{if(p) p=0} p && /code:/{gsub(/^.*code: /, ""); gsub(/"/, ""); print}' "$SPECS_DIR/codecs/enums.yaml" | sort)
+
+kt_count=$(echo "$kt_codes" | wc -l | tr -d ' ')
+yaml_count=$(echo "$yaml_codes" | wc -l | tr -d ' ')
+
+if [[ "$kt_codes" == "$yaml_codes" ]]; then
+    echo "  ✓ FrameType: $kt_count wire codes match between enums.yaml and Enums.kt"
+else
+    echo "  ✗ MISMATCH: FrameType wire codes differ between enums.yaml ($yaml_count) and Enums.kt ($kt_count):"
+    diff <(echo "$kt_codes") <(echo "$yaml_codes") | sed 's/^/    /'
+    exit 1
+fi
 
 # 5. Validate settings.yaml matches MeshLinkSettings.kt
 echo ""
