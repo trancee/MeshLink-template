@@ -2,7 +2,7 @@
 
 **Status:** Locked — 2026-07-20
 
-> **Specification content** (parameter tables, grace periods, EU clamping) lives in [SPEC.md §10](../../../SPEC.md#power-management) and [specs/catalogs/settings.yaml](../../../specs/catalogs/settings.yaml). This ADR captures only the *rationale*.
+> **Specification content** (parameter tables, grace periods, EU clamping) lives in [SPEC.md §10](../../../SPEC.md#10-power-management) and [specs/catalogs/settings.yaml](../../../specs/catalogs/settings.yaml). This ADR captures only the *rationale*.
 
 ## Context
 
@@ -75,6 +75,6 @@ where observable.
 ## Related
 
 - [CONSTITUTION.md §IV](../../../CONSTITUTION.md#iv-performance-requirements) — Performance budgets
-- [SPEC.md §10](../../../SPEC.md#power-management) — Full parameter tables
+- [SPEC.md §10](../../../SPEC.md#10-power-management) — Full parameter tables
 - [Peer Lifecycle](../../explanation/peer-lifecycle.md) — Grace period drives CONNECTED→DISCONNECTED→GONE
 - [MTU Negotiation](../transport/mtu-negotiation.md) — Chunk size bounded by negotiated MTU

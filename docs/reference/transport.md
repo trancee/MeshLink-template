@@ -1,6 +1,6 @@
 # Transport Layer
 
-> **Specification**: [SPEC.md §6](../../SPEC.md#transport-layer)  
+> **Specification**: [SPEC.md §6](../../SPEC.md#6-transport-layer)  
 > **Design rationale**: [MTU Negotiation](../decisions/transport/mtu-negotiation.md)
 
 ## Bearer Selection
@@ -93,7 +93,7 @@ transfers/traffic keys do not survive process death or force-stop/force-quit.
 
 ## Quick Links
 
-- [SPEC.md §6 — Full transport spec](../../SPEC.md#transport-layer)
+- [SPEC.md §6 — Full transport spec](../../SPEC.md#6-transport-layer)
 - [GATT Channel and Framing ADR](../decisions/transport/gatt-channel-and-framing.md)
 - [MTU Negotiation ADR](../decisions/transport/mtu-negotiation.md)
 - [Background Operation ADR](../decisions/transport/background-operation.md)

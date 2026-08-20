@@ -1,6 +1,6 @@
 # Discovery & Identity
 
-> **Specification**: [SPEC.md §4](../../SPEC.md#discovery--identity)  
+> **Specification**: [SPEC.md §4](../../SPEC.md#4-discovery--identity)  
 > **Design rationale**: [Connectable Advertisement](../decisions/discovery/connectable-advertisement.md), [Mesh Hash Derivation](../decisions/discovery/mesh-hash-derivation.md)
 
 ## Advertisement Format
@@ -54,7 +54,7 @@ existing state only after authentication yields the same PeerIdentity.
 
 ## Quick Links
 
-- [SPEC.md §4 — Full discovery spec](../../SPEC.md#discovery--identity)
+- [SPEC.md §4 — Full discovery spec](../../SPEC.md#4-discovery--identity)
 - [Connectable Advertisement ADR](../decisions/discovery/connectable-advertisement.md)
 - [Mesh Hash Derivation ADR](../decisions/discovery/mesh-hash-derivation.md)
 - [Wire Frames Spec](../../specs/codecs/frames.yaml)

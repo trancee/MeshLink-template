@@ -101,6 +101,8 @@ Dokka, SKIE, and 100% coverage gate apply **only to `meshlink`**.
 | `androidHostTest` | Host-side Android tests (crypto fallback paths) |
 | `androidDeviceTest` | Reserved for future use |
 
+<a id="meshlink-public-api"></a>
+
 ### 2.3 Public API Surface {#meshlink-public-api}
 
 `MeshLink` is a final instance-based class constructed from immutable settings
@@ -146,6 +148,8 @@ Note: This API is the target design; implementation is in progress via TDD.
 The current meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLink.kt is a placeholder for BCV baseline.
 ```
 
+<a id="meshlink-environment"></a>
+
 ### 2.4 Platform Environment {#meshlink-environment}
 
 Platform factory functions create `MeshLinkEnvironment`; Android context and
@@ -157,6 +161,8 @@ Applications address each remote installation by one stable PeerIdentity.
 peerHint, TransportHandle, keys, key generations, proof chains, Noise epochs,
 and route next hops remain internal; valid rotations and reconnects never make
 the application replace identity or key material.
+
+<a id="meshlink-state"></a>
 
 ### 2.5 Lifecycle States {#meshlink-state}
 
@@ -173,6 +179,8 @@ differences hidden behind the environment factories and internal
 ---
 
 ## 3. Core Data Models
+
+<a id="peer-identity-model"></a>
 
 ### 3.1 PeerIdentity {#peer-identity-model}
 
@@ -196,6 +204,8 @@ differences hidden behind the environment factories and internal
 | `parts.second` | Upper 8 bytes (big-endian) |
 
 **SPEC-ANCHOR**: `peer-identity-model`
+
+<a id="seqno-model"></a>
 
 ### 3.2 SeqNo {#seqno-model}
 
@@ -229,6 +239,8 @@ differences hidden behind the environment factories and internal
 - `distanceFrom` for route staleness diagnostics and gap analysis
 - **SPEC-ANCHOR**: `seqno-model`
 
+<a id="scoreboard-model"></a>
+
 ### 3.3 Scoreboard (Immutable) & MutableScoreboard {#scoreboard-model}
 
 **Immutable bitfield for selective acknowledgement (SACK).** Bit N = 1 means chunk N received. Length = `ceil(totalChunks / 8)` bytes.
@@ -250,6 +262,8 @@ class Scoreboard(totalChunks: UInt) {
 
 **SPEC-ANCHOR**: `scoreboard-model`
 
+<a id="route-candidate-model"></a>
+
 ### 3.4 RouteCandidate {#route-candidate-model}
 
 ```kotlin
@@ -269,6 +283,8 @@ signed RouteStatement. `nextHop` is inferred locally from the authenticated
 adjacent sender. Routing models remain internal to the SDK.
 
 **SPEC-ANCHOR**: `route-candidate-model`
+
+<a id="transfer-session-model"></a>
 
 ### 3.5 TransferSession {#transfer-session-model}
 
@@ -301,6 +317,8 @@ data class TransferSession(
 | `ROUTE_UNAVAILABLE` | No | Route lost, waiting for recovery |
 | `RETRANSMITTING` | No | Selectively retransmitting missing chunks under adaptive RTO |
 
+<a id="transfer-result"></a>
+
 ### 3.7 TransferResult {#transfer-result}
 
 ```kotlin
@@ -326,6 +344,9 @@ data. Non-terminal progress is represented by TransferState (see §3.6); transfe
 returns null until a terminal condition occurs.
 
 **SPEC-ANCHOR**: `transfer-result`
+
+<a id="transfer-id-model"></a>
+<a id="message-id-model"></a>
 
 ### 3.8 TransferId and MessageId {#transfer-id-model} {#message-id-model}
 
@@ -362,6 +383,8 @@ allocated value under the same `PeerIdentity`.
 
 **ADR**: docs/decisions/transfer/transfer-identifier.md
 
+<a id="link-quality-model"></a>
+
 ### 3.9 LinkQuality {#link-quality-model}
 
 ```kotlin
@@ -377,6 +400,9 @@ belong to transport state and never enter this routing model.
 RSSI normalization and the quadratic link-cost conversion are specified in §8.
 
 **SPEC-ANCHOR**: `link-quality-model`
+
+<a id="identity-key-model"></a>
+<a id="handshake-key-model"></a>
 
 ### 3.10 IdentityKey / HandshakeKey {#identity-key-model} {#handshake-key-model}
 
@@ -396,6 +422,8 @@ RSSI normalization and the quadratic link-cost conversion are specified in §8.
 ```
 
 **SPEC-ANCHOR**: `identity-key-model`, `handshake-key-model`
+
+<a id="meshlink-version"></a>
 
 ### 3.10.1 MeshLinkVersion {#meshlink-version}
 
@@ -419,6 +447,8 @@ public data class MeshLinkVersion(
 - `parse("1.2.3")` constructs from a semver string; throws `IllegalArgumentException` on malformed input
 - Comparison is major → minor → patch, matching standard semver ordering
 - **SPEC-ANCHOR**: `meshlink-version`
+
+<a id="enums"></a>
 
 ### 3.11 Enums (Shared) {#enums}
 
@@ -452,6 +482,8 @@ public data class MeshLinkVersion(
 | `DiagnosticSeverity` | `DEBUG`, `INFO`, `WARN`, `ERROR` | Severity for diagnostic events (see §11) |
 
 **SPEC-ANCHOR**: `enums`
+
+<a id="known-peer-model"></a>
 
 ### 3.12 KnownPeer {#known-peer-model}
 
@@ -513,6 +545,9 @@ particular under iOS background advertising restrictions — the fixed MeshLink
 GATT service exposes full PeerIdentity, version, key generation, 16-bit PSM, and a fresh nonce.
 peerHint remains advertisement-only. Advertisement and GATT metadata are
 untrusted until the security handshake authenticates identity and keys.
+
+<a id="mesh-hash"></a>
+<a id="app-hash"></a>
 
 ### 4.2 Mesh Hash Derivation {#mesh-hash} {#app-hash}
 
@@ -668,6 +703,8 @@ Applications continue using the same PeerIdentity and never manage keys,
 generations, or proof chains.
 
 **ADR**: docs/decisions/crypto/key-rotation-propagation.md
+
+<a id="trust-record"></a>
 
 ### 5.5 E2E Handshake Routing Over Mesh {#trust-record}
 
@@ -881,6 +918,8 @@ survive process death. Force-stop/force-quit has no relaunch guarantee.
 | HMAC-SHA256 | RFC 2104 | 174 (66 valid + 108 invalid) |
 | SHA-256 | RFC 6234 | Covered via other primitives |
 
+<a id="fail-closed"></a>
+
 ### 7.2 Fail-Closed Rules {#fail-closed}
 
 Fail closed is the project-wide default. Uncertainty cannot create authority,
@@ -923,6 +962,8 @@ never silently regenerates keys under the same PeerIdentity.
 
 **ADR**: docs/decisions/crypto/private-key-handling.md
 
+<a id="constant-time"></a>
+
 ### 7.4 Constant-Time Policy {#constant-time}
 
 All operations on secret data (private keys, shared secrets, session keys, KDF output) **MUST** use constant-time implementations:
@@ -935,6 +976,8 @@ All operations on secret data (private keys, shared secrets, session keys, KDF o
 
 **ADR**: docs/decisions/crypto/constant-time-policy.md
 
+<a id="replay-window"></a>
+
 ### 7.5 Replay Window {#replay-window}
 
 **Sliding bitmap window** per RFC 9147:
@@ -946,6 +989,9 @@ All operations on secret data (private keys, shared secrets, session keys, KDF o
 - **Replay detection** on both hop-by-hop and E2E layers
 
 **ADR**: docs/decisions/crypto/replay-window.md
+
+<a id="error-hierarchy"></a>
+<a id="error-code"></a>
 
 ### 7.6 Error Hierarchy (Sealed) {#error-hierarchy} {#error-code}
 
@@ -1101,6 +1147,8 @@ raw implementation-buffer layout. RouteDigest, RouteSynchronization, and RouteSn
 per-adjacency UInt revision that starts at zero for a fresh hop Noise session and
 increments whenever RouteExport changes. Stale revisions are rejected.
 
+<a id="ttl-by-priority"></a>
+
 ### 8.9 Route Update Triggers {#ttl-by-priority}
 
 | Trigger | Behavior |
@@ -1221,6 +1269,8 @@ representation and host sink policy; SDK memory remains window-bounded.
 
 ## 10. Power Management
 
+<a id="power-mode-settings"></a>
+
 ### 10.1 Power Modes {#power-mode-settings}
 
 | Parameter | HIGH | MEDIUM | LOW |
@@ -1272,6 +1322,8 @@ Per-mode grace period controls `PeerLifecycle` transition `DISCONNECTED → GONE
 ---
 
 ## 11. Diagnostics & Events
+
+<a id="diagnostic-event"></a>
 
 ### 11.1 Public Observation {#diagnostic-event}
 

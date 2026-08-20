@@ -1,6 +1,6 @@
 # Trust Model (TOFU)
 
-> **Specification**: [SPEC.md §5](../../SPEC.md#trust-model-tofu)  
+> **Specification**: [SPEC.md §5](../../SPEC.md#5-trust-model-tofu)  
 > **Design rationale**: [Crypto Design](../decisions/crypto/crypto-design.md), [Identity Binding and Fail-Closed](../decisions/crypto/identity-binding-and-fail-closed.md), [Key Rotation Propagation](../decisions/crypto/key-rotation-propagation.md), [Noise Session Renewal](../decisions/crypto/noise-session-renewal.md)  
 > **Machine-readable**: [specs/codecs/enums.yaml](../../specs/codecs/enums.yaml), [specs/protocol/state-machines.yaml](../../specs/protocol/state-machines.yaml)
 
@@ -23,7 +23,7 @@
 
 ## Quick Links
 
-- [SPEC.md §5 — Full trust model](../../SPEC.md#trust-model-tofu)
+- [SPEC.md §5 — Full trust model](../../SPEC.md#5-trust-model-tofu)
 - [Crypto Design ADR](../decisions/crypto/crypto-design.md)
 - [Identity Binding and Fail-Closed ADR](../decisions/crypto/identity-binding-and-fail-closed.md)
 - [Crypto API: meshlink-crypto usage guide](meshlink-crypto-api.md)

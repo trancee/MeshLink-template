@@ -1,6 +1,6 @@
 # Security Layer
 
-> **Specification**: [SPEC.md §7](../../SPEC.md#security-layer)  
+> **Specification**: [SPEC.md §7](../../SPEC.md#7-security-layer)  
 > **Design rationale**: [Crypto Design](../decisions/crypto/crypto-design.md), [Identity Binding and Fail-Closed](../decisions/crypto/identity-binding-and-fail-closed.md), [Constant-Time Policy](../decisions/crypto/constant-time-policy.md), [Replay Window](../decisions/crypto/replay-window.md), [Key Rotation Propagation](../decisions/crypto/key-rotation-propagation.md), [Error Hierarchy](../decisions/model/error-hierarchy.md)  
 > **Machine-readable**: [specs/codecs/enums.yaml](../../specs/codecs/enums.yaml), [specs/protocol/state-machines.yaml](../../specs/protocol/state-machines.yaml)
 
@@ -24,7 +24,7 @@
 
 ## Quick Links
 
-- [SPEC.md §7 — Full security spec](../../SPEC.md#security-layer)
+- [SPEC.md §7 — Full security spec](../../SPEC.md#7-security-layer)
 - [Crypto Design ADR](../decisions/crypto/crypto-design.md)
 - [Identity Binding and Fail-Closed ADR](../decisions/crypto/identity-binding-and-fail-closed.md)
 - [Constant-Time Policy ADR](../decisions/crypto/constant-time-policy.md)

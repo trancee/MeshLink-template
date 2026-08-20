@@ -3,7 +3,7 @@
 **Status:** Locked — 2026-07-31
 
 > Normative platform behavior lives in [SPEC.md §§6 and
-> 14](../../../SPEC.md#transport-layer). This record defines the best-effort
+> 14](../../../SPEC.md#6-transport-layer). This record defines the best-effort
 > guarantee, host/library ownership, restoration, and failure behavior.
 
 ## Guarantee

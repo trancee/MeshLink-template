@@ -60,5 +60,5 @@ The `meshLinkSettings` function is the public entry point for the lambda DSL. As
 
 ## Related
 
-- [SPEC.md §14](../../../SPEC.md#settings-model) — Full DSL specification with all defaults
+- [SPEC.md §14](../../../SPEC.md#14-settings-model) — Full DSL specification with all defaults
 - [Data Model ADR](data-model.md)

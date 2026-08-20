@@ -3,7 +3,7 @@
 **Status:** Locked — 2026-07-31
 
 > The normative field layout lives in
-> [SPEC.md §4.1](../../../SPEC.md#advertisement-format). This decision record
+> [SPEC.md §4.1](../../../SPEC.md#41-advertisement-format). This decision record
 > explains why MeshLink uses a connectable advertisement and how the
 > two-service-UUID design degrades safely in the background.
 
@@ -114,5 +114,5 @@ trust and canonical merging occurs only after Noise succeeds.
 - [Mesh hash derivation](mesh-hash-derivation.md)
 - [Peer hints and identity races](peer-hint-and-identity-races.md)
 - [Transport bearer and MTU decision](../transport/mtu-negotiation.md)
-- [SPEC.md §4 — Discovery and identity](../../../SPEC.md#discovery--identity)
+- [SPEC.md §4 — Discovery and identity](../../../SPEC.md#4-discovery--identity)
 - [Wire-frame machine-readable specification](../../../specs/codecs/frames.yaml)

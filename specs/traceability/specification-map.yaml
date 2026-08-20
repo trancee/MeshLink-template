@@ -4,13 +4,13 @@
 
 cross_references:
   - spec_id: "vision-pillars"
-    spec_section: "SPEC.md#vision--product-pillars"
+    spec_section: "SPEC.md#1-vision--product-pillars"
     adrs: []
     code_files: []
     description: "Product vision and six pillars (TOFU trust, two-layer encryption, proactive routing, reliable transfer, power-aware, cross-platform parity)"
 
   - spec_id: "architecture"
-    spec_section: "SPEC.md#architecture-overview"
+    spec_section: "SPEC.md#2-architecture-overview"
     adrs:
       - "docs/explanation/module-structure.md"
     code_files:
@@ -19,7 +19,7 @@ cross_references:
     description: "Module structure, source set organization, wire protocol reference standards"
 
   - spec_id: "data-model"
-    spec_section: "SPEC.md#core-data-models"
+    spec_section: "SPEC.md#3-core-data-models"
     adrs:
       - "docs/decisions/model/data-model.md"
     code_files:
@@ -57,7 +57,7 @@ cross_references:
     description: "Core data models: PeerIdentity, internal SeqNo, Scoreboard, TransferSession, keys, MeshLinkVersion, and enums; routing candidates are specified separately"
 
   - spec_id: "discovery-identity"
-    spec_section: "SPEC.md#discovery--identity"
+    spec_section: "SPEC.md#4-discovery--identity"
     adrs:
       - "docs/decisions/discovery/connectable-advertisement.md"
       - "docs/decisions/discovery/mesh-hash-derivation.md"
@@ -70,7 +70,7 @@ cross_references:
     description: "Connectable two-service-UUID advertisement, rotating peerHint, TransportHandle/RPA race coordination, GATT identity resolution, and limited privacy guarantee"
 
   - spec_id: "trust-model-tofu"
-    spec_section: "SPEC.md#trust-model-tofu"
+    spec_section: "SPEC.md#5-trust-model-tofu"
     adrs:
       - "docs/decisions/crypto/crypto-design.md"
     code_files: []
@@ -81,7 +81,7 @@ cross_references:
     description: "TOFU trust flow, Noise XX for unpinned contact, Noise IK for pinned reconnect, key rotation, E2E handshake routing, session state machine"
 
   - spec_id: "transport-layer"
-    spec_section: "SPEC.md#transport-layer"
+    spec_section: "SPEC.md#6-transport-layer"
     adrs:
       - "docs/decisions/transport/gatt-channel-and-framing.md"
       - "docs/decisions/transport/mtu-negotiation.md"
@@ -93,7 +93,7 @@ cross_references:
     description: "Bearer selection (GATT control plane, L2CAP CoC data plane), negotiation sequence, fallback reasons"
 
   - spec_id: "security-layer"
-    spec_section: "SPEC.md#security-layer"
+    spec_section: "SPEC.md#7-security-layer"
     adrs:
       - "docs/decisions/crypto/crypto-design.md"
       - "docs/decisions/crypto/identity-binding-and-fail-closed.md"
@@ -113,7 +113,7 @@ cross_references:
     description: "Crypto primitives (validated against Wycheproof), Noise XX/IK state machine, key rotation, E2E routing, fail-closed rules, Android constraints, key rotation propagation deadlines, error hierarchy"
 
   - spec_id: "routing-layer"
-    spec_section: "SPEC.md#routing-layer"
+    spec_section: "SPEC.md#8-routing-layer"
     adrs:
       - "docs/decisions/routing/routing-design.md"
     code_files:
@@ -126,7 +126,7 @@ cross_references:
     description: "Babel-style additive route cost, separate hop count/link quality, destination-signed RouteStatement, source-owned sequence recovery, encrypted control, and per-neighbor RouteExport/RouteImport synchronization"
 
   - spec_id: "transfer-layer"
-    spec_section: "SPEC.md#transfer-layer"
+    spec_section: "SPEC.md#9-transfer-layer"
     adrs:
       - "docs/decisions/model/data-model.md"
       - "docs/decisions/model/error-hierarchy.md"
@@ -157,7 +157,7 @@ cross_references:
     description: "Transfer session, selective ACK (dynamic bitfield), cut-through relay, TransferAck wire format"
 
   - spec_id: "power-management"
-    spec_section: "SPEC.md#power-management"
+    spec_section: "SPEC.md#10-power-management"
     adrs:
       - "docs/decisions/power/power-mode-behavior.md"
     code_files:
@@ -168,7 +168,7 @@ cross_references:
     description: "Three power modes (HIGH/MEDIUM/LOW), regulatory region (EU clamping), grace periods, mode-driven parameters"
 
   - spec_id: "diagnostics-events"
-    spec_section: "SPEC.md#diagnostics--events"
+    spec_section: "SPEC.md#11-diagnostics--events"
     adrs:
       - "docs/decisions/diagnostics/flow-delivery.md"
       - "docs/decisions/api/public-api-and-lifecycle.md"
@@ -180,20 +180,20 @@ cross_references:
     description: "Peer events, connection states, internal PeerLifecycle, diagnostic event hierarchy, error model"
 
   - spec_id: "build-quality"
-    spec_section: "SPEC.md#build--quality-constraints"
+    spec_section: "SPEC.md#12-build--quality-constraints"
     adrs: []
     code_files:
       - "meshlink/build.gradle.kts"
     description: "Performance budgets (CI-enforced), code quality rules, platform minimums"
 
   - spec_id: "testing-verification"
-    spec_section: "SPEC.md#testing--verification"
+    spec_section: "SPEC.md#13-testing--verification"
     adrs: []
     code_files: []
     description: "Test suite structure (unit/host/device/proof), iOS proof testing, XX/IK handshake testing, pinned-mismatch fail-closed testing, key rotation testing, virtual mesh harness, wire compatibility testing, acceptance criteria per layer"
 
   - spec_id: "configuration-model"
-    spec_section: "SPEC.md#settings-model"
+    spec_section: "SPEC.md#14-settings-model"
     adrs:
       - "docs/decisions/model/settings-model.md"
       - "docs/decisions/api/public-api-and-lifecycle.md"
@@ -205,7 +205,7 @@ cross_references:
     description: "Configuration DSL (MeshLinkSettings, KeyRotationSettings, TransferSettings, RoutingSettings, DiagnosticsSettings); mandatory security invariants are not configurable"
 
   - spec_id: "future-work"
-    spec_section: "SPEC.md#future-work"
+    spec_section: "SPEC.md#15-future-work"
     adrs:
       - "docs/decisions/crypto/pq-hybrid-candidate-matrix.md"
     description: "PQ-hybrid key establishment, Noise IK for E2E layer, throughput-based link metrics, payload compression"

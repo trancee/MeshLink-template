@@ -3,7 +3,7 @@
 **Status:** Locked — 2026-07-31
 
 > Normative boundary, persistence, memory handling, rotation, and test requirements
-> live in [SPEC.md §7.3](../../../SPEC.md#security-layer) and implementation in
+> live in [SPEC.md §7.3](../../../SPEC.md#7-security-layer) and implementation in
 > crypto/storage modules. This record explains the design rationale.
 
 ## Why private keys never leave the crypto/storage subsystem
@@ -145,4 +145,4 @@ fixtures ensure production keys never enter test infrastructure.
 - [Peer identity persistence](../storage/persistence-strategy.md)
 - [Crypto design](crypto-design.md)
 - [CONSTITUTION.md Principle I](../../../CONSTITUTION.md#i-rigorous-code-quality)
-- [SPEC.md §7.3](../../../SPEC.md#security-layer)
+- [SPEC.md §7.3](../../../SPEC.md#7-security-layer)

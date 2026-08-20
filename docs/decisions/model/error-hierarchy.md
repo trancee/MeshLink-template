@@ -2,7 +2,7 @@
 
 **Status:** Locked — 2026-07-31
 
-> **Full hierarchy, codes, platform wrapping helpers, and test matrix** live in [SPEC.md §7.6](../../../SPEC.md#error-hierarchy-sealed). This ADR captures the *why*.
+> **Full hierarchy, codes, platform wrapping helpers, and test matrix** live in [SPEC.md §7.6](../../../SPEC.md#error-hierarchy). This ADR captures the *why*.
 
 ---
 
@@ -112,5 +112,5 @@ Every caught `MeshLinkException` at public API boundary **MUST** emit correspond
 ## Related
 
 - [SPEC.md](../../../SPEC.md)
-- [SPEC.md §7.6](../../../SPEC.md#error-hierarchy-sealed)
+- [SPEC.md §7.6](../../../SPEC.md#error-hierarchy)
 - [CONSTITUTION.md §III](../../../CONSTITUTION.md#iii-user-experience-consistency)

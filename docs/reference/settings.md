@@ -1,6 +1,6 @@
 # Settings Model
 
-> **Specification**: [SPEC.md §14](../../SPEC.md#settings-model)
+> **Specification**: [SPEC.md §14](../../SPEC.md#14-settings-model)
 > **Source of truth**: MeshLinkSettings.kt  
 > **Design rationale**: [Lambda DSL ADR](../decisions/model/settings-model.md)
 
@@ -84,7 +84,7 @@ produce identical `MeshLinkSettings` instances. Diagnostics are collected from
 
 ## Quick Links
 
-- [SPEC.md §14 — Full config spec](../../SPEC.md#settings-model)
+- [SPEC.md §14 — Full config spec](../../SPEC.md#14-settings-model)
 - MeshLinkSettings.kt
 - [Lambda DSL ADR](../decisions/model/settings-model.md)
 - [Power Mode Behavior ADR](../decisions/power/power-mode-behavior.md)

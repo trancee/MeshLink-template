@@ -18,7 +18,7 @@ The MeshLink-template repository is **production-ready for implementation** at t
 | Build configuration | 0 | **PASS** — all versions/targets/explicitApi correct (1 doc-only rec) |
 | Spec validation pipeline | 0 | **PASS** — validate-specs.sh in CI + hooks; yamllint covers specs/ |
 | Spec-to-code traceability | 0 | **PASS** — all 42 source files mapped; 24 SPEC-ANCHORs in `spec_anchors_in_code`; enums anchor lists all 3 files |
-| Spec-to-docs alignment | 1 | **BROKEN** — 30 broken SPEC.md anchor links across 14/15 reference docs |
+| Spec-to-docs alignment | 0 | **PASS** — all 33 broken cross-reference links fixed: heading-name anchors gained section-number prefixes; Pandoc `{#id}` anchors backed by HTML `<a id>` tags; 3 non-existent anchors remapped |
 | Test infrastructure | 1 | **GAP** — test organization deviations (3 wrong packages, 5 missing tests) |
 | Wire codec | 1 | **KNOWN GAP** — intentionally unimplemented (Vertical slice 4, scaffold plan) |
 
@@ -115,11 +115,19 @@ The `.yamllint` config ignores the entire `specs/` directory, and `validate-spec
 
 **Follow-up:** [#27 — Configure yamllint to cover specs/ and replace no-op enum validation](https://github.com/trancee/MeshLink-template/issues/27)
 
-#### 6. 30 broken SPEC.md/doc cross-reference links — [#18](https://github.com/trancee/MeshLink-template/issues/18) → [#31](https://github.com/trancee/MeshLink-template/issues/31)
+#### 6. 30 broken SPEC.md/doc cross-reference links — [#18](https://github.com/trancee/MeshLink-template/issues/18) → [#31](https://github.com/trancee/MeshLink-template/issues/31) ✅ RESOLVED
 
-30 broken SPEC.md anchor links across 14 of 15 reference docs. Root causes: (1) missing section-number prefixes in anchors (e.g., `#security-layer` instead of `#7-security-layer`), (2) unsupported Pandoc `{#id}` attribute syntax in SPEC.md. The same broken-anchor pattern affects ADRs in `docs/decisions/`.
+30 broken SPEC.md anchor links across 14 of 15 reference docs (plus equivalent broken links in ADRs). Root causes: (1) missing section-number prefixes in anchors (e.g., `#security-layer` instead of `#7-security-layer`), (2) unsupported Pandoc `{#id}` attribute syntax in SPEC.md that GitHub renders as literal heading text. A few links also pointed to non-existent anchors (`#public-api-surface`, `#error-hierarchy-sealed`, `#key-rotation-protocol`, `#advertisement-format`, `#transfer-session-state-transitions`).
 
-**Follow-up:** [#31 — Fix 30 broken SPEC.md/doc cross-reference links](https://github.com/trancee/MeshLink-template/issues/31)
+**Resolution:** [#31 — Closed]
+
+- Added `<a id="$id"></a>` HTML anchor tags before every `### N.N` heading in SPEC.md that carries a `{#id}` attribute (28 anchors), restoring GitHub anchor support while preserving `{#id}` syntax for `validate-specs.sh` step 2 (SPEC-ANCHOR validation)
+- Fixed heading-name anchors across all 15 `docs/reference/*.md` files: added `N-` section-number prefix (e.g., `#security-layer` → `#7-security-layer`, `#settings-model` → `#14-settings-model`)
+- Fixed `specification-map.yaml` `spec_section` values: all 15 now carry section-number prefixes
+- Fixed 3 non-existent anchors: `#public-api-surface` → `#meshlink-public-api`, `#error-hierarchy-sealed` → `#error-hierarchy`, `#transfer-session-state-transitions` → `#transfer-session-model`
+- Fixed 2 sub-heading anchors without `{#id}`: `#key-rotation-protocol` → `#54-key-rotation-protocol`, `#advertisement-format` → `#41-advertisement-format`
+- Applied the same fixes to all 20 ADR files in `docs/decisions/`
+- `validate-specs.sh` all 7 checks pass; `check-markdown.sh` (markdownlint + lychee) passes on all changed files
 
 #### 7. SPEC.md content consistency issues — [#16](https://github.com/trancee/MeshLink-template/issues/16) → [#28](https://github.com/trancee/MeshLink-template/issues/28) ✅ RESOLVED
 
@@ -170,20 +178,19 @@ Two `implementation_status: not_implemented` entries were imprecise: "MeshLinkSe
 All findings are tracked as GitHub issues, labeled `from:audit-map`:
 
 | # | Title | Severity | Triage |
-|---|---|---|---|
 | [#25](https://github.com/trancee/MeshLink-template/issues/25) | Fix frames.yaml YAML structural error | Critical | ✅ Closed |
 | [#26](https://github.com/trancee/MeshLink-template/issues/26) | Integrate validate-specs.sh into CI and git hooks | Medium | ✅ Closed |
 | [#27](https://github.com/trancee/MeshLink-template/issues/27) | Configure yamllint to cover specs/ + replace no-op enum validation | Medium | ✅ Closed |
 | [#28](https://github.com/trancee/MeshLink-template/issues/28) | Fix SPEC.md content consistency (orphan ADRs, traceability, naming) | Medium | ✅ Closed |
 | [#29](https://github.com/trancee/MeshLink-template/issues/29) | Fix spec-to-code traceability gaps (15 missing files, orphaned SPEC-ANCHOR) | Medium | ✅ Closed |
 | [#30](https://github.com/trancee/MeshLink-template/issues/30) | Fix precision in not_implemented traceability entries | Low | ✅ Closed |
-| [#31](https://github.com/trancee/MeshLink-template/issues/31) | Fix 30 broken SPEC.md/doc cross-reference links + Pandoc syntax | Medium | `ready-for-agent` |
+| [#31](https://github.com/trancee/MeshLink-template/issues/31) | Fix 30 broken SPEC.md/doc cross-reference links + Pandoc syntax | Medium | ✅ Closed |
 | [#32](https://github.com/trancee/MeshLink-template/issues/32) | Configure power-assert compiler plugin | Critical | ✅ Closed |
 | [#33](https://github.com/trancee/MeshLink-template/issues/33) | Fix test organization (JUnit5, 3 wrong packages, 5 missing tests) | Medium | `ready-for-agent` |
 | [#34](https://github.com/trancee/MeshLink-template/issues/34) | Fix stale minSdk 21 reference in ADR | Low | `ready-for-human` |
 | [#35](https://github.com/trancee/MeshLink-template/issues/35) | Implement wire codec scaffold (Vertical slice 4) | High | `ready-for-human` |
 
-**Recommendation:** Before starting wire codec implementation ([#35](https://github.com/trancee/MeshLink-template/issues/35)), address [#31](https://github.com/trancee/MeshLink-template/issues/31) (broken SPEC.md/doc cross-reference links). The wire codec is the highest-priority implementation item — all routing, transport, and transfer work depends on it.
+**Recommendation:** The 3 remaining open tickets (#33 test org, #34 minSdk ADR, #35 wire codec) should be addressed as part of, or before, the implementation phase. Wire codec (#35) is highest priority — all routing, transport, and transfer work depends on it.
 
 ---
 
@@ -191,6 +198,6 @@ All findings are tracked as GitHub issues, labeled `from:audit-map`:
 
 The MeshLink-template repository's infrastructure (CI/CD, build config, API surface, dependency pinning) is **production-ready**. The template correctly scaffolds the data model, settings, diagnostics, and utilities per the 4-vertical-slice plan in `specs/tests/scaffold-alignment-plan.md`.
 
-The two critical gaps from the audit (power-assert plugin and frames.yaml YAML error) are now resolved. The spec validation pipeline is fully closed. Spec-to-code traceability is fully mapped. Remaining gaps are in **documentation integrity** (broken cross-references) and **test infrastructure** (test organization) — all straightforward to fix and do not block implementation. The one known major gap (wire codec) is explicitly planned as Vertical slice 4 and is not a defect.
+The two critical gaps from the audit (power-assert plugin and frames.yaml YAML error) are now resolved. The spec validation pipeline is fully closed. Spec-to-code traceability is fully mapped. Spec-to-docs alignment is fully fixed (all cross-reference links corrected). Remaining gaps are in **test infrastructure** (test organization) and the **wire codec scaffold** — all straightforward to address and do not block implementation. The wire codec gap is explicitly planned as Vertical slice 4 and is not a defect.
 
-**Readiness verdict:** The template is ready for implementers to begin building the wire codec, routing, transport, and trust subsystems. The 4 remaining follow-up tickets above should be addressed as part of, or before, the implementation phase.
+**Readiness verdict:** The template is ready for implementers to begin building the wire codec, routing, transport, and trust subsystems. The 3 remaining follow-up tickets above should be addressed as part of, or before, the implementation phase.

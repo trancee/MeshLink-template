@@ -1,6 +1,6 @@
 # Architecture Overview
 
-> **Specification**: [SPEC.md §2](../../SPEC.md#architecture-overview)  
+> **Specification**: [SPEC.md §2](../../SPEC.md#2-architecture-overview)  
 > **Design rationale**: [Module Structure](../explanation/module-structure.md)  
 > **Machine-readable**: [meshlink/build.gradle.kts](../../meshlink/build.gradle.kts)
 
@@ -30,6 +30,6 @@
 
 ## Quick Links
 
-- [SPEC.md §2 — Full architecture details](../../SPEC.md#architecture-overview)
+- [SPEC.md §2 — Full architecture details](../../SPEC.md#2-architecture-overview)
 - [Module Structure Explanation](../explanation/module-structure.md)
 - [CONSTITUTION.md Technical Constraints](../../CONSTITUTION.md#technical-constraints)

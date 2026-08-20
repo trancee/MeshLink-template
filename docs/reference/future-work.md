@@ -1,6 +1,6 @@
 # Future Work
 
-> **Specification**: [SPEC.md §15](../../SPEC.md#future-work)  
+> **Specification**: [SPEC.md §15](../../SPEC.md#15-future-work)  
 > **Design rationale**: [PQ-Hybrid Candidate Matrix](../decisions/crypto/pq-hybrid-candidate-matrix.md)
 
 ## Planned Enhancements
@@ -27,5 +27,5 @@ MLS (RFC 9420) integration for multi-recipient E2E encryption.
 
 ## Quick Links
 
-- [SPEC.md §15 — Full future work spec](../../SPEC.md#future-work)
+- [SPEC.md §15 — Full future work spec](../../SPEC.md#15-future-work)
 - [PQ-Hybrid Candidate Matrix ADR](../decisions/crypto/pq-hybrid-candidate-matrix.md)

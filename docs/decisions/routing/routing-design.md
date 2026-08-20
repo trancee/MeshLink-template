@@ -3,7 +3,7 @@
 **Status:** Locked — 2026-07-31
 
 > Normative fields, state transitions, and timing live in [SPEC.md
-> §8](../../../SPEC.md#routing-layer) and [specs/protocol/state-machines.yaml](../../../specs/protocol/state-machines.yaml). This record explains the design rationale.
+> §8](../../../SPEC.md#8-routing-layer) and [specs/protocol/state-machines.yaml](../../../specs/protocol/state-machines.yaml). This record explains the design rationale.
 
 ## Why Babel-inspired distance-vector
 
@@ -162,7 +162,7 @@ requirements, not optimizations.
 
 ## Related
 
-- [SPEC.md §8](../../../SPEC.md#routing-layer)
+- [SPEC.md §8](../../../SPEC.md#8-routing-layer)
 - [specs/protocol/state-machines.yaml](../../../specs/protocol/state-machines.yaml)
 - [specs/codecs/frames.yaml](../../../specs/codecs/frames.yaml)
 - [specs/codecs/enums.yaml](../../../specs/codecs/enums.yaml)

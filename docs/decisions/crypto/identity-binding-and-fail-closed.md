@@ -3,7 +3,7 @@
 **Status:** Locked — 2026-07-31
 
 > The normative handshake and failure rules live in
-> [SPEC.md §§5 and 7](../../../SPEC.md#trust-model-tofu). This decision record
+> [SPEC.md §§5 and 7](../../../SPEC.md#5-trust-model-tofu). This decision record
 > captures the design rationale only.
 
 ## Key generation hint

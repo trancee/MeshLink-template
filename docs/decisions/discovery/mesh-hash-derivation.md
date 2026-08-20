@@ -2,7 +2,7 @@
 
 **Status:** Locked — 2026-07-26
 
-> **Specification content** (algorithm, wire format, settings) lives in [SPEC.md §4](../../../SPEC.md#discovery--identity). This ADR captures only the *why*.
+> **Specification content** (algorithm, wire format, settings) lives in [SPEC.md §4](../../../SPEC.md#4-discovery--identity). This ADR captures only the *why*.
 
 ---
 
@@ -70,6 +70,6 @@ the attempted discovery/connection work.
 
 ## Related
 
-- [SPEC.md §4](../../../SPEC.md#discovery--identity) — Full advertisement format
+- [SPEC.md §4](../../../SPEC.md#4-discovery--identity) — Full advertisement format
 - [SPEC.md](../../../SPEC.md) — Implementation
 - [SPEC.md](../../../SPEC.md) — Configuration

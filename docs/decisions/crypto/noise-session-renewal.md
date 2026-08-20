@@ -3,7 +3,7 @@
 **Status:** Locked — 2026-07-31
 
 > Normative session states and triggers live in
-> [SPEC.md §5](../../../SPEC.md#trust-model-tofu) and
+> [SPEC.md §5](../../../SPEC.md#5-trust-model-tofu) and
 > [specs/protocol/state-machines.yaml](../../../specs/protocol/state-machines.yaml).
 > This decision record explains lifetime, anti-herd scheduling, initiator
 > selection, record limits, and fail-closed expiry.
@@ -121,5 +121,5 @@ because the security exposure window is time/record based, not path based.
 - [Identity binding and fail-closed behavior](identity-binding-and-fail-closed.md)
 - [Replay window](replay-window.md)
 - [Connectable advertisement](../discovery/connectable-advertisement.md)
-- [SPEC.md §5.7](../../../SPEC.md#trust-model-tofu)
+- [SPEC.md §5.7](../../../SPEC.md#5-trust-model-tofu)
 - [specs/protocol/state-machines.yaml](../../../specs/protocol/state-machines.yaml)

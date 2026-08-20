@@ -2,7 +2,7 @@
 
 **Status:** Locked — 2026-07-31
 
-> **Full specification** (route capacity, candidates, Bluetooth controller limits, mesh diameter, and diagnostics) lives in [SPEC.md §8](../../../SPEC.md#routing-layer). This ADR captures the *why*.
+> **Full specification** (route capacity, candidates, Bluetooth controller limits, mesh diameter, and diagnostics) lives in [SPEC.md §8](../../../SPEC.md#8-routing-layer). This ADR captures the *why*.
 
 ---
 
@@ -117,7 +117,7 @@ internal correctness rule rather than a configurable application strategy.
 
 ## Related
 
-- [SPEC.md §8](../../../SPEC.md#routing-layer)
+- [SPEC.md §8](../../../SPEC.md#8-routing-layer)
 - [Power Mode Behavior](../power/power-mode-behavior.md)
 - [Routing Design](../routing/routing-design.md)
 - [CONSTITUTION.md §IV](../../../CONSTITUTION.md#iv-performance-requirements)

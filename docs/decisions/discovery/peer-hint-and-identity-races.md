@@ -3,7 +3,7 @@
 **Status:** Locked — 2026-07-31
 
 > Normative discovery and trust behavior lives in [SPEC.md §§4 and
-> 5](../../../SPEC.md#discovery--identity). This decision record defines the
+> 5](../../../SPEC.md#4-discovery--identity). This decision record defines the
 > rotating advertisement hint, platform-handle behavior, concurrent discovery
 > coordination, key-rotation recovery, and the application-facing identity
 > invariant.
