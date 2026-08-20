@@ -19,10 +19,10 @@ The MeshLink-template repository is **production-ready for implementation** at t
 | Spec validation pipeline | 3+ | **FAIL** — frames.yaml has YAML structural error; validate-specs.sh not in CI; .yamllint ignores specs/ |
 | Spec-to-code traceability | 2 | **GAPS** — 15 source files missing from spec map; 14 SPEC-ANCHOR annotations orphaned |
 | Spec-to-docs alignment | 1 | **BROKEN** — 30 broken SPEC.md anchor links across 14/15 reference docs |
-| Test infrastructure | 2 | **GAPS** — power-assert plugin not configured (critical); test organization deviations |
+| Test infrastructure | 1 | **GAP** — test organization deviations (3 wrong packages, 5 missing tests) |
 | Wire codec | 1 | **KNOWN GAP** — intentionally unimplemented (Vertical slice 4, scaffold plan) |
 
-**Verdict:** The template's scaffold, CI plumbing, and quality-gate configuration are sound enough for an implementer to begin building wire codec, routing, transport, and trust subsystems. The findings above should be addressed during implementation, with the 2 critical gaps (power-assert and frames.yaml) prioritized before the first protocol-layer feature.
+**Verdict:** The template's scaffold, CI plumbing, and quality-gate configuration are sound enough for an implementer to begin building wire codec, routing, transport, and trust subsystems. The findings above should be addressed during implementation, with the 1 remaining critical gap (frames.yaml) prioritized before the first protocol-layer feature.
 
 ---
 
@@ -63,14 +63,14 @@ All versions, targets, explicitApi, and BCV configuration are correct. Kotlin 2.
 
 ### ⚠️ Critical findings
 
-#### 1. Power-assert compiler plugin not configured — [#21](https://github.com/trancee/MeshLink-template/issues/21) → [#32](https://github.com/trancee/MeshLink-template/issues/32)
+#### 1. Power-assert compiler plugin not configured — [#21](https://github.com/trancee/MeshLink-template/issues/21) → [#32](https://github.com/trancee/MeshLink-template/issues/32) ✅ RESOLVED
 
 **Severity:** Critical  
 **File:** `meshlink/build.gradle.kts`
 
-AGENTS.md explicitly requires power-assert for all test assertions, but the `kotlin("plugin.power-assert")` plugin is absent from `meshlink/build.gradle.kts` and `gradle/libs.versions.toml`. Test failure diagnostics use plain `assertEquals` messages instead of rich multi-line power-assert output showing intermediate values.
+AGENTS.md explicitly requires power-assert for all test assertions, but the `kotlin("plugin.power-assert")` plugin was absent from `meshlink/build.gradle.kts` and `gradle/libs.versions.toml`. Test failure diagnostics used plain `assertEquals` messages instead of rich multi-line power-assert output showing intermediate values.
 
-**Follow-up:** [#32 — Configure power-assert compiler plugin](https://github.com/trancee/MeshLink-template/issues/32)
+**Resolution:** [#32 — Closed] Configured `org.jetbrains.kotlin.plugin.power-assert` (Kotlin 2.4.10 built-in) in the version catalog, root `build.gradle.kts` with `apply false`, and `:meshlink` module with `powerAssert { functions = listOf(...) }` transforming all `kotlin.test.*` assertion functions. All quality gates pass (Spotless, Detekt, Kover 100%, BCV apiCheck, tests green).
 
 #### 2. frames.yaml has a YAML structural error — [#16](https://github.com/trancee/MeshLink-template/issues/16) → [#25](https://github.com/trancee/MeshLink-template/issues/25)
 
@@ -165,12 +165,12 @@ All findings are tracked as GitHub issues, labeled `from:audit-map`:
 | [#29](https://github.com/trancee/MeshLink-template/issues/29) | Fix spec-to-code traceability gaps (15 missing files, orphaned SPEC-ANCHOR) | Medium | `ready-for-agent` |
 | [#30](https://github.com/trancee/MeshLink-template/issues/30) | Fix precision in not_implemented traceability entries | Low | `ready-for-agent` |
 | [#31](https://github.com/trancee/MeshLink-template/issues/31) | Fix 30 broken SPEC.md/doc cross-reference links + Pandoc syntax | Medium | `ready-for-agent` |
-| [#32](https://github.com/trancee/MeshLink-template/issues/32) | Configure power-assert compiler plugin | Critical | `ready-for-agent` |
+| [#32](https://github.com/trancee/MeshLink-template/issues/32) | Configure power-assert compiler plugin | Critical | ✅ Closed |
 | [#33](https://github.com/trancee/MeshLink-template/issues/33) | Fix test organization (JUnit5, 3 wrong packages, 5 missing tests) | Medium | `ready-for-agent` |
 | [#34](https://github.com/trancee/MeshLink-template/issues/34) | Fix stale minSdk 21 reference in ADR | Low | `ready-for-human` |
 | [#35](https://github.com/trancee/MeshLink-template/issues/35) | Implement wire codec scaffold (Vertical slice 4) | High | `ready-for-human` |
 
-**Recommendation:** Address [#32](https://github.com/trancee/MeshLink-template/issues/32) (power-assert) and [#25](https://github.com/trancee/MeshLink-template/issues/25) (frames.yaml) before starting any protocol-layer implementation. The wire codec ([#35](https://github.com/trancee/MeshLink-template/issues/35)) is the highest-priority implementation item — all routing, transport, and transfer work depends on it.
+**Recommendation:** Address [#25](https://github.com/trancee/MeshLink-template/issues/25) (frames.yaml) before starting any protocol-layer implementation. The wire codec ([#35](https://github.com/trancee/MeshLink-template/issues/35)) is the highest-priority implementation item — all routing, transport, and transfer work depends on it.
 
 ---
 
