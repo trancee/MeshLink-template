@@ -121,7 +121,7 @@ The `.yamllint` config ignores the entire `specs/` directory, and `validate-spec
 
 **Follow-up:** [#31 — Fix 30 broken SPEC.md/doc cross-reference links](https://github.com/trancee/MeshLink-template/issues/31)
 
-#### 7. SPEC.md content consistency issues — [#16](https://github.com/trancee/MeshLink-template/issues/16) → [#28](https://github.com/trancee/MeshLink-template/issues/28)
+#### 7. SPEC.md content consistency issues — [#16](https://github.com/trancee/MeshLink-template/issues/16) → [#28](https://github.com/trancee/MeshLink-template/issues/28) ✅ RESOLVED
 
 Five ADRs exist on disk but are not referenced in SPEC.md. §10 (Power Management) is missing from the traceability table. §7 Security row has inconsistent ADR path prefixes. `setting-model` naming is inconsistent (singular vs plural).
 
@@ -166,7 +166,7 @@ All findings are tracked as GitHub issues, labeled `from:audit-map`:
 | [#25](https://github.com/trancee/MeshLink-template/issues/25) | Fix frames.yaml YAML structural error | Critical | ✅ Closed |
 | [#26](https://github.com/trancee/MeshLink-template/issues/26) | Integrate validate-specs.sh into CI and git hooks | Medium | ✅ Closed |
 | [#27](https://github.com/trancee/MeshLink-template/issues/27) | Configure yamllint to cover specs/ + replace no-op enum validation | Medium | ✅ Closed |
-| [#28](https://github.com/trancee/MeshLink-template/issues/28) | Fix SPEC.md content consistency (orphan ADRs, traceability, naming) | Medium | `ready-for-agent` |
+| [#28](https://github.com/trancee/MeshLink-template/issues/28) | Fix SPEC.md content consistency (orphan ADRs, traceability, naming) | Medium | ✅ Closed |
 | [#29](https://github.com/trancee/MeshLink-template/issues/29) | Fix spec-to-code traceability gaps (15 missing files, orphaned SPEC-ANCHOR) | Medium | `ready-for-agent` |
 | [#30](https://github.com/trancee/MeshLink-template/issues/30) | Fix precision in not_implemented traceability entries | Low | `ready-for-agent` |
 | [#31](https://github.com/trancee/MeshLink-template/issues/31) | Fix 30 broken SPEC.md/doc cross-reference links + Pandoc syntax | Medium | `ready-for-agent` |
@@ -185,4 +185,4 @@ The MeshLink-template repository's infrastructure (CI/CD, build config, API surf
 
 The two critical gaps from the audit (power-assert plugin and frames.yaml YAML error) are now resolved. The spec validation pipeline is fully closed. Remaining gaps are in **documentation integrity** (broken cross-references, traceability drift), **spec-to-code traceability** (15 missing source files, orphaned SPEC-ANCHOR annotations), and **test infrastructure** (test organization) — all straightforward to fix and do not block implementation. The one known major gap (wire codec) is explicitly planned as Vertical slice 4 and is not a defect.
 
-**Readiness verdict:** The template is ready for implementers to begin building the wire codec, routing, transport, and trust subsystems. The 7 remaining follow-up tickets above should be addressed as part of, or before, the implementation phase.
+**Readiness verdict:** The template is ready for implementers to begin building the wire codec, routing, transport, and trust subsystems. The 6 remaining follow-up tickets above should be addressed as part of, or before, the implementation phase.
