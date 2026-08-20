@@ -148,11 +148,14 @@ JUnit 5 platform adapter is implicit (not explicitly configured). 3 test files a
 
 ### ⚠️ Low findings
 
-#### 10. not_implemented precision issues — [#17](https://github.com/trancee/MeshLink-template/issues/17) → [#30](https://github.com/trancee/MeshLink-template/issues/30)
+#### 10. not_implemented precision issues — [#17](https://github.com/trancee/MeshLink-template/issues/17) → [#30](https://github.com/trancee/MeshLink-template/issues/30) ✅ RESOLVED
 
-Two `implementation_status: not_implemented` entries are imprecise: "MeshLinkSettings DSL integration" and "Message and transfer handles" have real data-type implementations and tests, only the functional wiring is missing (because `MeshLink.kt` is a TODO scaffold).
+Two `implementation_status: not_implemented` entries were imprecise: "MeshLinkSettings DSL integration" and "Message and transfer handles" had real data-type implementations and tests, only the functional wiring was missing (because `MeshLink.kt` is a TODO scaffold).
 
-**Follow-up:** [#30 — Fix precision in not_implemented traceability entries](https://github.com/trancee/MeshLink-template/issues/30)
+**Resolution:** [#30 — Closed]
+
+- Split "Message and transfer handles, sources, and sinks" → types moved to `implemented`, functional integration stays `not_implemented`
+- Split "MeshLinkSettings DSL integration" → data model construction-time validation moved to `implemented`, DSL-to-MeshLink wiring stays `not_implemented`
 
 #### 11. Stale minSdk reference in ADR — [#22](https://github.com/trancee/MeshLink-template/issues/22) → [#34](https://github.com/trancee/MeshLink-template/issues/34)
 
@@ -173,7 +176,7 @@ All findings are tracked as GitHub issues, labeled `from:audit-map`:
 | [#27](https://github.com/trancee/MeshLink-template/issues/27) | Configure yamllint to cover specs/ + replace no-op enum validation | Medium | ✅ Closed |
 | [#28](https://github.com/trancee/MeshLink-template/issues/28) | Fix SPEC.md content consistency (orphan ADRs, traceability, naming) | Medium | ✅ Closed |
 | [#29](https://github.com/trancee/MeshLink-template/issues/29) | Fix spec-to-code traceability gaps (15 missing files, orphaned SPEC-ANCHOR) | Medium | ✅ Closed |
-| [#30](https://github.com/trancee/MeshLink-template/issues/30) | Fix precision in not_implemented traceability entries | Low | `ready-for-agent` |
+| [#30](https://github.com/trancee/MeshLink-template/issues/30) | Fix precision in not_implemented traceability entries | Low | ✅ Closed |
 | [#31](https://github.com/trancee/MeshLink-template/issues/31) | Fix 30 broken SPEC.md/doc cross-reference links + Pandoc syntax | Medium | `ready-for-agent` |
 | [#32](https://github.com/trancee/MeshLink-template/issues/32) | Configure power-assert compiler plugin | Critical | ✅ Closed |
 | [#33](https://github.com/trancee/MeshLink-template/issues/33) | Fix test organization (JUnit5, 3 wrong packages, 5 missing tests) | Medium | `ready-for-agent` |
@@ -190,4 +193,4 @@ The MeshLink-template repository's infrastructure (CI/CD, build config, API surf
 
 The two critical gaps from the audit (power-assert plugin and frames.yaml YAML error) are now resolved. The spec validation pipeline is fully closed. Spec-to-code traceability is fully mapped. Remaining gaps are in **documentation integrity** (broken cross-references) and **test infrastructure** (test organization) — all straightforward to fix and do not block implementation. The one known major gap (wire codec) is explicitly planned as Vertical slice 4 and is not a defect.
 
-**Readiness verdict:** The template is ready for implementers to begin building the wire codec, routing, transport, and trust subsystems. The 5 remaining follow-up tickets above should be addressed as part of, or before, the implementation phase.
+**Readiness verdict:** The template is ready for implementers to begin building the wire codec, routing, transport, and trust subsystems. The 4 remaining follow-up tickets above should be addressed as part of, or before, the implementation phase.
