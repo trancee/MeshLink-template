@@ -100,6 +100,7 @@ exercise Android callbacks, real radio delivery or the Swift implementation.
 Swift syntax parsing on Linux cannot type-check Core Bluetooth/SwiftUI or
 prove the Xcode build succeeds.
 
-**Current evidence:** the harnesses are preparation, not a recorded
-Android 8 ↔ iOS 15 radio result. Populate device results only after executing
-the physical-phone procedure above.
+**Current evidence:** [recorded validation](../reference/ble-spike.md#recorded-validation-2026-10-31)
+includes Apple compilation and eight successful Android 8 central / Android 16
+peripheral exchanges in ten attempts, with two connection failures. It is not
+an Android 8 to iOS 15 radio result.

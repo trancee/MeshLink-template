@@ -164,8 +164,8 @@ internal class GattPeripheral(
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun start() {
-        if (!adapter.isMultipleAdvertisementSupported || adapter.bluetoothLeAdvertiser == null) {
-            fail("This device cannot advertise as a BLE peripheral")
+        if (adapter.bluetoothLeAdvertiser == null) {
+            fail("BLE advertiser unavailable")
             return
         }
         server = context.getSystemService(BluetoothManager::class.java).openGattServer(context, callback)

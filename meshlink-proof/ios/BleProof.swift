@@ -68,8 +68,10 @@ final class BleProof: NSObject, ObservableObject {
         let sequenceBytes = (0..<4).map {
             UInt8(truncatingIfNeeded: sequence >> (24 - $0 * 8))
         }
-        let bytes = [UInt8](arrayLiteral: 0x4d, 0x4c, 1, 0) +
-            token + sequenceBytes + (0..<8).map { UInt8($0) }
+        var bytes: [UInt8] = [0x4d, 0x4c, 1, 0]
+        bytes.append(contentsOf: token)
+        bytes.append(contentsOf: sequenceBytes)
+        bytes.append(contentsOf: (0..<8).map { UInt8($0) })
         var reply = bytes
         reply[3] = 1
         for index in 12..<20 { reply[index] = UInt8(255 - (index - 12)) }
