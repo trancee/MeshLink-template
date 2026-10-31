@@ -142,7 +142,7 @@ if [[ "$need_proof" -eq 1 ]]; then
   format_tasks+=(":meshlink-proof:spotlessApply")
 fi
 
-gradle_cmd=(./gradlew --console=plain --configuration-cache --parallel)
+gradle_cmd=(./gradlew --console=plain --configuration-cache --parallel --rerun-tasks --no-build-cache)
 
 if [[ ${#format_tasks[@]} -gt 0 ]]; then
   echo "[pre-commit] Running formatter: ${format_tasks[*]}"

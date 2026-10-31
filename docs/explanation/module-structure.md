@@ -9,7 +9,7 @@ actually proves what.
 |---|---|---|
 | `meshlink` | The shipped library itself — the public API and its implementation. | JVM (host tests) + Android + iOS arm64 (device) |
 | `meshlink-reference` | Does the **public developer-facing API** work the way a real integrating app would use it? A sample/reference app that consumes only what a third-party developer could consume, with a real UI built in Kotlin Compose Multiplatform (use the `compose-multiplatform` skill when working on it). | Android + iOS targets |
-| `meshlink-proof` | Does the **internal runtime** actually behave correctly on real Android hardware — e.g. which crypto provider or fallback path gets selected on a given Android SDK tier, or real BLE advertising/scanning/GATT/L2CAP behavior? Needs low-level access to runtime internals that a public-API-only app shouldn't expose. | Real Android devices (see note below on emulators) |
+| `meshlink-proof` | Platform evidence before SDK implementation. Currently an isolated synthetic-byte GATT probe, not a production runtime or crypto test. | Android API 26+ application + separate iOS 15+ native app; physical devices for radio evidence |
 | `meshlink-benchmark` | Are throughput, latency, and memory within the recorded performance budget (Principle IV)? | JVM (smoke) + real-device fleet |
 
 ## Why `meshlink-reference` and `meshlink-proof` are kept separate
@@ -23,15 +23,13 @@ They validate different things and need different levels of access:
   skill before writing or reviewing any of it) exercised through Android
   and iOS test targets, and its scope should never grow to need anything
   beyond the public API.
-- `meshlink-proof` exists because JVM host tests cannot observe
-  real Android crypto-provider selection or hardware-backed capability
-  differences across SDK tiers — that only happens with a real Android
-  runtime. See
-  [crypto-design.md](../decisions/crypto/crypto-design.md)
-  for a concrete example of the kind of runtime-only behavior this module
-  exists to catch. It contains `android/` and `ios/` subdirectories for
-  platform-specific real-device validation, testing the same proof scenarios
-  on each platform.
+- `meshlink-proof` currently probes foreground discovery, subscription and
+  synthetic bidirectional bytes without depending on the shipped library.
+  Its Android app is in the standard `src/main/` source set; the separate
+  native Xcode app is under `ios/`. Host tests cover non-radio coordination
+  only. See [run the BLE spike](../how-to/run-ble-spike.md).
+  Runtime-internal and crypto-provider tests remain future work, not evidence
+  supplied by this probe.
 
 Folding `meshlink-proof` into `meshlink-reference` as an
 instrumented test source set was considered and rejected: it would force

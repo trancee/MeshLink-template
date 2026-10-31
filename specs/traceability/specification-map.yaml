@@ -7,6 +7,7 @@ cross_references:
     spec_section: "SPEC.md#1-vision--product-pillars"
     adrs: []
     code_files: []
+    implementation_status: complete
     description: "Product vision and six pillars (TOFU trust, two-layer encryption, proactive routing, reliable transfer, power-aware, cross-platform parity)"
 
   - spec_id: "architecture"
@@ -16,7 +17,8 @@ cross_references:
     code_files:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLink.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/MeshLinkEnvironment.kt"
-    description: "Module structure, source set organization, wire protocol reference standards"
+    implementation_status: partial
+    description: "Module structure, source set organization, wire protocol reference standards; MeshLink.kt has BCV scaffold, MeshLinkEnvironment.kt is live"
 
   - spec_id: "data-model"
     spec_section: "SPEC.md#3-core-data-models"
@@ -54,6 +56,7 @@ cross_references:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/util/BigEndianConversions.kt"
     specs:
       - "specs/codecs/models.yaml"
+    implementation_status: implemented
     description: "Core data models: PeerIdentity, internal SeqNo, Scoreboard, TransferSession, keys, MeshLinkVersion, and enums; routing candidates are specified separately"
 
   - spec_id: "discovery-identity"
@@ -73,12 +76,21 @@ cross_references:
     spec_section: "SPEC.md#5-trust-model-tofu"
     adrs:
       - "docs/decisions/crypto/crypto-design.md"
-    code_files: []
+      - "docs/decisions/crypto/identity-binding-and-fail-closed.md"
+      - "docs/decisions/crypto/key-rotation-propagation.md"
+      - "docs/decisions/crypto/noise-session-renewal.md"
+      - "docs/decisions/crypto/private-key-handling.md"
+      - "docs/decisions/crypto/replay-window.md"
+      - "docs/decisions/crypto/constant-time-policy.md"
+      - "docs/decisions/storage/persistence-strategy.md"
+    code_files:
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/util/ConstantTime.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/security/ReplayWindow.kt"
     specs:
       - "specs/codecs/enums.yaml"
       - "specs/protocol/state-machines.yaml"
     implementation_status: not_implemented
-    description: "TOFU trust flow, Noise XX for unpinned contact, Noise IK for pinned reconnect, key rotation, E2E handshake routing, session state machine"
+    description: "TOFU trust flow, Noise XX for unpinned contact, Noise IK for pinned reconnect, key rotation, E2E handshake routing, session state machine; ConstantTime and ReplayWindow primitives exist but Noise/crypto stack is not wired"
 
   - spec_id: "transport-layer"
     spec_section: "SPEC.md#6-transport-layer"
@@ -102,6 +114,8 @@ cross_references:
       - "docs/decisions/crypto/replay-window.md"
       - "docs/decisions/crypto/noise-session-renewal.md"
       - "docs/decisions/crypto/key-rotation-propagation.md"
+      - "docs/decisions/crypto/meshlink-crypto-dependency.md"
+      - "docs/decisions/model/error-hierarchy.md"
     code_files:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/util/ConstantTime.kt"
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/security/ReplayWindow.kt"
@@ -109,8 +123,8 @@ cross_references:
     specs:
       - "specs/codecs/enums.yaml"
       - "specs/protocol/state-machines.yaml"
-    implementation_status: not_implemented
-    description: "Crypto primitives (validated against Wycheproof), Noise XX/IK state machine, key rotation, E2E routing, fail-closed rules, Android constraints, key rotation propagation deadlines, error hierarchy"
+    implementation_status: partial
+    description: "Crypto primitives (validated against Wycheproof), Noise XX/IK state machine, key rotation, E2E routing, fail-closed rules, Android constraints, key rotation propagation deadlines, error hierarchy; ConstantTime/ReplayWindow/PayloadDecision primitives implemented, Noise/crypto stack not wired"
 
   - spec_id: "routing-layer"
     spec_section: "SPEC.md#8-routing-layer"
@@ -165,7 +179,8 @@ cross_references:
     specs:
       - "specs/codecs/enums.yaml"
       - "specs/catalogs/settings.yaml"
-    description: "Three power modes (HIGH/MEDIUM/LOW), regulatory region (EU clamping), grace periods, mode-driven parameters"
+    implementation_status: partial
+    description: "Three power modes (HIGH/MEDIUM/LOW), regulatory region (EU clamping), grace periods, mode-driven parameters; PowerMode enum implemented, behavior/clamping not yet implemented"
 
   - spec_id: "diagnostics-events"
     spec_section: "SPEC.md#11-diagnostics--events"
@@ -177,19 +192,22 @@ cross_references:
     specs:
       - "specs/catalogs/diagnostic-events.yaml"
       - "specs/codecs/enums.yaml"
-    description: "Peer events, connection states, internal PeerLifecycle, diagnostic event hierarchy, error model"
+    implementation_status: partial
+    description: "Peer events, connection states, internal PeerLifecycle, diagnostic event hierarchy, error model; DiagnosticEvent and DiagnosticCode models implemented, flow delivery not wired"
 
   - spec_id: "build-quality"
     spec_section: "SPEC.md#12-build--quality-constraints"
     adrs: []
     code_files:
       - "meshlink/build.gradle.kts"
+    implementation_status: implemented
     description: "Performance budgets (CI-enforced), code quality rules, platform minimums"
 
   - spec_id: "testing-verification"
     spec_section: "SPEC.md#13-testing--verification"
     adrs: []
     code_files: []
+    implementation_status: implemented
     description: "Test suite structure (unit/host/device/proof), iOS proof testing, XX/IK handshake testing, pinned-mismatch fail-closed testing, key rotation testing, virtual mesh harness, wire compatibility testing, acceptance criteria per layer"
 
   - spec_id: "configuration-model"
@@ -202,13 +220,54 @@ cross_references:
       - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/util/RequireSetting.kt"
     specs:
       - "specs/catalogs/settings.yaml"
-    description: "Configuration DSL (MeshLinkSettings, KeyRotationSettings, TransferSettings, RoutingSettings, DiagnosticsSettings); mandatory security invariants are not configurable"
+    implementation_status: partial
+    description: "Configuration DSL (MeshLinkSettings, KeyRotationSettings, TransferSettings, RoutingSettings, DiagnosticsSettings); mandatory security invariants are not configurable; DSL implemented, integration in MeshLink.kt not yet wired"
 
   - spec_id: "future-work"
     spec_section: "SPEC.md#15-future-work"
     adrs:
       - "docs/decisions/crypto/pq-hybrid-candidate-matrix.md"
+    implementation_status: not_implemented
     description: "PQ-hybrid key establishment, Noise IK for E2E layer, throughput-based link metrics, payload compression"
+
+  - spec_id: "wire-codec-reference"
+    spec_section: "SPEC.md#16-wire-codec-reference"
+    adrs:
+      - "docs/explanation/why-meshlink-wire-codec.md"
+    code_files:
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/wire/codec/FrameCodec.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/wire/codec/FrameReader.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/wire/codec/FrameWriter.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/wire/model/WireFrame.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/wire/model/Field.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/wire/model/FieldType.kt"
+      - "meshlink/src/commonMain/kotlin/ch/trancee/meshlink/wire/model/ByteOrder.kt"
+    specs:
+      - "specs/codecs/frames.yaml"
+      - "specs/codecs/enums.yaml"
+    implementation_status: implemented
+    description: "Custom pure-Kotlin MeshLink Wire Codec envelope (code/version/length LE/payload), FrameType codes, GATT service, metadata record, and bearer fragmentation (GATT/L2CAP)."
+
+  - spec_id: "implementation-status"
+    spec_section: "SPEC.md#17-implementation-status-summary"
+    adrs: []
+    code_files: []
+    implementation_status: complete
+    description: "Reconciled implementation status summary mapping each SPEC section to implemented/partial/not_implemented based on spec_anchors_in_code and source state."
+
+  - spec_id: "machine-readable-specs"
+    spec_section: "SPEC.md#18-machine-readable-specification-layout"
+    adrs: []
+    code_files: []
+    implementation_status: complete
+    description: "Catalog of all machine-readable spec files in specs/ and their ownership."
+
+  - spec_id: "traceability-index"
+    spec_section: "SPEC.md#19-traceability-index"
+    adrs: []
+    code_files: []
+    implementation_status: complete
+    description: "SPEC ↔ ADR ↔ code cross-reference table and SPEC-ANCHOR resolution index."
 
 adrs_by_area:
   crypto:
@@ -275,6 +334,16 @@ spec_anchors_in_code:
   - "constant-time" # ConstantTime.kt
   - "mesh-hash" # MeshHash.kt
   - "wire-frame" # WireFrame.kt, FrameType.kt, ByteOrder.kt, Field.kt, FrameReader.kt, FrameWriter.kt, FrameCodec.kt
+  - "wire-codec-core" # FrameCodec.kt, Field.kt, FieldType.kt, ByteOrder.kt — Wire Codec envelope in SPEC §3.14 / §16
+  - "wire-envelope" # FrameCodec.kt — Envelope format (code/version/length LE/payload) in SPEC §16.1
+  - "frame-type-codes" # Enums.kt (FrameType) — FrameType UByte codes in SPEC §16.2
+  - "bearer-framing-spec" # FrameReader.kt, FrameWriter.kt — GATT/L2CAP framing in SPEC §16.4
+  - "discovery-advertisement" # (planned) — Two-service-UUID advertisement in SPEC §4.1
+  - "diagnostic-event-catalog" # DiagnosticEvent.kt — Full 10-event catalog in SPEC §11.4
+  - "state-machine" # state-machines.yaml — State machine definitions in SPEC §3.5, §7.5, §11.2
+  - "link-quality-model" # Internal — LinkQuality routing metric in SPEC §3.8
+  - "meshlink-version" # MeshLinkVersion.kt — Semantic version in SPEC §3.10
+  - "settings-model" # MeshLinkSettings.kt — Configuration DSL in SPEC §14
 
 implementation_status:
   implemented:
@@ -287,6 +356,7 @@ implementation_status:
     - "All enums in Enums.kt"
     - "MeshLinkState"
     - "DiagnosticEvent sealed hierarchy"
+    - "DiagnosticCode constants (companion object)"
     - "PowerMode"
     - "TransferId"
     - "MessageId"
@@ -296,17 +366,23 @@ implementation_status:
     - "TransferKind"
     - "TrustRecord"
     - "MeshHash"
-    - "RoutingPolicy"
+    - "RoutingPolicy (configuration only)"
     - "KnownPeer"
-    - "MeshLinkEnvironment"
-    - "DiagnosticCode constants (companion object)"
+    - "MeshLinkEnvironment and JvmMeshLinkEnvironment"
     - "HandshakeKey"
     - "MessageHandle, TransferHandle, TransferSink, TransferSource types"
     - "TransferStatus, Message, Transfer data classes"
     - "Custom MeshLink Wire Codec (frames, enums, models, bounded reader/writer)"
+    - "ConstantTime primitives (4 functions)"
+    - "ReplayWindow (64-bit sliding bitmap)"
+    - "PayloadDecision (ACCEPTED/REJECTED)"
+    - "L2capState enum"
+    - "TransferOptions, TransferSource, TransferSink interfaces"
+    - "MeshLinkSettings and settings DSL builders"
+    - "JvmSecureStorage, JvmMonotonicClock, JvmRadioLease"
   not_implemented:
-    - "MeshLink public API and lifecycle"
-    - "KnownPeer snapshots and trust commands"
+    - "MeshLink public API and lifecycle (start/pause/resume/stop/setPowerMode — TODO scaffolds)"
+    - "KnownPeer snapshots and trust commands (revokeTrust/resetTrust — TODO)"
     - "Message and transfer functional integration in MeshLink.kt (handles, sinks, sources not wired)"
     - "Diagnostic flow delivery"
     - "Persisted source-owned sequence allocator (TransferId allocation strategy) - not yet wired into MeshLink lifecycle"
@@ -317,13 +393,27 @@ implementation_status:
     - "RouteAdvertisementPlanner"
     - "TransferCoordinator"
     - "Noise handshake implementations (XX and IK)"
-    - "CryptoProvider (X25519, Ed25519, ChaCha20-Poly1305, HKDF, HMAC)"
+    - "CryptoProvider (X25519, Ed25519, ChaCha20-Poly1305, HKDF, HMAC) — meshlink-crypto is an external dependency"
     - "BLE transport layer (GATT/L2CAP)"
     - "KeyRotationProof handling, retained continuity chain, and rotation-recovery XX"
     - "TrustStore"
     - "PeerStateCoordinator"
     - "MeshLinkSettings DSL integration in MeshLink.kt"
     - "Virtual mesh harness"
+    - "Power mode behavior (scan/adv/conn intervals, EU clamping — enum only, no behavior)"
+    - "Noise session renewal (state machine specified but not wired)"
+    - "Key rotation propagation (dual-signed proof specified but not implemented)"
+    - "Discovery advertisement (two-service-UUID format, peerHint rotation)"
+    - "GATT service and metadata resolution (enum/model only)"
+    - "Bearer framing GATT/L2CAP (codec exists, not wired to transport)"
+  partial:
+    - "TransferLayer: TransferSession, Scoreboard, TransferResult, TransferId, MessageId models implemented; TransferCoordinator not yet implemented"
+    - "SecurityLayer: ConstantTime, ReplayWindow, PayloadDecision primitives implemented; Noise/crypto stack not wired"
+    - "Diagnostics: DiagnosticEvent and DiagnosticCode models implemented; flow delivery not wired"
+    - "PowerManagement: PowerMode enum implemented; mode-driven behavior and EU clamping not wired"
+    - "ConfigurationModel: MeshLinkSettings DSL implemented; integration in MeshLink.kt not wired"
+    - "Architecture: MeshLink.kt scaffold exists; lifecycle/mesh networking not implemented"
+    - "WireCodec: codec primitives implemented; frame content generation/parsing not yet wired to protocol"
 
 test_files_by_layer:
   data_model:

@@ -1,0 +1,4 @@
+<resources>
+    <string name="proof_warning">Foreground BLE proof: SYNTHETIC, UNENCRYPTED BYTES ONLY.\nStart peripheral on one phone, central on the other. After READY, send from central. Restart both roles between runs.</string>
+    <string name="proof_status">%1$s\nSubmitted: %2$d  Verified received: %3$d\nRun: %4$d ms  Exchange: %5$d ms\n%6$s</string>
+</resources>

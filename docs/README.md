@@ -81,6 +81,7 @@ Implementation must conform to authoritative sources; a discrepancy is a defect.
 
 ## Quick Links
 
+- **Design Review (Proposal)**: [Android 8/iOS 15 BLE mesh assessment](explanation/template-design-review.md)
 - **Full Specification**: [`SPEC.md`](../SPEC.md)
 - **Machine-Readable Specs**: [`specs/`](../specs/)
 - **Constitution (Binding Rules)**: [`CONSTITUTION.md`](../CONSTITUTION.md)

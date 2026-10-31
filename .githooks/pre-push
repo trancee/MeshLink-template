@@ -213,7 +213,7 @@ fi
 echo "[pre-push] Scanning repository history for secrets"
 gitleaks detect --source . --redact -v --config .gitleaks.toml
 
-gradle_cmd=(./gradlew --console=plain --configuration-cache --parallel)
+gradle_cmd=(./gradlew --console=plain --configuration-cache --parallel --rerun-tasks --no-build-cache)
 
 if [[ "$need_spec_validation" -eq 1 ]]; then
   echo "[pre-push] Running spec validation..."

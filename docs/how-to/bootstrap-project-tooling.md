@@ -47,6 +47,9 @@ See [Quality Gates](../../CONSTITUTION.md#quality-gates) for what's actually
 enforced, and `.githooks/pre-commit` / `.githooks/pre-push` for exactly
 where each tool is invoked.
 
+Both hooks pass `--rerun-tasks --no-build-cache` to Gradle so their gates
+execute fresh tasks rather than accepting cached build outputs.
+
 ## If your package manager already has these
 
 Prefer your OS package manager if it already ships current versions —

@@ -1,9 +1,7 @@
-// meshlink-proof is the real-device BLE proof harness. Per this project's
-// BLE-testing rules (BLE does not work on emulators/simulators), it is
-// Android-only and is only ever exercised on real hardware — never as
-// emulator coverage. See docs/explanation/module-structure.md.
+// Standalone synthetic-byte probe; no production MeshLink runtime or crypto.
 plugins {
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.power.assert)
     alias(libs.plugins.detekt)
     alias(libs.plugins.spotless)
 }
@@ -13,8 +11,11 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        minSdk = 21
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        applicationId = "ch.trancee.meshlink.proof"
+        minSdk = 26
+        targetSdk = 37
+        versionCode = 1
+        versionName = "0.1"
     }
 
     compileOptions {
@@ -26,10 +27,11 @@ android {
 kotlin { jvmToolchain(21) }
 
 dependencies {
-    implementation(project(":meshlink"))
-    androidTestImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.androidx.test.runner)
+    compileOnly(libs.androidx.annotation)
+    testImplementation(kotlin("test-junit"))
 }
+
+powerAssert { functions = listOf("kotlin.test.assertTrue", "kotlin.test.assertEquals") }
 
 detekt { buildUponDefaultConfig = true }
 

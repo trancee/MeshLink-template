@@ -68,7 +68,7 @@ REQUIRED_SECTIONS=(
     "11. Diagnostics"
     "12. Build"
     "13. Testing"
-    "14. Settings"
+    "14. Configuration Model"
     "15. Future Work"
 )
 
